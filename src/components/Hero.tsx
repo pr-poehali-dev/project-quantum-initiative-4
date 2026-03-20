@@ -15,6 +15,7 @@ const CAR_CLASSES = [
   { id: "standard", label: "Стандарт", emoji: "🚕", sub: "-" },
   { id: "comfort",  label: "Комфорт",  emoji: "🚗", sub: "-" },
   { id: "minivan",  label: "Минивэн",  emoji: "🚐", sub: "-" },
+  { id: "business", label: "Бизнес",   emoji: "🚙", sub: "-" },
 ];
 
 function CityInput({

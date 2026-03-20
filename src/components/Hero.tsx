@@ -194,6 +194,7 @@ interface FormProps {
   phone: string; handlePhoneChange: (v: string) => void;
   carClass: string; setCarClass: (v: string) => void;
   payment: string; setPayment: (v: string) => void;
+  stops: string[]; addStop: () => void; updateStop: (i: number, v: string) => void; removeStop: (i: number) => void;
   errors: Record<string, string>;
   handleSubmit: (e: React.FormEvent) => void;
   defaultDate: string;
@@ -230,6 +231,30 @@ function FormContent(p: FormProps) {
         <CityInput placeholder="Откуда?" value={p.from} onChange={p.setFrom} />
         {p.errors.from && <p className="text-red-400 text-xs mt-1 pl-4">{p.errors.from}</p>}
       </div>
+
+      {/* Промежуточные адреса */}
+      {p.stops.map((stop, i) => (
+        <div key={i} className="relative">
+          <CityInput placeholder="Промежуточный адрес" value={stop} onChange={(v) => p.updateStop(i, v)} />
+          <button
+            type="button"
+            onClick={() => p.removeStop(i)}
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition"
+          >
+            <Icon name="X" size={16} />
+          </button>
+        </div>
+      ))}
+
+      {/* Добавить промежуточный */}
+      <button
+        type="button"
+        onClick={p.addStop}
+        className="flex items-center gap-2 text-gray-400 hover:text-white text-sm transition pl-2"
+      >
+        <span className="w-5 h-5 rounded-full border border-gray-500 flex items-center justify-center text-gray-400 text-base leading-none">+</span>
+        промежуточный адрес
+      </button>
 
       {/* Куда */}
       <div>
@@ -377,6 +402,10 @@ export default function Hero() {
   const [time, setTime] = useState("");
   const [carClass, setCarClass] = useState("standard");
   const [payment, setPayment] = useState("transfer");
+  const [stops, setStops] = useState<string[]>([]);
+  const addStop = () => setStops([...stops, ""]);
+  const updateStop = (i: number, v: string) => setStops(stops.map((s, idx) => idx === i ? v : s));
+  const removeStop = (i: number) => setStops(stops.filter((_, idx) => idx !== i));
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const today = new Date();
@@ -423,6 +452,7 @@ export default function Hero() {
     name, setName, phone, handlePhoneChange,
     carClass, setCarClass,
     payment, setPayment,
+    stops, addStop, updateStop, removeStop,
     errors, handleSubmit,
     defaultDate, defaultTime,
   };

@@ -185,21 +185,47 @@ export default function Header() {
             ))}
           </nav>
 
-          {/* Контакты внизу */}
-          <div className="px-4 pb-10 flex flex-col gap-3">
-            <a href={PHONE_HREF} className="text-white font-bold text-lg">{PHONE}</a>
-            <div className="flex gap-4">
+          {/* Подвал внутри бургер-панели */}
+          <div className="px-4 pb-10 flex flex-col gap-4 border-t border-white/10 pt-5 overflow-y-auto">
+            <div className="flex flex-col gap-2">
+              <a href={PHONE_HREF} className="flex items-center gap-2 text-white font-bold text-base">
+                <Icon name="Phone" size={16} className="text-[#c8d44a]" />
+                {PHONE}
+              </a>
+              <a href="mailto:help@ug-transfer.online" className="flex items-center gap-2 text-white/60 text-sm">
+                <Icon name="Mail" size={16} className="text-[#c8d44a]" />
+                help@ug-transfer.online
+              </a>
+              <div className="flex items-center gap-2 text-white/60 text-sm">
+                <Icon name="Clock" size={16} className="text-[#c8d44a]" />
+                Работаем 24/7
+              </div>
+            </div>
+            <div className="flex gap-3">
               <a href={WHATSAPP_HREF} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2 text-white/70 text-sm">
-                <Icon name="MessageCircle" size={20} className="text-green-400" />
+                className="flex items-center gap-2 bg-white/10 rounded-full px-4 py-2 text-white text-sm">
+                <Icon name="MessageCircle" size={16} className="text-green-400" />
                 WhatsApp
               </a>
               <a href={TELEGRAM_HREF} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2 text-white/70 text-sm">
-                <Icon name="Send" size={20} className="text-blue-400" />
+                className="flex items-center gap-2 bg-white/10 rounded-full px-4 py-2 text-white text-sm">
+                <Icon name="Send" size={16} className="text-blue-400" />
                 Telegram
               </a>
             </div>
+            <div>
+              <p className="text-white/40 text-xs uppercase tracking-wide mb-2">Популярные маршруты</p>
+              <div className="flex flex-col gap-1">
+                {["Москва → Ростов-на-Дону", "Ясиноватая → Анапа", "Москва → Цимлянск"].map((r) => (
+                  <span key={r} className="text-white/60 text-sm">{r}</span>
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-4 flex-wrap">
+              <a href="/offer" className="text-white/30 text-xs hover:text-white/60 transition-colors">Публичная оферта</a>
+              <a href="/privacy" className="text-white/30 text-xs hover:text-white/60 transition-colors">Политика конфиденциальности</a>
+            </div>
+            <p className="text-white/20 text-xs">© {new Date().getFullYear()} УГТрансфер. Все права защищены.</p>
           </div>
         </div>
       )}

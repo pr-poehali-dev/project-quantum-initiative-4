@@ -136,9 +136,9 @@ export default function Hero() {
       </motion.div>
 
       {/* Content */}
-      <div className="relative z-10 w-full max-w-6xl mx-auto px-4 pt-24 pb-12">
-        {/* Hero text */}
-        <div className="text-center mb-8">
+      <div className="relative z-10 w-full max-w-6xl mx-auto px-4 pt-16 pb-6">
+        {/* Hero text — скрыто на мобильном */}
+        <div className="hidden sm:block text-center mb-8">
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white leading-tight mb-3">
             Такси межгород<br />
             <span className="text-brand-yellow">по России</span>
@@ -153,8 +153,15 @@ export default function Hero() {
           </div>
         </div>
 
+        {/* Заголовок только на мобильном — компактный */}
+        <div className="sm:hidden text-center mb-4">
+          <h1 className="text-2xl font-extrabold text-white leading-tight">
+            Такси межгород <span className="text-brand-yellow">по России</span>
+          </h1>
+        </div>
+
         {/* Order form — dark card */}
-        <div id="order" className="bg-[#1a1a1a] rounded-3xl shadow-2xl p-5 sm:p-6 max-w-lg mx-auto">
+        <div id="order" className="bg-[#1a1a1a] rounded-3xl shadow-2xl p-4 sm:p-6 max-w-lg mx-auto">
           <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-3">
 
             {/* Откуда */}
@@ -252,23 +259,23 @@ export default function Hero() {
             <div className="flex items-center gap-3 mt-1">
               <button
                 type="button"
-                className="w-12 h-12 flex items-center justify-center bg-[#2a2a2a] rounded-full shrink-0"
+                className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-[#2a2a2a] rounded-full shrink-0"
                 title="Оплата"
               >
-                <Icon name="Wallet" size={20} className="text-gray-400" />
+                <Icon name="Wallet" size={18} className="text-gray-400" />
               </button>
               <button
                 type="submit"
-                className="flex-1 bg-[#9aab2a] hover:bg-[#b0c430] text-black font-bold text-base py-4 rounded-full transition-colors duration-200 shadow-lg"
+                className="flex-1 bg-[#9aab2a] hover:bg-[#b0c430] text-black font-bold text-base py-3 sm:py-4 rounded-full transition-colors duration-200 shadow-lg"
               >
                 Отправить
               </button>
               <button
                 type="button"
-                className="w-12 h-12 flex items-center justify-center bg-[#2a2a2a] rounded-full shrink-0"
+                className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-[#2a2a2a] rounded-full shrink-0"
                 title="Фильтры"
               >
-                <Icon name="SlidersHorizontal" size={20} className="text-gray-400" />
+                <Icon name="SlidersHorizontal" size={18} className="text-gray-400" />
               </button>
             </div>
 

@@ -293,7 +293,7 @@ function FormContent(p: FormProps) {
       </div>
 
       {/* Класс авто */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto scrollbar-hide">
         <div className="flex gap-2 min-w-max">
           {CAR_CLASSES.map((cls) => (
             <button

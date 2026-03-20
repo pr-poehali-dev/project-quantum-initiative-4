@@ -1,0 +1,269 @@
+import { useState } from "react";
+import Icon from "@/components/ui/icon";
+import { ExtrasState, ExtrasSheet, PaymentSheet } from "@/components/OrderFormSheets";
+
+export const CITIES = [
+  "Москва", "Ростов-на-Дону", "Краснодар", "Анапа", "Новороссийск",
+  "Сочи", "Ставрополь", "Воронеж", "Донецк", "Ясиноватая",
+  "Горловка", "Макеевка", "Луганск", "Белгород", "Курск",
+  "Харьков", "Запорожье", "Геленджик", "Темрюк", "Тамань",
+];
+
+export const CAR_CLASSES = [
+  { id: "urgent",   label: "Срочный",  emoji: "🚖", sub: "-" },
+  { id: "standard", label: "Стандарт", emoji: "🚕", sub: "-" },
+  { id: "comfort",  label: "Комфорт",  emoji: "🚗", sub: "-" },
+  { id: "minivan",  label: "Минивэн",  emoji: "🚐", sub: "-" },
+  { id: "business", label: "Бизнес",   emoji: "🚙", sub: "-" },
+];
+
+export interface FormProps {
+  from: string; setFrom: (v: string) => void;
+  to: string; setTo: (v: string) => void;
+  date: string; setDate: (v: string) => void;
+  time: string; setTime: (v: string) => void;
+  name: string; setName: (v: string) => void;
+  phone: string; handlePhoneChange: (v: string) => void;
+  carClass: string; setCarClass: (v: string) => void;
+  payment: string; setPayment: (v: string) => void;
+  stops: string[]; addStop: () => void; updateStop: (i: number, v: string) => void; removeStop: (i: number) => void;
+  errors: Record<string, string>;
+  handleSubmit: (e: React.FormEvent) => void;
+  defaultDate: string;
+  defaultTime: string;
+}
+
+function CityInput({
+  placeholder,
+  value,
+  onChange,
+}: {
+  placeholder: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [focused, setFocused] = useState(false);
+
+  const handleInput = (v: string) => {
+    onChange(v);
+    if (v.length >= 2) {
+      setSuggestions(
+        CITIES.filter((c) => c.toLowerCase().startsWith(v.toLowerCase())).slice(0, 6)
+      );
+    } else {
+      setSuggestions([]);
+    }
+  };
+
+  return (
+    <div className="relative">
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => handleInput(e.target.value)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setTimeout(() => setFocused(false), 150)}
+        placeholder={placeholder}
+        className="w-full px-5 py-3 bg-[#2a2a2a] rounded-full text-white placeholder-gray-400 text-base focus:outline-none focus:ring-2 focus:ring-[#9aab2a]/60 transition"
+      />
+      {focused && suggestions.length > 0 && (
+        <ul className="absolute z-50 top-full left-0 right-0 mt-1 bg-[#2a2a2a] border border-white/10 rounded-2xl shadow-xl overflow-hidden">
+          {suggestions.map((city) => (
+            <li
+              key={city}
+              onMouseDown={() => { onChange(city); setSuggestions([]); }}
+              className="px-5 py-3 text-sm text-gray-200 hover:bg-white/10 cursor-pointer"
+            >
+              {city}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+export function FormContent(p: FormProps) {
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const [extrasOpen, setExtrasOpen] = useState(false);
+  const [extras, setExtras] = useState<ExtrasState>({
+    childSeat: false, pet: false, booster: false,
+    passengers: 2, luggage: 3, comment: "",
+  });
+
+  return (
+    <div className="relative">
+      {paymentOpen && (
+        <PaymentSheet
+          onClose={() => setPaymentOpen(false)}
+          selected={p.payment}
+          setSelected={p.setPayment}
+        />
+      )}
+      {extrasOpen && (
+        <ExtrasSheet
+          onClose={() => setExtrasOpen(false)}
+          extras={extras}
+          setExtras={setExtras}
+        />
+      )}
+      <form onSubmit={p.handleSubmit} noValidate className="flex flex-col gap-2">
+        {/* Откуда */}
+        <div>
+          <CityInput placeholder="Откуда?" value={p.from} onChange={p.setFrom} />
+          {p.errors.from && <p className="text-red-400 text-xs mt-1 pl-4">{p.errors.from}</p>}
+        </div>
+
+        {/* Промежуточные адреса */}
+        {p.stops.map((stop, i) => (
+          <div key={i} className="relative">
+            <CityInput placeholder="Промежуточный адрес" value={stop} onChange={(v) => p.updateStop(i, v)} />
+            <button
+              type="button"
+              onClick={() => p.removeStop(i)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition"
+            >
+              <Icon name="X" size={16} />
+            </button>
+          </div>
+        ))}
+
+        {/* Добавить промежуточный */}
+        <button
+          type="button"
+          onClick={p.addStop}
+          className="flex items-center gap-2 text-gray-400 hover:text-white text-sm transition pl-2"
+        >
+          <span className="w-5 h-5 rounded-full border border-gray-500 flex items-center justify-center text-gray-400 text-base leading-none">+</span>
+          промежуточный адрес
+        </button>
+
+        {/* Куда */}
+        <div>
+          <CityInput placeholder="Куда?" value={p.to} onChange={p.setTo} />
+          {p.errors.to && <p className="text-red-400 text-xs mt-1 pl-4">{p.errors.to}</p>}
+        </div>
+
+        {/* Дата + Время */}
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <div className="bg-[#2a2a2a] rounded-full px-5 py-2 flex flex-col">
+              <span className="text-gray-400 text-xs">Дата поездки</span>
+              <input
+                type="date"
+                value={p.date}
+                onChange={(e) => p.setDate(e.target.value)}
+                min={new Date().toISOString().split("T")[0]}
+                placeholder={p.defaultDate}
+                className="bg-transparent text-white text-sm font-semibold focus:outline-none w-full mt-0.5 [color-scheme:dark]"
+              />
+            </div>
+            {p.errors.date && <p className="text-red-400 text-xs mt-1 pl-4">{p.errors.date}</p>}
+          </div>
+          <div>
+            <div className="bg-[#2a2a2a] rounded-full px-5 py-2 flex flex-col">
+              <span className="text-gray-400 text-xs">Во сколько?</span>
+              <input
+                type="time"
+                value={p.time}
+                onChange={(e) => p.setTime(e.target.value)}
+                placeholder={p.defaultTime}
+                className="bg-transparent text-white text-sm font-semibold focus:outline-none w-full mt-0.5 [color-scheme:dark]"
+              />
+            </div>
+            {p.errors.time && <p className="text-red-400 text-xs mt-1 pl-4">{p.errors.time}</p>}
+          </div>
+        </div>
+
+        {/* Имя + Телефон */}
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <input
+              type="text"
+              value={p.name}
+              onChange={(e) => p.setName(e.target.value)}
+              placeholder="Ваше имя"
+              className="w-full px-5 py-3 bg-[#2a2a2a] rounded-full text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#9aab2a]/60 transition"
+            />
+            {p.errors.name && <p className="text-red-400 text-xs mt-1 pl-4">{p.errors.name}</p>}
+          </div>
+          <div>
+            <input
+              type="tel"
+              value={p.phone}
+              onChange={(e) => p.handlePhoneChange(e.target.value)}
+              placeholder="Номер телефона"
+              className="w-full px-5 py-3 bg-[#2a2a2a] rounded-full text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#9aab2a]/60 transition"
+            />
+            {p.errors.phone && <p className="text-red-400 text-xs mt-1 pl-4">{p.errors.phone}</p>}
+          </div>
+        </div>
+
+        {/* Класс авто */}
+        <div className="overflow-x-auto scrollbar-hide">
+          <div className="flex gap-2 min-w-max">
+            {CAR_CLASSES.map((cls) => (
+              <button
+                key={cls.id}
+                type="button"
+                onClick={() => p.setCarClass(cls.id)}
+                className={`flex flex-col items-center gap-0.5 px-3 py-2 rounded-2xl transition-all min-w-[72px] ${
+                  p.carClass === cls.id
+                    ? "bg-[#3a3a2a] border-2 border-[#9aab2a]"
+                    : "bg-[#2a2a2a] border-2 border-transparent"
+                }`}
+              >
+                <span className="text-xl">{cls.emoji}</span>
+                <span className={`text-xs font-semibold ${p.carClass === cls.id ? "text-[#c8d44a]" : "text-gray-300"}`}>
+                  {cls.label}
+                </span>
+                <span className="text-[10px] text-gray-500">{cls.sub}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Submit */}
+        <div className="flex items-center gap-2 mt-1">
+          <button
+            type="button"
+            onClick={() => setPaymentOpen(true)}
+            className="w-11 h-11 flex items-center justify-center bg-[#2a2a2a] rounded-full shrink-0"
+            title="Способ оплаты"
+          >
+            <Icon name="Wallet" size={18} className="text-[#c8d44a]" />
+          </button>
+          <button
+            type="submit"
+            className="flex-1 bg-[#9aab2a] hover:bg-[#b0c430] text-black font-bold text-base py-3 rounded-full transition-colors duration-200 shadow-lg"
+          >
+            Отправить
+          </button>
+          <button
+            type="button"
+            onClick={() => setExtrasOpen(true)}
+            className="w-11 h-11 flex items-center justify-center bg-[#2a2a2a] rounded-full shrink-0"
+            title="Доп. услуги"
+          >
+            <Icon name="SlidersHorizontal" size={18} className="text-[#c8d44a]" />
+          </button>
+        </div>
+
+        {/* Agreement */}
+        <div className="flex items-start gap-2">
+          <input
+            type="checkbox"
+            id="agreement"
+            required
+            className="mt-0.5 w-4 h-4 accent-[#9aab2a] shrink-0"
+          />
+          <label htmlFor="agreement" className="text-xs text-gray-500 leading-snug">
+            Нажимая кнопку, я соглашаюсь с{" "}
+            <a href="/privacy" className="underline hover:text-gray-300">политикой обработки персональных данных</a>
+          </label>
+        </div>
+      </form>
+    </div>
+  );
+}

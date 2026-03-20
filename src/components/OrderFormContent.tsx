@@ -37,13 +37,16 @@ function CityInput({
   placeholder,
   value,
   onChange,
+  showGeo,
 }: {
   placeholder: string;
   value: string;
   onChange: (v: string) => void;
+  showGeo?: boolean;
 }) {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [focused, setFocused] = useState(false);
+  const [geoLoading, setGeoLoading] = useState(false);
 
   const handleInput = (v: string) => {
     onChange(v);
@@ -56,6 +59,31 @@ function CityInput({
     }
   };
 
+  const handleGeo = () => {
+    if (!navigator.geolocation) return;
+    setGeoLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async ({ coords }) => {
+        try {
+          const res = await fetch(
+            `https://geocode-maps.yandex.ru/1.x/?apikey=40d1649f-0493-4b70-98ba-98533de7710b&geocode=${coords.longitude},${coords.latitude}&results=1&format=json&lang=ru_RU`
+          );
+          const data = await res.json();
+          const address =
+            data?.response?.GeoObjectCollection?.featureMember?.[0]?.GeoObject
+              ?.metaDataProperty?.GeocoderMetaData?.text || "";
+          if (address) onChange(address);
+        } catch {
+          // ignore
+        } finally {
+          setGeoLoading(false);
+        }
+      },
+      () => setGeoLoading(false),
+      { timeout: 8000 }
+    );
+  };
+
   return (
     <div className="relative">
       <input
@@ -65,8 +93,23 @@ function CityInput({
         onFocus={() => setFocused(true)}
         onBlur={() => setTimeout(() => setFocused(false), 150)}
         placeholder={placeholder}
-        className="w-full px-5 py-3 bg-[#2a2a2a] rounded-full text-white placeholder-gray-400 text-base focus:outline-none focus:ring-2 focus:ring-[#9aab2a]/60 transition"
+        className={`w-full px-5 py-3 bg-[#2a2a2a] rounded-full text-white placeholder-gray-400 text-base focus:outline-none focus:ring-2 focus:ring-[#9aab2a]/60 transition ${showGeo ? "pr-12" : ""}`}
       />
+      {showGeo && (
+        <button
+          type="button"
+          onClick={handleGeo}
+          disabled={geoLoading}
+          className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-white rounded-full shadow-md hover:bg-gray-100 transition active:scale-95"
+          title="Определить моё местоположение"
+        >
+          {geoLoading ? (
+            <span className="w-4 h-4 border-2 border-gray-400 border-t-[#9aab2a] rounded-full animate-spin block" />
+          ) : (
+            <Icon name="Navigation" size={16} className="text-gray-700" />
+          )}
+        </button>
+      )}
       {focused && suggestions.length > 0 && (
         <ul className="absolute z-50 top-full left-0 right-0 mt-1 bg-[#2a2a2a] border border-white/10 rounded-2xl shadow-xl overflow-hidden">
           {suggestions.map((city) => (
@@ -111,7 +154,7 @@ export function FormContent(p: FormProps) {
       <form onSubmit={p.handleSubmit} noValidate className="flex flex-col gap-2">
         {/* Откуда */}
         <div>
-          <CityInput placeholder="Откуда?" value={p.from} onChange={p.setFrom} />
+          <CityInput placeholder="Откуда?" value={p.from} onChange={p.setFrom} showGeo />
           {p.errors.from && <p className="text-red-400 text-xs mt-1 pl-4">{p.errors.from}</p>}
         </div>
 

@@ -63,11 +63,9 @@ export default function Footer() {
             <h4 className="font-semibold text-sm uppercase tracking-wide text-white/50 mb-4">Популярные маршруты</h4>
             <ul className="space-y-2">
               {[
-                "Москва → Ростов",
-                "Ростов → Краснодар",
+                "Москва → Ростов-на-Дону",
                 "Ясиноватая → Анапа",
-                "Донецк → Сочи",
-                "Луганск → Москва",
+                "Москва → Цимлянск",
               ].map((r) => (
                 <li key={r}>
                   <Link to="/routes" className="text-white/70 hover:text-white text-sm transition-colors">

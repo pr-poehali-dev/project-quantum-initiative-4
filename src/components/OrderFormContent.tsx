@@ -184,7 +184,7 @@ export function FormContent(p: FormProps) {
 
         {/* Куда */}
         <div>
-          <CityInput placeholder="Куда?" value={p.to} onChange={p.setTo} />
+          <CityInput placeholder="Куда?" value={p.to} onChange={p.setTo} showGeo />
           {p.errors.to && <p className="text-red-400 text-xs mt-1 pl-4">{p.errors.to}</p>}
         </div>
 

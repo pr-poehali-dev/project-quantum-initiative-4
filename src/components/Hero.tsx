@@ -161,12 +161,17 @@ export default function Hero() {
         {/* Hero text */}
         <div className="text-center mb-8">
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white leading-tight mb-3">
-            Межгородской трансфер<br />
-            <span className="text-brand-yellow">Юг России и Донбасс</span>
+            Такси межгород<br />
+            <span className="text-brand-yellow">по России</span>
           </h1>
-          <p className="text-white/80 text-base sm:text-lg max-w-xl mx-auto">
-            Комфортные поездки по всему югу России. Профессиональные водители, фиксированные цены.
+          <p className="text-white/80 text-base sm:text-lg max-w-xl mx-auto mb-4">
+            Комфортные трансферы от двери до двери. Фиксированная цена, подача 24/7.
           </p>
+          <div className="flex flex-wrap justify-center gap-3 text-sm text-white/90">
+            <span className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-full">✅ Фиксированная цена</span>
+            <span className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-full">✅ Подача 24/7</span>
+            <span className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-full">✅ Детские кресла бесплатно</span>
+          </div>
         </div>
 
         {/* Order form card */}
@@ -358,9 +363,26 @@ export default function Hero() {
                 type="submit"
                 className="w-full sm:w-auto bg-brand-yellow hover:bg-yellow-400 text-brand-dark font-bold text-base px-8 py-3 rounded-xl transition-colors duration-200 whitespace-nowrap shadow-lg"
               >
-                Заказать →
+                Заказать трансфер
               </button>
             </div>
+
+            {/* Agreement */}
+            <div className="mt-3 flex items-start gap-2">
+              <input
+                type="checkbox"
+                id="agreement"
+                required
+                className="mt-0.5 w-4 h-4 accent-brand-blue shrink-0"
+              />
+              <label htmlFor="agreement" className="text-xs text-gray-400 leading-snug">
+                Нажимая кнопку, я соглашаюсь с{" "}
+                <a href="/privacy" className="underline hover:text-gray-600">политикой обработки персональных данных</a>
+              </label>
+            </div>
+            <p className="text-xs text-gray-400 text-center mt-2">
+              📞 Или звоните: <a href="tel:+79956141414" className="font-semibold text-brand-blue">+7 (995) 614-14-14</a>
+            </p>
           </form>
         </div>
       </div>

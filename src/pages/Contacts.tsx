@@ -5,11 +5,11 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Icon from "@/components/ui/icon";
 
-const PHONE = "+7 (900) 000-00-00";
-const PHONE_HREF = "tel:+79000000000";
+const PHONE = "+7 (995) 614-14-14";
+const PHONE_HREF = "tel:+79956141414";
 const EMAIL = "info@ug-transfer.ru";
-const WHATSAPP_HREF = "https://wa.me/79000000000";
-const TELEGRAM_HREF = "https://t.me/transfer_service";
+const WHATSAPP_HREF = "https://wa.me/79956141414";
+const TELEGRAM_HREF = "https://t.me/ug_transfer_online";
 
 const CONTACTS = [
   {

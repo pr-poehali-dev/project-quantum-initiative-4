@@ -1,11 +1,11 @@
 import { Link } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 
-const PHONE = "+7 (900) 000-00-00";
-const PHONE_HREF = "tel:+79000000000";
+const PHONE = "+7 (995) 614-14-14";
+const PHONE_HREF = "tel:+79956141414";
 const EMAIL = "info@ug-transfer.ru";
-const WHATSAPP_HREF = "https://wa.me/79000000000";
-const TELEGRAM_HREF = "https://t.me/transfer_service";
+const WHATSAPP_HREF = "https://wa.me/79956141414";
+const TELEGRAM_HREF = "https://t.me/ug_transfer_online";
 
 export default function Footer() {
   const year = new Date().getFullYear();
@@ -21,7 +21,7 @@ export default function Footer() {
                 <Icon name="Car" size={18} className="text-white" />
               </div>
               <span className="font-bold text-lg">
-                УГ<span className="text-brand-yellow">Трансфер</span>
+                Юг-<span className="text-brand-yellow">Трансфер</span>
               </span>
             </div>
             <p className="text-white/60 text-sm leading-relaxed mb-4">

@@ -9,10 +9,10 @@ const NAV_LINKS = [
   { label: "Контакты", href: "/contacts" },
 ];
 
-const PHONE = "+7 (900) 000-00-00";
-const PHONE_HREF = "tel:+79000000000";
-const WHATSAPP_HREF = "https://wa.me/79000000000";
-const TELEGRAM_HREF = "https://t.me/transfer_service";
+const PHONE = "+7 (995) 614-14-14";
+const PHONE_HREF = "tel:+79956141414";
+const WHATSAPP_HREF = "https://wa.me/79956141414";
+const TELEGRAM_HREF = "https://t.me/ug_transfer_online";
 
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
@@ -46,7 +46,7 @@ export default function Header() {
               scrolled ? "text-brand-dark" : "text-white"
             }`}
           >
-            УГ<span className="text-brand-yellow">Трансфер</span>
+            Юг-<span className="text-brand-yellow">Трансфер</span>
           </span>
         </Link>
 

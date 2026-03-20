@@ -68,6 +68,54 @@ function CityInput({
   );
 }
 
+const PAYMENT_METHODS = [
+  { id: "cash",     label: "Наличные" },
+  { id: "transfer", label: "Перевод" },
+  { id: "invoice",  label: "По номеру счета" },
+];
+
+function PaymentSheet({ onClose, selected, setSelected }: {
+  onClose: () => void;
+  selected: string;
+  setSelected: (v: string) => void;
+}) {
+  return (
+    <div className="absolute inset-0 z-50 bg-[#1a1a1a] rounded-t-3xl flex flex-col">
+      <div className="flex items-center gap-3 px-4 pt-5 pb-4">
+        <button onClick={onClose} className="text-white flex items-center gap-2 text-base font-medium">
+          <Icon name="ArrowLeft" size={22} className="text-white" />
+          Назад
+        </button>
+      </div>
+      <div className="flex-1 px-4">
+        {PAYMENT_METHODS.map((m, i) => (
+          <div key={m.id}>
+            <div className="flex items-center justify-between py-5">
+              <span className="text-white text-xl">{m.label}</span>
+              <button
+                type="button"
+                onClick={() => setSelected(m.id)}
+                className={`relative w-14 h-8 rounded-full transition-colors duration-200 ${
+                  selected === m.id ? "bg-[#2a2a2a]" : "bg-[#3a3a3a]"
+                }`}
+              >
+                <span
+                  className={`absolute top-1 w-6 h-6 rounded-full transition-all duration-200 ${
+                    selected === m.id
+                      ? "left-7 bg-[#c8d44a]"
+                      : "left-1 bg-gray-500"
+                  }`}
+                />
+              </button>
+            </div>
+            {i < PAYMENT_METHODS.length - 1 && <div className="h-px bg-white/10" />}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 interface FormProps {
   from: string; setFrom: (v: string) => void;
   to: string; setTo: (v: string) => void;
@@ -76,6 +124,7 @@ interface FormProps {
   name: string; setName: (v: string) => void;
   phone: string; handlePhoneChange: (v: string) => void;
   carClass: string; setCarClass: (v: string) => void;
+  payment: string; setPayment: (v: string) => void;
   errors: Record<string, string>;
   handleSubmit: (e: React.FormEvent) => void;
   defaultDate: string;
@@ -83,7 +132,17 @@ interface FormProps {
 }
 
 function FormContent(p: FormProps) {
+  const [paymentOpen, setPaymentOpen] = useState(false);
+
   return (
+    <div className="relative">
+    {paymentOpen && (
+      <PaymentSheet
+        onClose={() => setPaymentOpen(false)}
+        selected={p.payment}
+        setSelected={p.setPayment}
+      />
+    )}
     <form onSubmit={p.handleSubmit} noValidate className="flex flex-col gap-2">
       {/* Откуда */}
       <div>
@@ -180,8 +239,9 @@ function FormContent(p: FormProps) {
       <div className="flex items-center gap-2 mt-1">
         <button
           type="button"
+          onClick={() => setPaymentOpen(true)}
           className="w-11 h-11 flex items-center justify-center bg-[#2a2a2a] rounded-full shrink-0"
-          title="Оплата"
+          title="Способ оплаты"
         >
           <Icon name="Wallet" size={18} className="text-[#c8d44a]" />
         </button>
@@ -214,6 +274,7 @@ function FormContent(p: FormProps) {
         </label>
       </div>
     </form>
+    </div>
   );
 }
 
@@ -233,6 +294,7 @@ export default function Hero() {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [carClass, setCarClass] = useState("standard");
+  const [payment, setPayment] = useState("transfer");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const today = new Date();
@@ -278,6 +340,7 @@ export default function Hero() {
     date, setDate, time, setTime,
     name, setName, phone, handlePhoneChange,
     carClass, setCarClass,
+    payment, setPayment,
     errors, handleSubmit,
     defaultDate, defaultTime,
   };

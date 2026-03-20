@@ -90,7 +90,7 @@ export default function Hero() {
         style={{ minHeight: "100dvh" }}
       >
         <div className="flex-1" />
-        <div id="order" className="bg-[#1a1a1a] rounded-t-3xl px-4 pt-5 pb-8 w-full">
+        <div id="order" className="bg-[#1a1a1a] rounded-t-3xl px-4 pt-5 pb-16 w-full">
           <FormContent {...formProps} />
         </div>
       </div>

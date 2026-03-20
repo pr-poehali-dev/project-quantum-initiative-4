@@ -250,19 +250,7 @@ export function FormContent(p: FormProps) {
           </button>
         </div>
 
-        {/* Agreement */}
-        <div className="flex items-start gap-2">
-          <input
-            type="checkbox"
-            id="agreement"
-            required
-            className="mt-0.5 w-4 h-4 accent-[#9aab2a] shrink-0"
-          />
-          <label htmlFor="agreement" className="text-xs text-gray-500 leading-snug">
-            Нажимая кнопку, я соглашаюсь с{" "}
-            <a href="/privacy" className="underline hover:text-gray-300">политикой обработки персональных данных</a>
-          </label>
-        </div>
+
       </form>
     </div>
   );

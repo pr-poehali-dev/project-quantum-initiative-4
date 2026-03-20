@@ -11,10 +11,10 @@ const CITIES = [
 ];
 
 const CAR_CLASSES = [
-  { id: "urgent",   label: "Срочный",  emoji: "🚖", sub: "Ближайший" },
-  { id: "standard", label: "Стандарт", emoji: "🚕", sub: "Эконом" },
-  { id: "comfort",  label: "Комфорт",  emoji: "🚗", sub: "Бизнес" },
-  { id: "minivan",  label: "Минивэн",  emoji: "🚐", sub: "7 мест" },
+  { id: "urgent",   label: "Срочный",  emoji: "🚖", sub: "-" },
+  { id: "standard", label: "Стандарт", emoji: "🚕", sub: "-" },
+  { id: "comfort",  label: "Комфорт",  emoji: "🚗", sub: "-" },
+  { id: "minivan",  label: "Минивэн",  emoji: "🚐", sub: "-" },
 ];
 
 function CityInput({
@@ -49,7 +49,7 @@ function CityInput({
         onFocus={() => setFocused(true)}
         onBlur={() => setTimeout(() => setFocused(false), 150)}
         placeholder={placeholder}
-        className="w-full px-5 py-3 sm:py-4 bg-[#2a2a2a] rounded-full text-white placeholder-gray-400 text-base focus:outline-none focus:ring-2 focus:ring-[#9aab2a]/60 transition"
+        className="w-full px-5 py-3 bg-[#2a2a2a] rounded-full text-white placeholder-gray-400 text-base focus:outline-none focus:ring-2 focus:ring-[#9aab2a]/60 transition"
       />
       {focused && suggestions.length > 0 && (
         <ul className="absolute z-50 top-full left-0 right-0 mt-1 bg-[#2a2a2a] border border-white/10 rounded-2xl shadow-xl overflow-hidden">
@@ -65,6 +65,155 @@ function CityInput({
         </ul>
       )}
     </div>
+  );
+}
+
+interface FormProps {
+  from: string; setFrom: (v: string) => void;
+  to: string; setTo: (v: string) => void;
+  date: string; setDate: (v: string) => void;
+  time: string; setTime: (v: string) => void;
+  name: string; setName: (v: string) => void;
+  phone: string; handlePhoneChange: (v: string) => void;
+  carClass: string; setCarClass: (v: string) => void;
+  errors: Record<string, string>;
+  handleSubmit: (e: React.FormEvent) => void;
+  defaultDate: string;
+  defaultTime: string;
+}
+
+function FormContent(p: FormProps) {
+  return (
+    <form onSubmit={p.handleSubmit} noValidate className="flex flex-col gap-2">
+      {/* Откуда */}
+      <div>
+        <CityInput placeholder="Откуда?" value={p.from} onChange={p.setFrom} />
+        {p.errors.from && <p className="text-red-400 text-xs mt-1 pl-4">{p.errors.from}</p>}
+      </div>
+
+      {/* Куда */}
+      <div>
+        <CityInput placeholder="Куда?" value={p.to} onChange={p.setTo} />
+        {p.errors.to && <p className="text-red-400 text-xs mt-1 pl-4">{p.errors.to}</p>}
+      </div>
+
+      {/* Дата + Время */}
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <div className="bg-[#2a2a2a] rounded-full px-5 py-2 flex flex-col">
+            <span className="text-gray-400 text-xs">Дата поездки</span>
+            <input
+              type="date"
+              value={p.date}
+              onChange={(e) => p.setDate(e.target.value)}
+              min={new Date().toISOString().split("T")[0]}
+              placeholder={p.defaultDate}
+              className="bg-transparent text-white text-sm font-semibold focus:outline-none w-full mt-0.5 [color-scheme:dark]"
+            />
+          </div>
+          {p.errors.date && <p className="text-red-400 text-xs mt-1 pl-4">{p.errors.date}</p>}
+        </div>
+        <div>
+          <div className="bg-[#2a2a2a] rounded-full px-5 py-2 flex flex-col">
+            <span className="text-gray-400 text-xs">Во сколько?</span>
+            <input
+              type="time"
+              value={p.time}
+              onChange={(e) => p.setTime(e.target.value)}
+              placeholder={p.defaultTime}
+              className="bg-transparent text-white text-sm font-semibold focus:outline-none w-full mt-0.5 [color-scheme:dark]"
+            />
+          </div>
+          {p.errors.time && <p className="text-red-400 text-xs mt-1 pl-4">{p.errors.time}</p>}
+        </div>
+      </div>
+
+      {/* Имя + Телефон */}
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <input
+            type="text"
+            value={p.name}
+            onChange={(e) => p.setName(e.target.value)}
+            placeholder="Ваше имя"
+            className="w-full px-5 py-3 bg-[#2a2a2a] rounded-full text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#9aab2a]/60 transition"
+          />
+          {p.errors.name && <p className="text-red-400 text-xs mt-1 pl-4">{p.errors.name}</p>}
+        </div>
+        <div>
+          <input
+            type="tel"
+            value={p.phone}
+            onChange={(e) => p.handlePhoneChange(e.target.value)}
+            placeholder="Номер телефона"
+            className="w-full px-5 py-3 bg-[#2a2a2a] rounded-full text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#9aab2a]/60 transition"
+          />
+          {p.errors.phone && <p className="text-red-400 text-xs mt-1 pl-4">{p.errors.phone}</p>}
+        </div>
+      </div>
+
+      {/* Класс авто */}
+      <div className="overflow-x-auto">
+        <div className="flex gap-2 min-w-max">
+          {CAR_CLASSES.map((cls) => (
+            <button
+              key={cls.id}
+              type="button"
+              onClick={() => p.setCarClass(cls.id)}
+              className={`flex flex-col items-center gap-0.5 px-3 py-2 rounded-2xl transition-all min-w-[72px] ${
+                p.carClass === cls.id
+                  ? "bg-[#3a3a2a] border-2 border-[#9aab2a]"
+                  : "bg-[#2a2a2a] border-2 border-transparent"
+              }`}
+            >
+              <span className="text-xl">{cls.emoji}</span>
+              <span className={`text-xs font-semibold ${p.carClass === cls.id ? "text-[#c8d44a]" : "text-gray-300"}`}>
+                {cls.label}
+              </span>
+              <span className="text-[10px] text-gray-500">{cls.sub}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Submit */}
+      <div className="flex items-center gap-2 mt-1">
+        <button
+          type="button"
+          className="w-11 h-11 flex items-center justify-center bg-[#2a2a2a] rounded-full shrink-0"
+          title="Оплата"
+        >
+          <Icon name="Wallet" size={18} className="text-[#c8d44a]" />
+        </button>
+        <button
+          type="submit"
+          className="flex-1 bg-[#9aab2a] hover:bg-[#b0c430] text-black font-bold text-base py-3 rounded-full transition-colors duration-200 shadow-lg"
+        >
+          Отправить
+        </button>
+        <button
+          type="button"
+          className="w-11 h-11 flex items-center justify-center bg-[#2a2a2a] rounded-full shrink-0"
+          title="Фильтры"
+        >
+          <Icon name="SlidersHorizontal" size={18} className="text-[#c8d44a]" />
+        </button>
+      </div>
+
+      {/* Agreement */}
+      <div className="flex items-start gap-2">
+        <input
+          type="checkbox"
+          id="agreement"
+          required
+          className="mt-0.5 w-4 h-4 accent-[#9aab2a] shrink-0"
+        />
+        <label htmlFor="agreement" className="text-xs text-gray-500 leading-snug">
+          Нажимая кнопку, я соглашаюсь с{" "}
+          <a href="/privacy" className="underline hover:text-gray-300">политикой обработки персональных данных</a>
+        </label>
+      </div>
+    </form>
   );
 }
 
@@ -124,10 +273,20 @@ export default function Hero() {
     navigate("/thanks");
   };
 
+  const formProps: FormProps = {
+    from, setFrom, to, setTo,
+    date, setDate, time, setTime,
+    name, setName, phone, handlePhoneChange,
+    carClass, setCarClass,
+    errors, handleSubmit,
+    defaultDate, defaultTime,
+  };
+
   return (
     <div
       ref={container}
-      className="relative min-h-screen flex items-start justify-center overflow-hidden"
+      className="relative overflow-hidden"
+      style={{ minHeight: "100dvh" }}
     >
       {/* Parallax background */}
       <motion.div style={{ y }} className="absolute inset-0 w-full h-full">
@@ -135,10 +294,20 @@ export default function Hero() {
         <div className="absolute inset-0 bg-black/40" />
       </motion.div>
 
-      {/* Content */}
-      <div className="relative z-10 w-full max-w-6xl mx-auto px-4 pt-16 pb-6">
-        {/* Hero text — скрыто на мобильном */}
-        <div className="hidden sm:block text-center mb-8">
+      {/* MOBILE: фон сверху, форма прилипает к низу */}
+      <div
+        className="sm:hidden relative z-10 flex flex-col"
+        style={{ minHeight: "100dvh" }}
+      >
+        <div className="flex-1" />
+        <div id="order" className="bg-[#1a1a1a] rounded-t-3xl px-4 pt-5 pb-8 w-full">
+          <FormContent {...formProps} />
+        </div>
+      </div>
+
+      {/* DESKTOP: всё по центру */}
+      <div className="hidden sm:flex relative z-10 w-full max-w-6xl mx-auto px-4 pt-24 pb-12 flex-col items-center">
+        <div className="text-center mb-8">
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white leading-tight mb-3">
             Такси межгород<br />
             <span className="text-brand-yellow">по России</span>
@@ -152,152 +321,8 @@ export default function Hero() {
             <span className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-full">✅ Детские кресла бесплатно</span>
           </div>
         </div>
-
-        {/* Заголовок только на мобильном — компактный */}
-        <div className="sm:hidden text-center mb-4">
-          <h1 className="text-2xl font-extrabold text-white leading-tight">
-            Такси межгород <span className="text-brand-yellow">по России</span>
-          </h1>
-        </div>
-
-        {/* Order form — dark card */}
-        <div id="order" className="bg-[#1a1a1a] rounded-3xl shadow-2xl p-4 sm:p-6 max-w-lg mx-auto">
-          <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-2 sm:gap-3">
-
-            {/* Откуда */}
-            <div>
-              <CityInput placeholder="Откуда?" value={from} onChange={setFrom} />
-              {errors.from && <p className="text-red-400 text-xs mt-1 pl-4">{errors.from}</p>}
-            </div>
-
-            {/* Куда */}
-            <div>
-              <CityInput placeholder="Куда?" value={to} onChange={setTo} />
-              {errors.to && <p className="text-red-400 text-xs mt-1 pl-4">{errors.to}</p>}
-            </div>
-
-            {/* Дата + Время */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <div className="bg-[#2a2a2a] rounded-full px-5 py-3 flex flex-col">
-                  <span className="text-gray-400 text-xs">Дата поездки</span>
-                  <input
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    min={new Date().toISOString().split("T")[0]}
-                    placeholder={defaultDate}
-                    className="bg-transparent text-white text-sm font-semibold focus:outline-none w-full mt-0.5 [color-scheme:dark]"
-                  />
-                </div>
-                {errors.date && <p className="text-red-400 text-xs mt-1 pl-4">{errors.date}</p>}
-              </div>
-              <div>
-                <div className="bg-[#2a2a2a] rounded-full px-5 py-3 flex flex-col">
-                  <span className="text-gray-400 text-xs">Во сколько?</span>
-                  <input
-                    type="time"
-                    value={time}
-                    onChange={(e) => setTime(e.target.value)}
-                    placeholder={defaultTime}
-                    className="bg-transparent text-white text-sm font-semibold focus:outline-none w-full mt-0.5 [color-scheme:dark]"
-                  />
-                </div>
-                {errors.time && <p className="text-red-400 text-xs mt-1 pl-4">{errors.time}</p>}
-              </div>
-            </div>
-
-            {/* Имя + Телефон */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Ваше имя"
-                  className="w-full px-5 py-3 sm:py-4 bg-[#2a2a2a] rounded-full text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#9aab2a]/60 transition"
-                />
-                {errors.name && <p className="text-red-400 text-xs mt-1 pl-4">{errors.name}</p>}
-              </div>
-              <div>
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => handlePhoneChange(e.target.value)}
-                  placeholder="+7 (___) ___-__-__"
-                  className="w-full px-5 py-3 sm:py-4 bg-[#2a2a2a] rounded-full text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#9aab2a]/60 transition"
-                />
-                {errors.phone && <p className="text-red-400 text-xs mt-1 pl-4">{errors.phone}</p>}
-              </div>
-            </div>
-
-            {/* Класс авто */}
-            <div className="overflow-x-auto -mx-1 px-1">
-              <div className="flex gap-2 min-w-max">
-                {CAR_CLASSES.map((cls) => (
-                  <button
-                    key={cls.id}
-                    type="button"
-                    onClick={() => setCarClass(cls.id)}
-                    className={`flex flex-col items-center gap-1 px-4 py-3 rounded-2xl transition-all min-w-[80px] ${
-                      carClass === cls.id
-                        ? "bg-[#3a3a2a] border-2 border-[#9aab2a]"
-                        : "bg-[#2a2a2a] border-2 border-transparent"
-                    }`}
-                  >
-                    <span className="text-2xl">{cls.emoji}</span>
-                    <span className={`text-xs font-semibold ${carClass === cls.id ? "text-[#c8d44a]" : "text-gray-300"}`}>
-                      {cls.label}
-                    </span>
-                    <span className="text-[10px] text-gray-500">{cls.sub}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Submit row */}
-            <div className="flex items-center gap-3 mt-1">
-              <button
-                type="button"
-                className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-[#2a2a2a] rounded-full shrink-0"
-                title="Оплата"
-              >
-                <Icon name="Wallet" size={18} className="text-gray-400" />
-              </button>
-              <button
-                type="submit"
-                className="flex-1 bg-[#9aab2a] hover:bg-[#b0c430] text-black font-bold text-base py-3 sm:py-4 rounded-full transition-colors duration-200 shadow-lg"
-              >
-                Отправить
-              </button>
-              <button
-                type="button"
-                className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-[#2a2a2a] rounded-full shrink-0"
-                title="Фильтры"
-              >
-                <Icon name="SlidersHorizontal" size={18} className="text-gray-400" />
-              </button>
-            </div>
-
-            {/* Agreement */}
-            <div className="flex items-start gap-2 mt-1">
-              <input
-                type="checkbox"
-                id="agreement"
-                required
-                className="mt-0.5 w-4 h-4 accent-[#9aab2a] shrink-0"
-              />
-              <label htmlFor="agreement" className="text-xs text-gray-500 leading-snug">
-                Нажимая кнопку, я соглашаюсь с{" "}
-                <a href="/privacy" className="underline hover:text-gray-300">политикой обработки персональных данных</a>
-              </label>
-            </div>
-
-            <p className="text-xs text-gray-500 text-center">
-              Или звоните:{" "}
-              <a href="tel:+79956141414" className="font-semibold text-[#c8d44a]">+7 (995) 614-14-14</a>
-            </p>
-          </form>
+        <div id="order" className="bg-[#1a1a1a] rounded-3xl shadow-2xl p-6 w-full max-w-lg">
+          <FormContent {...formProps} />
         </div>
       </div>
     </div>

@@ -10,10 +10,12 @@ const Index = () => {
     <div className="min-h-screen">
       <Header />
       <Hero />
-      <Advantages />
-      <Fleet />
-      <HowToOrder />
-      <Footer />
+      <div className="hidden sm:block">
+        <Advantages />
+        <Fleet />
+        <HowToOrder />
+        <Footer />
+      </div>
     </div>
   );
 };

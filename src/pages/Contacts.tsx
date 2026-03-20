@@ -7,7 +7,7 @@ import Icon from "@/components/ui/icon";
 
 const PHONE = "+7 (995) 614-14-14";
 const PHONE_HREF = "tel:+79956141414";
-const EMAIL = "info@ug-transfer.ru";
+const EMAIL = "help@ug-transfer.online";
 const WHATSAPP_HREF = "https://wa.me/79956141414";
 const TELEGRAM_HREF = "https://t.me/ug_transfer_online";
 
@@ -30,7 +30,7 @@ const CONTACTS = [
   {
     icon: "Send",
     label: "Telegram",
-    value: "@transfer_service",
+    value: "@ug_transfer_online",
     href: TELEGRAM_HREF,
     color: "bg-blue-50 text-blue-500",
     external: true,
@@ -41,6 +41,14 @@ const CONTACTS = [
     value: EMAIL,
     href: `mailto:${EMAIL}`,
     color: "bg-orange-50 text-orange-500",
+  },
+  {
+    icon: "Globe",
+    label: "Сайт",
+    value: "ug-transfer.online",
+    href: "https://ug-transfer.online",
+    color: "bg-teal-50 text-teal-600",
+    external: true,
   },
   {
     icon: "Clock",

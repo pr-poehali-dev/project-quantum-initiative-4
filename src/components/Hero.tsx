@@ -49,7 +49,7 @@ function CityInput({
         onFocus={() => setFocused(true)}
         onBlur={() => setTimeout(() => setFocused(false), 150)}
         placeholder={placeholder}
-        className="w-full px-5 py-4 bg-[#2a2a2a] rounded-full text-white placeholder-gray-400 text-base focus:outline-none focus:ring-2 focus:ring-[#9aab2a]/60 transition"
+        className="w-full px-5 py-3 sm:py-4 bg-[#2a2a2a] rounded-full text-white placeholder-gray-400 text-base focus:outline-none focus:ring-2 focus:ring-[#9aab2a]/60 transition"
       />
       {focused && suggestions.length > 0 && (
         <ul className="absolute z-50 top-full left-0 right-0 mt-1 bg-[#2a2a2a] border border-white/10 rounded-2xl shadow-xl overflow-hidden">
@@ -162,7 +162,7 @@ export default function Hero() {
 
         {/* Order form — dark card */}
         <div id="order" className="bg-[#1a1a1a] rounded-3xl shadow-2xl p-4 sm:p-6 max-w-lg mx-auto">
-          <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-3">
+          <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-2 sm:gap-3">
 
             {/* Откуда */}
             <div>
@@ -215,7 +215,7 @@ export default function Hero() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Ваше имя"
-                  className="w-full px-5 py-4 bg-[#2a2a2a] rounded-full text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#9aab2a]/60 transition"
+                  className="w-full px-5 py-3 sm:py-4 bg-[#2a2a2a] rounded-full text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#9aab2a]/60 transition"
                 />
                 {errors.name && <p className="text-red-400 text-xs mt-1 pl-4">{errors.name}</p>}
               </div>
@@ -225,7 +225,7 @@ export default function Hero() {
                   value={phone}
                   onChange={(e) => handlePhoneChange(e.target.value)}
                   placeholder="+7 (___) ___-__-__"
-                  className="w-full px-5 py-4 bg-[#2a2a2a] rounded-full text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#9aab2a]/60 transition"
+                  className="w-full px-5 py-3 sm:py-4 bg-[#2a2a2a] rounded-full text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#9aab2a]/60 transition"
                 />
                 {errors.phone && <p className="text-red-400 text-xs mt-1 pl-4">{errors.phone}</p>}
               </div>

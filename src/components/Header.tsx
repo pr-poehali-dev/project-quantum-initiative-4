@@ -32,30 +32,31 @@ export default function Header() {
   return (
     <>
       {/* ── DESKTOP шапка ── */}
-      <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 hidden sm:block ${
-          scrolled ? "bg-white shadow-md" : "bg-transparent"
-        }`}
-      >
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
+      <header className="fixed top-0 left-0 right-0 z-50 hidden sm:block bg-[#1a1a1a] shadow-lg">
+        <div className="container mx-auto px-6 h-14 flex items-center justify-between gap-4">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 shrink-0">
             <div className="w-8 h-8 bg-brand-blue rounded-lg flex items-center justify-center">
               <Icon name="Car" size={18} className="text-white" />
             </div>
-            <span className={`font-bold text-lg leading-tight transition-colors duration-300 ${scrolled ? "text-brand-dark" : "text-white"}`}>
+            <span className="font-bold text-lg leading-tight text-white">
               Юг-<span className="text-brand-yellow">Трансфер</span>
             </span>
           </Link>
 
-          {/* Right: phone + burger */}
-          <div className="flex items-center gap-3">
-            <a href={PHONE_HREF} className={`text-sm font-semibold transition-colors duration-200 ${scrolled ? "text-brand-dark" : "text-white"}`}>
+          {/* Right: phone + messengers + burger */}
+          <div className="flex items-center gap-4">
+            <a href={WHATSAPP_HREF} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-green-400 font-medium hover:text-green-300 transition-colors">
+              <Icon name="MessageCircle" size={16} /> WhatsApp
+            </a>
+            <a href={TELEGRAM_HREF} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-blue-400 font-medium hover:text-blue-300 transition-colors">
+              <Icon name="Send" size={16} /> Telegram
+            </a>
+            <a href={PHONE_HREF} className="text-sm font-semibold text-white hover:text-brand-yellow transition-colors">
               {PHONE}
             </a>
-            <button onClick={() => setMobileOpen(!mobileOpen)} aria-label="Меню"
-              className={`transition-colors duration-200 ${scrolled ? "text-brand-dark" : "text-white"}`}>
-              <Icon name={mobileOpen ? "X" : "Menu"} size={26} />
+            <button onClick={() => setMobileOpen(!mobileOpen)} aria-label="Меню" className="text-white hover:text-brand-yellow transition-colors">
+              <Icon name={mobileOpen ? "X" : "Menu"} size={22} />
             </button>
           </div>
         </div>

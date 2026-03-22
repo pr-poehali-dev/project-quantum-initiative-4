@@ -93,17 +93,17 @@ export function PaymentSheet({ onClose, selected, setSelected }: {
 }) {
   return (
     <div className="absolute inset-0 z-50 bg-[#1a1a1a] rounded-t-3xl flex flex-col">
-      <div className="flex items-center gap-3 px-4 pt-5 pb-4">
-        <button onClick={onClose} className="text-white flex items-center gap-2 text-base font-medium">
-          <Icon name="ArrowLeft" size={22} className="text-white" />
+      <div className="flex items-center gap-3 px-4 pt-2 pb-1">
+        <button onClick={onClose} className="text-white flex items-center gap-1.5 text-xs font-medium">
+          <Icon name="ArrowLeft" size={15} className="text-white" />
           Назад
         </button>
       </div>
-      <div className="flex-1 px-4">
+      <div className="px-4">
         {PAYMENT_METHODS.map((m, i) => (
           <div key={m.id}>
-            <div className="flex items-center justify-between py-5">
-              <span className="text-white text-xl">{m.label}</span>
+            <div className="flex items-center justify-between py-2">
+              <span className="text-white text-xs">{m.label}</span>
               <Toggle on={selected === m.id} onToggle={() => setSelected(m.id)} />
             </div>
             {i < PAYMENT_METHODS.length - 1 && <div className="h-px bg-white/10" />}

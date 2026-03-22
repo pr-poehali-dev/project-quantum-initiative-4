@@ -48,58 +48,21 @@ export default function Header() {
             </span>
           </Link>
 
-          {/* Desktop nav */}
-          <nav className="hidden lg:flex items-center gap-6">
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                to={link.href}
-                className={`text-sm font-medium transition-colors duration-200 ${
-                  location.pathname === link.href
-                    ? "text-brand-yellow"
-                    : scrolled
-                    ? "text-gray-700 hover:text-brand-blue"
-                    : "text-white/90 hover:text-white"
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
-
-          {/* Right: phone + messengers + CTA */}
-          <div className="hidden lg:flex items-center gap-3">
+          {/* Right: phone + burger */}
+          <div className="flex items-center gap-3">
             <a href={PHONE_HREF} className={`text-sm font-semibold transition-colors duration-200 ${scrolled ? "text-brand-dark" : "text-white"}`}>
               {PHONE}
             </a>
-            <a href={WHATSAPP_HREF} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp"
-              className={`transition-colors duration-200 ${scrolled ? "text-green-600 hover:text-green-700" : "text-white/80 hover:text-white"}`}>
-              <Icon name="MessageCircle" size={20} />
-            </a>
-            <a href={TELEGRAM_HREF} target="_blank" rel="noopener noreferrer" aria-label="Telegram"
-              className={`transition-colors duration-200 ${scrolled ? "text-blue-500 hover:text-blue-600" : "text-white/80 hover:text-white"}`}>
-              <Icon name="Send" size={20} />
-            </a>
-            <Link to="/#order" className="bg-brand-yellow text-brand-dark text-sm font-bold px-4 py-2 rounded-lg hover:bg-yellow-400 transition-colors duration-200 whitespace-nowrap">
-              Заказать
-            </Link>
-          </div>
-
-          {/* Tablet burger */}
-          <div className="flex lg:hidden items-center gap-3">
-            <a href={PHONE_HREF} className={`transition-colors duration-200 ${scrolled ? "text-brand-dark" : "text-white"}`}>
-              <Icon name="Phone" size={20} />
-            </a>
             <button onClick={() => setMobileOpen(!mobileOpen)} aria-label="Меню"
               className={`transition-colors duration-200 ${scrolled ? "text-brand-dark" : "text-white"}`}>
-              <Icon name={mobileOpen ? "X" : "Menu"} size={24} />
+              <Icon name={mobileOpen ? "X" : "Menu"} size={26} />
             </button>
           </div>
         </div>
 
-        {/* Tablet dropdown menu */}
+        {/* Desktop burger dropdown */}
         {mobileOpen && (
-          <div className="lg:hidden bg-white border-t border-gray-100 shadow-lg">
+          <div className="bg-white border-t border-gray-100 shadow-lg">
             <nav className="container mx-auto px-4 py-4 flex flex-col gap-1">
               {NAV_LINKS.map((link) => (
                 <Link key={link.href} to={link.href}
@@ -110,12 +73,11 @@ export default function Header() {
                 </Link>
               ))}
               <div className="flex items-center gap-4 pt-3 border-t border-gray-100 mt-2">
-                <a href={PHONE_HREF} className="text-sm font-semibold text-brand-dark">{PHONE}</a>
-                <a href={WHATSAPP_HREF} target="_blank" rel="noopener noreferrer" className="text-green-600">
-                  <Icon name="MessageCircle" size={20} />
+                <a href={WHATSAPP_HREF} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-green-600 font-medium">
+                  <Icon name="MessageCircle" size={18} /> WhatsApp
                 </a>
-                <a href={TELEGRAM_HREF} target="_blank" rel="noopener noreferrer" className="text-blue-500">
-                  <Icon name="Send" size={20} />
+                <a href={TELEGRAM_HREF} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-blue-500 font-medium">
+                  <Icon name="Send" size={18} /> Telegram
                 </a>
               </div>
               <Link to="/#order" className="mt-3 bg-brand-yellow text-brand-dark font-bold py-3 rounded-lg text-center hover:bg-yellow-400 transition-colors">

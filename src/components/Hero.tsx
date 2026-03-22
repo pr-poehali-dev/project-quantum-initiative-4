@@ -2,14 +2,12 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import HeroBackground from "@/components/HeroBackground";
 import { FormContent, FormProps } from "@/components/OrderFormContent";
-import { useMotionValue } from "framer-motion";
 import Icon from "@/components/ui/icon";
 
 const CALCULATE_URL = "https://functions.poehali.dev/5fe1bb49-7cdd-4373-ab29-21772bb638aa";
 
 export default function Hero() {
   const navigate = useNavigate();
-  const y = useMotionValue("0vh");
 
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
@@ -113,7 +111,7 @@ export default function Hero() {
 
   return (
     <div className="relative" style={{ height: "100dvh", overflow: "hidden" }}>
-      <HeroBackground y={y} />
+      <HeroBackground from={from} to={to} stops={stops} />
 
       {/* MOBILE: форма прилипает к низу */}
       <div className="sm:hidden relative z-10 flex flex-col" style={{ height: "100dvh", overflow: "hidden" }}>

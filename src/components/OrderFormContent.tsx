@@ -1,13 +1,22 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Icon from "@/components/ui/icon";
 import { ExtrasState, ExtrasSheet, PaymentSheet } from "@/components/OrderFormSheets";
 
-export const CITIES = [
-  "Москва", "Ростов-на-Дону", "Краснодар", "Анапа", "Новороссийск",
-  "Сочи", "Ставрополь", "Воронеж", "Донецк", "Ясиноватая",
-  "Горловка", "Макеевка", "Луганск", "Белгород", "Курск",
-  "Харьков", "Запорожье", "Геленджик", "Темрюк", "Тамань",
-];
+const YMAPS_KEY = "AKfycbyeKyBEMLQmRIC9CAXYnO5XVEOyc3_pXrQbtN-GDYqOd_IZDzAF2Wiaa9fQlwtb2JmEkw";
+
+async function fetchSuggestions(query: string): Promise<string[]> {
+  if (query.length < 2) return [];
+  try {
+    const url = `https://suggest-maps.yandex.ru/suggest-geo?text=${encodeURIComponent(query)}&lang=ru_RU&results=6&type=locality,street,house&apikey=${YMAPS_KEY}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    return (data.results || []).map((r: { title: { text: string }; subtitle?: { text: string } }) =>
+      r.subtitle ? `${r.title.text}, ${r.subtitle.text}` : r.title.text
+    );
+  } catch {
+    return [];
+  }
+}
 
 export const CAR_CLASSES = [
   { id: "urgent",   label: "Срочный",  emoji: "🚖", sub: "-" },
@@ -53,16 +62,35 @@ function CityInput({
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [focused, setFocused] = useState(false);
   const [geoLoading, setGeoLoading] = useState(false);
+  const [activeIdx, setActiveIdx] = useState(-1);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleInput = (v: string) => {
     onChange(v);
+    setActiveIdx(-1);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
     if (v.length >= 2) {
-      setSuggestions(
-        CITIES.filter((c) => c.toLowerCase().startsWith(v.toLowerCase())).slice(0, 6)
-      );
+      debounceRef.current = setTimeout(async () => {
+        const results = await fetchSuggestions(v);
+        setSuggestions(results);
+      }, 300);
     } else {
       setSuggestions([]);
     }
+  };
+
+  const selectSuggestion = (city: string) => {
+    onChange(city);
+    setSuggestions([]);
+    setActiveIdx(-1);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!suggestions.length) return;
+    if (e.key === "ArrowDown") { e.preventDefault(); setActiveIdx(i => Math.min(i + 1, suggestions.length - 1)); }
+    if (e.key === "ArrowUp") { e.preventDefault(); setActiveIdx(i => Math.max(i - 1, -1)); }
+    if (e.key === "Enter" && activeIdx >= 0) { e.preventDefault(); selectSuggestion(suggestions[activeIdx]); }
+    if (e.key === "Escape") setSuggestions([]);
   };
 
   const handleGeo = () => {
@@ -104,7 +132,8 @@ function CityInput({
         value={value}
         onChange={(e) => handleInput(e.target.value)}
         onFocus={handleFocus}
-        onBlur={() => setTimeout(() => setFocused(false), 150)}
+        onBlur={() => setTimeout(() => { setFocused(false); setSuggestions([]); }, 200)}
+        onKeyDown={handleKeyDown}
         placeholder={geoLoading ? "Определяем местоположение..." : placeholder}
         className={`w-full px-4 py-2 bg-[#2a2a2a] rounded-full text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#9aab2a]/60 transition ${showGeo ? "pr-10" : ""}`}
       />
@@ -113,25 +142,28 @@ function CityInput({
           type="button"
           onClick={handleGeo}
           disabled={geoLoading}
-          className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-white rounded-full shadow-md hover:bg-gray-100 transition active:scale-95"
+          className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center bg-white rounded-full shadow-md hover:bg-gray-100 transition active:scale-95"
           title="Определить моё местоположение"
         >
           {geoLoading ? (
-            <span className="w-4 h-4 border-2 border-gray-400 border-t-[#9aab2a] rounded-full animate-spin block" />
+            <span className="w-3.5 h-3.5 border-2 border-gray-400 border-t-[#9aab2a] rounded-full animate-spin block" />
           ) : (
-            <Icon name="Navigation" size={16} className="text-gray-700" />
+            <Icon name="Navigation" size={14} className="text-gray-700" />
           )}
         </button>
       )}
       {focused && suggestions.length > 0 && (
-        <ul className="absolute z-50 top-full left-0 right-0 mt-1 bg-[#2a2a2a] border border-white/10 rounded-2xl shadow-xl overflow-hidden">
-          {suggestions.map((city) => (
+        <ul className="absolute z-50 top-full left-0 right-0 mt-1 bg-[#222] border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
+          {suggestions.map((city, idx) => (
             <li
               key={city}
-              onMouseDown={() => { onChange(city); setSuggestions([]); }}
-              className="px-5 py-3 text-sm text-gray-200 hover:bg-white/10 cursor-pointer"
+              onMouseDown={() => selectSuggestion(city)}
+              className={`flex items-center gap-2.5 px-4 py-2.5 text-sm cursor-pointer transition-colors ${
+                idx === activeIdx ? "bg-[#9aab2a]/20 text-[#c8d44a]" : "text-gray-200 hover:bg-white/8"
+              }`}
             >
-              {city}
+              <Icon name="MapPin" size={13} className={idx === activeIdx ? "text-[#c8d44a]" : "text-gray-500"} />
+              <span className="truncate">{city}</span>
             </li>
           ))}
         </ul>

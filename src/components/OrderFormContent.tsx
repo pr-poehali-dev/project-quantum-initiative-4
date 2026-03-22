@@ -72,7 +72,7 @@ function CityInput({
       async ({ coords }) => {
         try {
           const res = await fetch(
-            `https://geocode-maps.yandex.ru/1.x/?apikey=40d1649f-0493-4b70-98ba-98533de7710b&geocode=${coords.longitude},${coords.latitude}&results=1&format=json&lang=ru_RU`
+            `https://geocode-maps.yandex.ru/1.x/?apikey=AKfycbyeKyBEMLQmRIC9CAXYnO5XVEOyc3_pXrQbtN-GDYqOd_IZDzAF2Wiaa9fQlwtb2JmEkw&geocode=${coords.longitude},${coords.latitude}&results=1&format=json&lang=ru_RU`
           );
           const data = await res.json();
           const address =

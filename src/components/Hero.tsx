@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import HeroBackground from "@/components/HeroBackground";
 import { FormContent, FormProps } from "@/components/OrderFormContent";
@@ -24,10 +24,25 @@ export default function Hero() {
   const [priceLoading, setPriceLoading] = useState(false);
   const [allPrices, setAllPrices] = useState<Record<string, number> | null>(null);
   const [extras, setExtras] = useState({ childSeat: false, pet: false, booster: false });
+  const [geoHint, setGeoHint] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const addStop = () => setStops([...stops, ""]);
   const updateStop = (i: number, v: string) => setStops(stops.map((s, idx) => idx === i ? v : s));
   const removeStop = (i: number) => setStops(stops.filter((_, idx) => idx !== i));
+
+  useEffect(() => {
+    if (!("geolocation" in navigator)) return;
+    const shown = sessionStorage.getItem("geoHintShown");
+    if (shown) return;
+    const t = setTimeout(() => {
+      setGeoHint(true);
+      sessionStorage.setItem("geoHintShown", "1");
+      setTimeout(() => setGeoHint(false), 5000);
+    }, 1200);
+    return () => clearTimeout(t);
+  }, []);
+
+  const dismissHint = useCallback(() => setGeoHint(false), []);
 
   useEffect(() => {
     if (!from.trim() || !to.trim()) {
@@ -112,6 +127,26 @@ export default function Hero() {
   return (
     <div className="relative" style={{ height: "100dvh", overflow: "hidden" }}>
       <HeroBackground from={from} to={to} stops={stops} />
+
+      {/* Подсказка геолокации */}
+      <div
+        className={`fixed bottom-[calc(85dvh+12px)] sm:bottom-auto sm:top-20 left-1/2 sm:left-auto sm:right-6 -translate-x-1/2 sm:translate-x-0 z-50 transition-all duration-500 ${
+          geoHint ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2 pointer-events-none"
+        }`}
+      >
+        <div className="flex items-center gap-3 bg-[#1a1a1a] border border-[#c8d44a]/30 rounded-2xl px-4 py-3 shadow-2xl max-w-[280px]">
+          <div className="w-9 h-9 rounded-full bg-[#c8d44a]/10 flex items-center justify-center shrink-0 animate-pulse">
+            <Icon name="Navigation" size={18} className="text-[#c8d44a]" />
+          </div>
+          <div className="flex-1">
+            <p className="text-white text-xs font-semibold leading-tight">Разрешите геолокацию</p>
+            <p className="text-white/50 text-[10px] mt-0.5">Нажмите «Откуда» — мы определим ваше местоположение</p>
+          </div>
+          <button onClick={dismissHint} className="text-white/30 hover:text-white/70 transition-colors shrink-0">
+            <Icon name="X" size={14} />
+          </button>
+        </div>
+      </div>
 
       {/* MOBILE: форма прилипает к низу */}
       <div className="sm:hidden relative z-10 flex flex-col" style={{ height: "100dvh", overflow: "hidden" }}>

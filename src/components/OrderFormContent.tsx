@@ -90,15 +90,22 @@ function CityInput({
     );
   };
 
+  const handleFocus = () => {
+    setFocused(true);
+    if (showGeo && !value.trim()) {
+      handleGeo();
+    }
+  };
+
   return (
     <div className="relative">
       <input
         type="text"
         value={value}
         onChange={(e) => handleInput(e.target.value)}
-        onFocus={() => setFocused(true)}
+        onFocus={handleFocus}
         onBlur={() => setTimeout(() => setFocused(false), 150)}
-        placeholder={placeholder}
+        placeholder={geoLoading ? "Определяем местоположение..." : placeholder}
         className={`w-full px-4 py-2 bg-[#2a2a2a] rounded-full text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#9aab2a]/60 transition ${showGeo ? "pr-10" : ""}`}
       />
       {showGeo && (

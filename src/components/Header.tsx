@@ -11,7 +11,7 @@ const NAV_LINKS = [
 
 const PHONE = "+7 (995) 614-14-14";
 const PHONE_HREF = "tel:+79956141414";
-const WHATSAPP_HREF = "https://wa.me/79956141414";
+const MAX_HREF = "https://max.ru/u/f9LHodD0cOLfcwdQZmP_TA1hXG1fSHf_rVVPptGTy_7FmQh-zvIFpGfU_lg";
 const TELEGRAM_HREF = "https://t.me/ug_transfer_online";
 
 export default function Header() {
@@ -46,8 +46,8 @@ export default function Header() {
 
           {/* Right: phone + messengers + burger */}
           <div className="flex items-center gap-4">
-            <a href={WHATSAPP_HREF} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-green-400 font-medium hover:text-green-300 transition-colors">
-              <Icon name="MessageCircle" size={16} /> WhatsApp
+            <a href={MAX_HREF} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-purple-400 font-medium hover:text-purple-300 transition-colors">
+              <Icon name="MessageSquare" size={16} /> Max
             </a>
             <a href={TELEGRAM_HREF} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-blue-400 font-medium hover:text-blue-300 transition-colors">
               <Icon name="Send" size={16} /> Telegram
@@ -74,8 +74,8 @@ export default function Header() {
                 </Link>
               ))}
               <div className="flex items-center gap-4 pt-3 border-t border-gray-100 mt-2">
-                <a href={WHATSAPP_HREF} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-green-600 font-medium">
-                  <Icon name="MessageCircle" size={18} /> WhatsApp
+                <a href={MAX_HREF} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-purple-600 font-medium">
+                  <Icon name="MessageSquare" size={18} /> Max
                 </a>
                 <a href={TELEGRAM_HREF} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-blue-500 font-medium">
                   <Icon name="Send" size={18} /> Telegram
@@ -165,10 +165,10 @@ export default function Header() {
               </div>
             </div>
             <div className="flex gap-3">
-              <a href={WHATSAPP_HREF} target="_blank" rel="noopener noreferrer"
+              <a href={MAX_HREF} target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-2 bg-white/10 rounded-full px-4 py-2 text-white text-sm">
-                <Icon name="MessageCircle" size={16} className="text-green-400" />
-                WhatsApp
+                <Icon name="MessageSquare" size={16} className="text-purple-400" />
+                Max
               </a>
               <a href={TELEGRAM_HREF} target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-2 bg-white/10 rounded-full px-4 py-2 text-white text-sm">

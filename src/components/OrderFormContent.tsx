@@ -93,7 +93,7 @@ function CityInput({
         onFocus={() => setFocused(true)}
         onBlur={() => setTimeout(() => setFocused(false), 150)}
         placeholder={placeholder}
-        className={`w-full px-5 py-3 bg-[#2a2a2a] rounded-full text-white placeholder-gray-400 text-base focus:outline-none focus:ring-2 focus:ring-[#9aab2a]/60 transition ${showGeo ? "pr-12" : ""}`}
+        className={`w-full px-4 py-2 bg-[#2a2a2a] rounded-full text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#9aab2a]/60 transition ${showGeo ? "pr-10" : ""}`}
       />
       {showGeo && (
         <button
@@ -151,11 +151,11 @@ export function FormContent(p: FormProps) {
           setExtras={setExtras}
         />
       )}
-      <form onSubmit={p.handleSubmit} noValidate className="flex flex-col gap-2">
+      <form onSubmit={p.handleSubmit} noValidate className="flex flex-col gap-1.5">
         {/* Откуда */}
         <div>
           <CityInput placeholder="Откуда?" value={p.from} onChange={p.setFrom} showGeo />
-          {p.errors.from && <p className="text-red-400 text-xs mt-1 pl-4">{p.errors.from}</p>}
+          {p.errors.from && <p className="text-red-400 text-xs mt-0.5 pl-4">{p.errors.from}</p>}
         </div>
 
         {/* Промежуточные адреса */}
@@ -167,7 +167,7 @@ export function FormContent(p: FormProps) {
               onClick={() => p.removeStop(i)}
               className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition"
             >
-              <Icon name="X" size={16} />
+              <Icon name="X" size={14} />
             </button>
           </div>
         ))}
@@ -176,46 +176,46 @@ export function FormContent(p: FormProps) {
         <button
           type="button"
           onClick={p.addStop}
-          className="flex items-center gap-2 text-gray-400 hover:text-white text-sm transition pl-2"
+          className="flex items-center gap-1.5 text-gray-400 hover:text-white text-xs transition pl-2"
         >
-          <span className="w-5 h-5 rounded-full border border-gray-500 flex items-center justify-center text-gray-400 text-base leading-none">+</span>
+          <span className="w-4 h-4 rounded-full border border-gray-500 flex items-center justify-center text-gray-400 text-sm leading-none">+</span>
           промежуточный адрес
         </button>
 
         {/* Куда */}
         <div>
           <CityInput placeholder="Куда?" value={p.to} onChange={p.setTo} showGeo />
-          {p.errors.to && <p className="text-red-400 text-xs mt-1 pl-4">{p.errors.to}</p>}
+          {p.errors.to && <p className="text-red-400 text-xs mt-0.5 pl-4">{p.errors.to}</p>}
         </div>
 
         {/* Дата + Время */}
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <div className="bg-[#2a2a2a] rounded-full px-5 py-2 flex flex-col">
-              <span className="text-gray-400 text-xs">Дата поездки</span>
+            <div className="bg-[#2a2a2a] rounded-full px-4 py-1.5 flex flex-col">
+              <span className="text-gray-400 text-[10px]">Дата поездки</span>
               <input
                 type="date"
                 value={p.date}
                 onChange={(e) => p.setDate(e.target.value)}
                 min={new Date().toISOString().split("T")[0]}
                 placeholder={p.defaultDate}
-                className="bg-transparent text-white text-sm font-semibold focus:outline-none w-full mt-0.5 [color-scheme:dark]"
+                className="bg-transparent text-white text-sm font-semibold focus:outline-none w-full [color-scheme:dark]"
               />
             </div>
-            {p.errors.date && <p className="text-red-400 text-xs mt-1 pl-4">{p.errors.date}</p>}
+            {p.errors.date && <p className="text-red-400 text-xs mt-0.5 pl-4">{p.errors.date}</p>}
           </div>
           <div>
-            <div className="bg-[#2a2a2a] rounded-full px-5 py-2 flex flex-col">
-              <span className="text-gray-400 text-xs">Во сколько?</span>
+            <div className="bg-[#2a2a2a] rounded-full px-4 py-1.5 flex flex-col">
+              <span className="text-gray-400 text-[10px]">Во сколько?</span>
               <input
                 type="time"
                 value={p.time}
                 onChange={(e) => p.setTime(e.target.value)}
                 placeholder={p.defaultTime}
-                className="bg-transparent text-white text-sm font-semibold focus:outline-none w-full mt-0.5 [color-scheme:dark]"
+                className="bg-transparent text-white text-sm font-semibold focus:outline-none w-full [color-scheme:dark]"
               />
             </div>
-            {p.errors.time && <p className="text-red-400 text-xs mt-1 pl-4">{p.errors.time}</p>}
+            {p.errors.time && <p className="text-red-400 text-xs mt-0.5 pl-4">{p.errors.time}</p>}
           </div>
         </div>
 
@@ -227,9 +227,9 @@ export function FormContent(p: FormProps) {
               value={p.name}
               onChange={(e) => p.setName(e.target.value)}
               placeholder="Ваше имя"
-              className="w-full px-5 py-3 bg-[#2a2a2a] rounded-full text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#9aab2a]/60 transition"
+              className="w-full px-4 py-2 bg-[#2a2a2a] rounded-full text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#9aab2a]/60 transition"
             />
-            {p.errors.name && <p className="text-red-400 text-xs mt-1 pl-4">{p.errors.name}</p>}
+            {p.errors.name && <p className="text-red-400 text-xs mt-0.5 pl-4">{p.errors.name}</p>}
           </div>
           <div>
             <input
@@ -237,31 +237,30 @@ export function FormContent(p: FormProps) {
               value={p.phone}
               onChange={(e) => p.handlePhoneChange(e.target.value)}
               placeholder="Номер телефона"
-              className="w-full px-5 py-3 bg-[#2a2a2a] rounded-full text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#9aab2a]/60 transition"
+              className="w-full px-4 py-2 bg-[#2a2a2a] rounded-full text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#9aab2a]/60 transition"
             />
-            {p.errors.phone && <p className="text-red-400 text-xs mt-1 pl-4">{p.errors.phone}</p>}
+            {p.errors.phone && <p className="text-red-400 text-xs mt-0.5 pl-4">{p.errors.phone}</p>}
           </div>
         </div>
 
         {/* Класс авто */}
         <div className="overflow-x-auto scrollbar-hide">
-          <div className="flex gap-2 min-w-max">
+          <div className="flex gap-1.5 min-w-max">
             {CAR_CLASSES.map((cls) => (
               <button
                 key={cls.id}
                 type="button"
                 onClick={() => p.setCarClass(cls.id)}
-                className={`flex flex-col items-center gap-0.5 px-3 py-2 rounded-2xl transition-all min-w-[72px] ${
+                className={`flex flex-col items-center gap-0 px-2.5 py-1.5 rounded-xl transition-all min-w-[60px] ${
                   p.carClass === cls.id
                     ? "bg-[#3a3a2a] border-2 border-[#9aab2a]"
                     : "bg-[#2a2a2a] border-2 border-transparent"
                 }`}
               >
-                <span className="text-xl">{cls.emoji}</span>
-                <span className={`text-xs font-semibold ${p.carClass === cls.id ? "text-[#c8d44a]" : "text-gray-300"}`}>
+                <span className="text-base">{cls.emoji}</span>
+                <span className={`text-[10px] font-semibold ${p.carClass === cls.id ? "text-[#c8d44a]" : "text-gray-300"}`}>
                   {cls.label}
                 </span>
-                <span className="text-[10px] text-gray-500">{cls.sub}</span>
               </button>
             ))}
           </div>
@@ -272,24 +271,24 @@ export function FormContent(p: FormProps) {
           <button
             type="button"
             onClick={() => setPaymentOpen(true)}
-            className="w-11 h-11 flex items-center justify-center bg-[#2a2a2a] rounded-full shrink-0"
+            className="w-9 h-9 flex items-center justify-center bg-[#2a2a2a] rounded-full shrink-0"
             title="Способ оплаты"
           >
-            <Icon name="Wallet" size={18} className="text-[#c8d44a]" />
+            <Icon name="Wallet" size={16} className="text-[#c8d44a]" />
           </button>
           <button
             type="submit"
-            className="flex-1 bg-[#9aab2a] hover:bg-[#b0c430] text-black font-bold text-base py-3 rounded-full transition-colors duration-200 shadow-lg"
+            className="flex-1 bg-[#9aab2a] hover:bg-[#b0c430] text-black font-bold text-sm py-2.5 rounded-full transition-colors duration-200 shadow-lg"
           >
             Отправить
           </button>
           <button
             type="button"
             onClick={() => setExtrasOpen(true)}
-            className="w-11 h-11 flex items-center justify-center bg-[#2a2a2a] rounded-full shrink-0"
+            className="w-9 h-9 flex items-center justify-center bg-[#2a2a2a] rounded-full shrink-0"
             title="Доп. услуги"
           >
-            <Icon name="SlidersHorizontal" size={18} className="text-[#c8d44a]" />
+            <Icon name="SlidersHorizontal" size={16} className="text-[#c8d44a]" />
           </button>
         </div>
 

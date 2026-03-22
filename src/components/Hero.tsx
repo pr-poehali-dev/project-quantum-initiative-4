@@ -83,9 +83,9 @@ export default function Hero() {
         </div>
       </div>
 
-      {/* DESKTOP: форма в левом верхнем углу */}
-      <div className="hidden sm:block absolute z-10 top-20 left-8">
-        <div id="order" className="bg-[#1a1a1a] rounded-3xl shadow-2xl p-6 w-[420px] overflow-y-auto" style={{ maxHeight: "calc(100dvh - 100px)" }}>
+      {/* DESKTOP: форма в левом нижнем углу */}
+      <div className="hidden sm:block absolute z-10 bottom-0 left-0">
+        <div id="order" className="bg-[#1a1a1a] rounded-tr-3xl shadow-2xl p-6 w-[420px] overflow-y-auto" style={{ maxHeight: "calc(100dvh - 64px)" }}>
           <FormContent {...formProps} />
         </div>
       </div>

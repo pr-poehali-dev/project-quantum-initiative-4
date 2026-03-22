@@ -83,9 +83,9 @@ export default function Hero() {
         </div>
       </div>
 
-      {/* DESKTOP: форма по центру с прокруткой внутри */}
-      <div className="hidden sm:flex relative z-10 w-full h-full items-center justify-center px-4">
-        <div id="order" className="bg-[#1a1a1a] rounded-3xl shadow-2xl p-6 w-full max-w-lg overflow-y-auto" style={{ maxHeight: "calc(100dvh - 100px)" }}>
+      {/* DESKTOP: форма в левом верхнем углу */}
+      <div className="hidden sm:block absolute z-10 top-20 left-8">
+        <div id="order" className="bg-[#1a1a1a] rounded-3xl shadow-2xl p-6 w-[420px] overflow-y-auto" style={{ maxHeight: "calc(100dvh - 100px)" }}>
           <FormContent {...formProps} />
         </div>
       </div>

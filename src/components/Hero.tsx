@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import HeroBackground from "@/components/HeroBackground";
 import { FormContent, FormProps } from "@/components/OrderFormContent";
 import { useMotionValue } from "framer-motion";
+import Icon from "@/components/ui/icon";
 
 export default function Hero() {
   const navigate = useNavigate();
@@ -87,6 +88,34 @@ export default function Hero() {
       <div className="hidden sm:block absolute z-10 bottom-0 left-0">
         <div id="order" className="bg-[#1a1a1a] rounded-tr-3xl shadow-2xl p-4 w-[380px] overflow-y-auto" style={{ maxHeight: "calc(100dvh - 56px)" }}>
           <FormContent {...formProps} />
+        </div>
+      </div>
+
+      {/* DESKTOP: контакты в правом нижнем углу */}
+      <div className="hidden sm:block absolute z-10 bottom-6 right-6">
+        <div className="bg-[#1a1a1a]/80 backdrop-blur-md rounded-2xl px-5 py-4 shadow-2xl">
+          <div className="flex items-center justify-between gap-6">
+            <div>
+              <a href="tel:+79956141414" className="text-white font-bold text-lg hover:text-brand-yellow transition-colors">
+                +7 (995) 614-14-14
+              </a>
+              <p className="text-white/60 text-sm mt-0.5">Закажите трансфер<br />по телефону или в мессенджере</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <a href="https://t.me/ug_transfer_online" target="_blank" rel="noopener noreferrer"
+                className="w-11 h-11 rounded-xl bg-blue-500/20 hover:bg-blue-500/40 flex items-center justify-center transition-colors">
+                <Icon name="Send" size={20} className="text-blue-400" />
+              </a>
+              <a href="https://max.ru/u/f9LHodD0cOLfcwdQZmP_TA1hXG1fSHf_rVVPptGTy_7FmQh-zvIFpGfU_lg" target="_blank" rel="noopener noreferrer"
+                className="w-11 h-11 rounded-xl bg-purple-500/20 hover:bg-purple-500/40 flex items-center justify-center transition-colors">
+                <Icon name="MessageSquare" size={20} className="text-purple-400" />
+              </a>
+              <a href="tel:+79956141414"
+                className="w-11 h-11 rounded-xl bg-green-500/20 hover:bg-green-500/40 flex items-center justify-center transition-colors">
+                <Icon name="Phone" size={20} className="text-green-400" />
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -77,12 +77,15 @@ def handler(event: dict, context) -> dict:
     )
     distance_km = round(distance_km)
 
-    tariff = TARIFFS.get(car_class, TARIFFS["standard"])
-    price = tariff["per_km"] * distance_km + tariff["base"]
+    extras_cost = sum(cost for key, cost in EXTRAS.items() if extras_selected.get(key))
 
-    for key, cost in EXTRAS.items():
-        if extras_selected.get(key):
-            price += cost
+    tariff = TARIFFS.get(car_class, TARIFFS["standard"])
+    price = tariff["per_km"] * distance_km + tariff["base"] + extras_cost
+
+    all_prices = {
+        key: t["per_km"] * distance_km + t["base"] + extras_cost
+        for key, t in TARIFFS.items()
+    }
 
     return {
         "statusCode": 200,
@@ -91,5 +94,6 @@ def handler(event: dict, context) -> dict:
             "distance_km": distance_km,
             "price": price,
             "car_class": car_class,
+            "all_prices": all_prices,
         }),
     }

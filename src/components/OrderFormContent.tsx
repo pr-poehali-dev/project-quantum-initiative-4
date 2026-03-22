@@ -34,6 +34,7 @@ export interface FormProps {
   price?: number | null;
   distanceKm?: number | null;
   priceLoading?: boolean;
+  allPrices?: Record<string, number> | null;
   extras?: { childSeat: boolean; pet: boolean; booster: boolean };
   setExtras?: (v: { childSeat: boolean; pet: boolean; booster: boolean }) => void;
 }
@@ -258,41 +259,35 @@ export function FormContent(p: FormProps) {
         {/* Класс авто */}
         <div className="overflow-x-auto scrollbar-hide">
           <div className="flex gap-1.5 min-w-max">
-            {CAR_CLASSES.map((cls) => (
-              <button
-                key={cls.id}
-                type="button"
-                onClick={() => p.setCarClass(cls.id)}
-                className={`flex flex-col items-center gap-0 px-2.5 py-1.5 rounded-xl transition-all min-w-[60px] ${
-                  p.carClass === cls.id
-                    ? "bg-[#3a3a2a] border-2 border-[#9aab2a]"
-                    : "bg-[#2a2a2a] border-2 border-transparent"
-                }`}
-              >
-                <span className="text-base">{cls.emoji}</span>
-                <span className={`text-[10px] font-semibold ${p.carClass === cls.id ? "text-[#c8d44a]" : "text-gray-300"}`}>
-                  {cls.label}
-                </span>
-              </button>
-            ))}
+            {CAR_CLASSES.map((cls) => {
+              const clsPrice = p.allPrices?.[cls.id];
+              return (
+                <button
+                  key={cls.id}
+                  type="button"
+                  onClick={() => p.setCarClass(cls.id)}
+                  className={`flex flex-col items-center gap-0 px-2.5 py-1.5 rounded-xl transition-all min-w-[60px] ${
+                    p.carClass === cls.id
+                      ? "bg-[#3a3a2a] border-2 border-[#9aab2a]"
+                      : "bg-[#2a2a2a] border-2 border-transparent"
+                  }`}
+                >
+                  <span className="text-base">{cls.emoji}</span>
+                  <span className={`text-[10px] font-semibold ${p.carClass === cls.id ? "text-[#c8d44a]" : "text-gray-300"}`}>
+                    {cls.label}
+                  </span>
+                  {clsPrice != null ? (
+                    <span className="text-[9px] text-[#9aab2a] font-bold leading-tight">
+                      {clsPrice.toLocaleString("ru-RU")}₽
+                    </span>
+                  ) : p.priceLoading ? (
+                    <span className="text-[9px] text-gray-500">...</span>
+                  ) : null}
+                </button>
+              );
+            })}
           </div>
         </div>
-
-        {/* Стоимость */}
-        {(p.priceLoading || p.price != null) && (
-          <div className="flex items-center justify-between bg-[#2a2a2a] rounded-full px-4 py-2">
-            <span className="text-gray-400 text-xs">
-              {p.distanceKm ? `${p.distanceKm} км` : "Считаем..."}
-            </span>
-            {p.priceLoading ? (
-              <span className="w-4 h-4 border-2 border-gray-500 border-t-[#c8d44a] rounded-full animate-spin block" />
-            ) : (
-              <span className="text-[#c8d44a] font-bold text-sm">
-                {p.price?.toLocaleString("ru-RU")} ₽
-              </span>
-            )}
-          </div>
-        )}
 
         {/* Submit */}
         <div className="flex items-center gap-2 mt-1">
@@ -306,9 +301,21 @@ export function FormContent(p: FormProps) {
           </button>
           <button
             type="submit"
-            className="flex-1 bg-[#9aab2a] hover:bg-[#b0c430] text-black font-bold text-sm py-2.5 rounded-full transition-colors duration-200 shadow-lg"
+            className="flex-1 bg-[#9aab2a] hover:bg-[#b0c430] text-black font-bold text-sm py-2 rounded-full transition-colors duration-200 shadow-lg flex flex-col items-center leading-tight"
           >
-            Отправить
+            {p.priceLoading ? (
+              <span className="flex items-center gap-1.5">
+                <span className="w-3 h-3 border-2 border-black/30 border-t-black rounded-full animate-spin block" />
+                Считаем...
+              </span>
+            ) : p.price != null ? (
+              <>
+                <span>Заказать</span>
+                <span className="text-[11px] font-black opacity-80">{p.price.toLocaleString("ru-RU")} ₽ · {p.distanceKm} км</span>
+              </>
+            ) : (
+              <span>Отправить заявку</span>
+            )}
           </button>
           <button
             type="button"

@@ -24,6 +24,7 @@ export default function Hero() {
   const [price, setPrice] = useState<number | null>(null);
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
   const [priceLoading, setPriceLoading] = useState(false);
+  const [allPrices, setAllPrices] = useState<Record<string, number> | null>(null);
   const [extras, setExtras] = useState({ childSeat: false, pet: false, booster: false });
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const addStop = () => setStops([...stops, ""]);
@@ -49,6 +50,7 @@ export default function Hero() {
         if (data.price !== undefined) {
           setPrice(data.price);
           setDistanceKm(data.distance_km);
+          setAllPrices(data.all_prices ?? null);
         }
       } catch {
         // ignore
@@ -105,7 +107,7 @@ export default function Hero() {
     stops, addStop, updateStop, removeStop,
     errors, handleSubmit,
     defaultDate, defaultTime,
-    price, distanceKm, priceLoading,
+    price, distanceKm, priceLoading, allPrices,
     extras, setExtras,
   };
 

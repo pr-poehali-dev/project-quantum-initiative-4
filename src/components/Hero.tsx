@@ -97,20 +97,6 @@ export default function Hero() {
 
       {/* DESKTOP: всё по центру */}
       <div className="hidden sm:flex relative z-10 w-full max-w-6xl mx-auto px-4 pt-24 pb-12 flex-col items-center">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white leading-tight mb-3">
-            Такси межгород<br />
-            <span className="text-brand-yellow">по России</span>
-          </h1>
-          <p className="text-white/80 text-base sm:text-lg max-w-xl mx-auto mb-4">
-            Комфортные трансферы от двери до двери. Фиксированная цена, подача 24/7.
-          </p>
-          <div className="flex flex-wrap justify-center gap-3 text-sm text-white/90">
-            <span className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-full">✅ Фиксированная цена</span>
-            <span className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-full">✅ Подача 24/7</span>
-            <span className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-full">✅ Детские кресла бесплатно</span>
-          </div>
-        </div>
         <div id="order" className="bg-[#1a1a1a] rounded-3xl shadow-2xl p-6 w-full max-w-lg">
           <FormContent {...formProps} />
         </div>

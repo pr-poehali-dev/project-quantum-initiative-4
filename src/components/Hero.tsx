@@ -1,17 +1,12 @@
-import { useScroll, useTransform } from "framer-motion";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import HeroBackground from "@/components/HeroBackground";
 import { FormContent, FormProps } from "@/components/OrderFormContent";
+import { useMotionValue } from "framer-motion";
 
 export default function Hero() {
-  const container = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: container,
-    offset: ["start start", "end start"],
-  });
-  const y = useTransform(scrollYProgress, [0, 1], ["0vh", "40vh"]);
   const navigate = useNavigate();
+  const y = useMotionValue("0vh");
 
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
@@ -77,27 +72,20 @@ export default function Hero() {
   };
 
   return (
-    <div
-      ref={container}
-      className="relative overflow-hidden"
-      style={{ minHeight: "100dvh" }}
-    >
+    <div className="relative" style={{ height: "100dvh", overflow: "hidden" }}>
       <HeroBackground y={y} />
 
-      {/* MOBILE: фон сверху, форма прилипает к низу */}
-      <div
-        className="sm:hidden relative z-10 flex flex-col"
-        style={{ minHeight: "100dvh" }}
-      >
-        <div className="flex-1" />
-        <div id="order" className="bg-[#1a1a1a] rounded-t-3xl px-4 pt-5 pb-[52px] w-full">
+      {/* MOBILE: форма прилипает к низу */}
+      <div className="sm:hidden relative z-10 flex flex-col" style={{ height: "100dvh", overflow: "hidden" }}>
+        <div className="flex-1 overflow-hidden" />
+        <div id="order" className="bg-[#1a1a1a] rounded-t-3xl px-4 pt-5 pb-[52px] w-full overflow-y-auto" style={{ maxHeight: "85dvh" }}>
           <FormContent {...formProps} />
         </div>
       </div>
 
-      {/* DESKTOP: всё по центру */}
-      <div className="hidden sm:flex relative z-10 w-full max-w-6xl mx-auto px-4 pt-24 pb-12 flex-col items-center">
-        <div id="order" className="bg-[#1a1a1a] rounded-3xl shadow-2xl p-6 w-full max-w-lg">
+      {/* DESKTOP: форма по центру с прокруткой внутри */}
+      <div className="hidden sm:flex relative z-10 w-full h-full items-center justify-center px-4">
+        <div id="order" className="bg-[#1a1a1a] rounded-3xl shadow-2xl p-6 w-full max-w-lg overflow-y-auto" style={{ maxHeight: "calc(100dvh - 100px)" }}>
           <FormContent {...formProps} />
         </div>
       </div>

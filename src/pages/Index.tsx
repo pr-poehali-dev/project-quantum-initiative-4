@@ -1,21 +1,11 @@
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
-import Advantages from "@/components/Advantages";
-import Fleet from "@/components/Fleet";
-import HowToOrder from "@/components/HowToOrder";
-import Footer from "@/components/Footer";
 
 const Index = () => {
   return (
-    <div className="min-h-screen">
+    <div style={{ height: "100dvh", overflow: "hidden" }}>
       <Header />
       <Hero />
-      <div className="hidden sm:block">
-        <Advantages />
-        <Fleet />
-        <HowToOrder />
-        <Footer />
-      </div>
     </div>
   );
 };

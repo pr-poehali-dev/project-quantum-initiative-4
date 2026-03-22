@@ -1,0 +1,13 @@
+{
+  "tests": [
+    {
+      "name": "Расчёт стандарт Москва-Ростов",
+      "method": "POST",
+      "path": "/",
+      "body": {"from": "Москва", "to": "Ростов-на-Дону", "carClass": "standard", "extras": {}, "stops": []},
+      "expectedStatus": 200,
+      "expectedBody": {"car_class": "standard"},
+      "bodyMatcher": "partial"
+    }
+  ]
+}

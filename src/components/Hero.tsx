@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import HeroBackground from "@/components/HeroBackground";
 import { FormContent, FormProps } from "@/components/OrderFormContent";
 import { useMotionValue } from "framer-motion";
 import Icon from "@/components/ui/icon";
+
+const CALCULATE_URL = "https://functions.poehali.dev/5fe1bb49-7cdd-4373-ab29-21772bb638aa";
 
 export default function Hero() {
   const navigate = useNavigate();
@@ -18,10 +20,43 @@ export default function Hero() {
   const [carClass, setCarClass] = useState("standard");
   const [payment, setPayment] = useState("transfer");
   const [stops, setStops] = useState<string[]>([]);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [price, setPrice] = useState<number | null>(null);
+  const [distanceKm, setDistanceKm] = useState<number | null>(null);
+  const [priceLoading, setPriceLoading] = useState(false);
+  const [extras, setExtras] = useState({ childSeat: false, pet: false, booster: false });
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const addStop = () => setStops([...stops, ""]);
   const updateStop = (i: number, v: string) => setStops(stops.map((s, idx) => idx === i ? v : s));
   const removeStop = (i: number) => setStops(stops.filter((_, idx) => idx !== i));
-  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (!from.trim() || !to.trim()) {
+      setPrice(null);
+      setDistanceKm(null);
+      return;
+    }
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      setPriceLoading(true);
+      try {
+        const res = await fetch(CALCULATE_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ from, to, carClass, extras, stops }),
+        });
+        const data = await res.json();
+        if (data.price !== undefined) {
+          setPrice(data.price);
+          setDistanceKm(data.distance_km);
+        }
+      } catch {
+        // ignore
+      } finally {
+        setPriceLoading(false);
+      }
+    }, 800);
+  }, [from, to, carClass, extras, stops]);
 
   const today = new Date();
   const defaultDate = today.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric" });
@@ -70,6 +105,8 @@ export default function Hero() {
     stops, addStop, updateStop, removeStop,
     errors, handleSubmit,
     defaultDate, defaultTime,
+    price, distanceKm, priceLoading,
+    extras, setExtras,
   };
 
   return (

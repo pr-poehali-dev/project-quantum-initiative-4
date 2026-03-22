@@ -31,6 +31,11 @@ export interface FormProps {
   handleSubmit: (e: React.FormEvent) => void;
   defaultDate: string;
   defaultTime: string;
+  price?: number | null;
+  distanceKm?: number | null;
+  priceLoading?: boolean;
+  extras?: { childSeat: boolean; pet: boolean; booster: boolean };
+  setExtras?: (v: { childSeat: boolean; pet: boolean; booster: boolean }) => void;
 }
 
 function CityInput({
@@ -131,9 +136,16 @@ export function FormContent(p: FormProps) {
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [extrasOpen, setExtrasOpen] = useState(false);
   const [extras, setExtras] = useState<ExtrasState>({
-    childSeat: false, pet: false, booster: false,
+    childSeat: p.extras?.childSeat ?? false,
+    pet: p.extras?.pet ?? false,
+    booster: p.extras?.booster ?? false,
     passengers: 2, luggage: 3, comment: "",
   });
+
+  const handleExtrasChange = (v: ExtrasState) => {
+    setExtras(v);
+    if (p.setExtras) p.setExtras({ childSeat: v.childSeat, pet: v.pet, booster: v.booster });
+  };
 
   return (
     <div className="relative">
@@ -148,7 +160,7 @@ export function FormContent(p: FormProps) {
         <ExtrasSheet
           onClose={() => setExtrasOpen(false)}
           extras={extras}
-          setExtras={setExtras}
+          setExtras={handleExtrasChange}
         />
       )}
       <form onSubmit={p.handleSubmit} noValidate className="flex flex-col gap-1.5">
@@ -265,6 +277,22 @@ export function FormContent(p: FormProps) {
             ))}
           </div>
         </div>
+
+        {/* Стоимость */}
+        {(p.priceLoading || p.price != null) && (
+          <div className="flex items-center justify-between bg-[#2a2a2a] rounded-full px-4 py-2">
+            <span className="text-gray-400 text-xs">
+              {p.distanceKm ? `${p.distanceKm} км` : "Считаем..."}
+            </span>
+            {p.priceLoading ? (
+              <span className="w-4 h-4 border-2 border-gray-500 border-t-[#c8d44a] rounded-full animate-spin block" />
+            ) : (
+              <span className="text-[#c8d44a] font-bold text-sm">
+                {p.price?.toLocaleString("ru-RU")} ₽
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Submit */}
         <div className="flex items-center gap-2 mt-1">

@@ -37,7 +37,7 @@ def handler(event: dict, context) -> dict:
                 'format': 'json',
                 'accept-language': 'ru',
                 'limit': '10',
-                'countrycodes': 'ru,by,kz',
+                'countrycodes': 'ru,by,kz,ua',
                 'addressdetails': '1',
                 'dedupe': '1',
             })

@@ -151,21 +151,34 @@ export default function HeroBackground({ from, to, stops = [] }: Props) {
         allAddresses.splice(1, 0, "Керчь");
       }
 
-      const coords = await Promise.all(allAddresses.map(geocodeAddress));
-      const validCoords = coords.filter(Boolean) as [number, number][];
-      if (validCoords.length < 2) return;
+      // Строим маршрут по дорогам через ymaps.route
+      const route = await window.ymaps.route(allAddresses, {
+        routingMode: "auto",
+        mapStateAutoApply: false,
+      });
 
-      // Линия маршрута
-      const polyline = new window.ymaps.Polyline(validCoords, {}, {
+      // Скрываем все путевые точки
+      const wps = route.getWayPoints();
+      for (let i = 0; i < wps.getLength(); i++) {
+        wps.get(i).options.set({ visible: false });
+      }
+
+      route.getPaths().options.set({
         strokeColor: "#c8d44a",
         strokeWidth: 4,
         opacity: 0.9,
       });
-      map.geoObjects.add(polyline);
-      routeObjectsRef.current.push(polyline);
 
-      // Только 2 маркера — старт и финиш
-      [validCoords[0], validCoords[validCoords.length - 1]].forEach(coord => {
+      map.geoObjects.add(route);
+      routeObjectsRef.current.push(route);
+
+      // Два маркера — только реальный старт и финиш
+      const [coordFrom, coordTo] = await Promise.all([
+        geocodeAddress(from),
+        geocodeAddress(to),
+      ]);
+      [coordFrom, coordTo].forEach(coord => {
+        if (!coord) return;
         const pm = new window.ymaps.Placemark(coord, {}, {
           preset: "islands#dotIcon",
           iconColor: "#c8d44a",
@@ -180,7 +193,7 @@ export default function HeroBackground({ from, to, stops = [] }: Props) {
         ? [20, 20, Math.round(window.innerHeight * 0.88), 20]
         : [80, 80, 80, 80];
 
-      const bounds = polyline.geometry.getBounds();
+      const bounds = route.getBounds();
       if (bounds) map.setBounds(bounds, { checkZoomRange: true, zoomMargin: margin });
     })();
   }, [from, to, stops]);

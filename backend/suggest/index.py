@@ -1,12 +1,10 @@
-import os
 import json
 import urllib.request
 import urllib.parse
-# redeploy
 
 
 def handler(event: dict, context) -> dict:
-    """Проксирует запросы к Яндекс Geocoder API для подсказок адресов и геокодирования."""
+    """Автоподсказки адресов через Яндекс Suggest API и обратный геокодинг через Nominatim."""
 
     if event.get('httpMethod') == 'OPTIONS':
         return {
@@ -20,50 +18,43 @@ def handler(event: dict, context) -> dict:
             'body': ''
         }
 
-    api_key = os.environ.get('YANDEX_GEOCODER_API_KEY', 'feba36e0-0c20-42ea-aac4-e0d61b0ff690')
     params = event.get('queryStringParameters') or {}
     action = params.get('action', 'suggest')
 
     if action == 'suggest':
         query = params.get('q', '')
-        if not query:
+        if not query or len(query) < 2:
             return {
                 'statusCode': 200,
                 'headers': {'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json'},
                 'body': json.dumps({'results': []})
             }
+
         url = (
-            'https://geocode-maps.yandex.ru/1.x/?'
+            'https://nominatim.openstreetmap.org/search?'
             + urllib.parse.urlencode({
-                'apikey': api_key,
-                'geocode': query,
-                'results': '6',
+                'q': query,
                 'format': 'json',
-                'lang': 'ru_RU',
+                'accept-language': 'ru',
+                'limit': '6',
+                'countrycodes': 'ru,by,kz',
             })
         )
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        req = urllib.request.Request(url, headers={'User-Agent': 'TaxiApp/1.0'})
         with urllib.request.urlopen(req, timeout=5) as resp:
             data = json.loads(resp.read().decode())
-        members = (
-            data.get('response', {})
-                .get('GeoObjectCollection', {})
-                .get('featureMember', [])
-        )
-        suggestions = []
-        for m in members:
-            text = (
-                m.get('GeoObject', {})
-                 .get('metaDataProperty', {})
-                 .get('GeocoderMetaData', {})
-                 .get('text', '')
-            )
-            if text:
-                suggestions.append(text)
+
+        results = []
+        for item in data:
+            name = item.get('display_name', '')
+            if name:
+                parts = [p.strip() for p in name.split(',')][:3]
+                results.append(', '.join(parts))
+
         return {
             'statusCode': 200,
             'headers': {'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json'},
-            'body': json.dumps({'results': suggestions})
+            'body': json.dumps({'results': results})
         }
 
     elif action == 'geocode':
@@ -75,28 +66,32 @@ def handler(event: dict, context) -> dict:
                 'headers': {'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json'},
                 'body': json.dumps({'error': 'lon and lat required'})
             }
+
         url = (
-            'https://geocode-maps.yandex.ru/1.x/?'
+            'https://nominatim.openstreetmap.org/reverse?'
             + urllib.parse.urlencode({
-                'apikey': api_key,
-                'geocode': f'{lon},{lat}',
-                'results': '1',
+                'lat': lat,
+                'lon': lon,
                 'format': 'json',
-                'lang': 'ru_RU',
+                'accept-language': 'ru',
+                'zoom': '14',
             })
         )
-        req = urllib.request.Request(url)
+        req = urllib.request.Request(url, headers={
+            'User-Agent': 'TaxiApp/1.0',
+        })
         with urllib.request.urlopen(req, timeout=5) as resp:
             data = json.loads(resp.read().decode())
-        address = (
-            data.get('response', {})
-                .get('GeoObjectCollection', {})
-                .get('featureMember', [{}])[0]
-                .get('GeoObject', {})
-                .get('metaDataProperty', {})
-                .get('GeocoderMetaData', {})
-                .get('text', '')
-        )
+
+        address_data = data.get('address', {})
+        parts = []
+        for key in ['city', 'town', 'village', 'suburb', 'road', 'house_number']:
+            val = address_data.get(key)
+            if val:
+                parts.append(val)
+
+        address = ', '.join(parts) if parts else data.get('display_name', '')
+
         return {
             'statusCode': 200,
             'headers': {'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json'},

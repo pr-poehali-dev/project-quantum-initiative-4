@@ -1,6 +1,12 @@
 {
   "tests": [
     {
+      "name": "Options CORS",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
       "name": "Suggest autocomplete",
       "method": "GET",
       "path": "/?action=suggest&q=Москва",
@@ -9,10 +15,12 @@
       "bodyMatcher": "partial"
     },
     {
-      "name": "Options CORS",
-      "method": "OPTIONS",
-      "path": "/",
-      "expectedStatus": 200
+      "name": "Geocode reverse",
+      "method": "GET",
+      "path": "/?action=geocode&lat=55.751574&lon=37.573856",
+      "expectedStatus": 200,
+      "expectedBody": {"address": ""},
+      "bodyMatcher": "partial"
     }
   ]
 }

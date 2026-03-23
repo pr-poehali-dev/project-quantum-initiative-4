@@ -112,6 +112,21 @@ export default function HeroBackground({ from, to, stops = [] }: Props) {
 
       map.geoObjects.add(route);
       routeRef.current = route;
+
+      // Смещаем карту с учётом формы снизу на мобильных
+      try {
+        const bounds = route.getBounds();
+        if (bounds) {
+          const isMobile = window.innerWidth < 640;
+          // На мобильных форма занимает ~85dvh снизу — отступ сверху ~15%
+          const topPaddingPx = isMobile ? window.innerHeight * 0.05 : 60;
+          const bottomPaddingPx = isMobile ? window.innerHeight * 0.87 : 60;
+          map.setBounds(bounds, {
+            checkZoomRange: true,
+            zoomMargin: [topPaddingPx, 60, bottomPaddingPx, 60],
+          });
+        }
+      } catch { /* ignore */ }
     }).catch(() => {});
   }, [from, to, stops]);
 

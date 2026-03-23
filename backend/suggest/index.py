@@ -38,6 +38,7 @@ def handler(event: dict, context) -> dict:
                 'accept-language': 'ru',
                 'limit': '6',
                 'countrycodes': 'ru,by,kz',
+                'addressdetails': '1',
             })
         )
         req = urllib.request.Request(url, headers={'User-Agent': 'TaxiApp/1.0'})
@@ -45,11 +46,18 @@ def handler(event: dict, context) -> dict:
             data = json.loads(resp.read().decode())
 
         results = []
+        seen = set()
         for item in data:
-            name = item.get('display_name', '')
-            if name:
-                parts = [p.strip() for p in name.split(',')][:3]
-                results.append(', '.join(parts))
+            addr = item.get('address', {})
+            country = addr.get('country', '')
+            city = addr.get('city') or addr.get('town') or addr.get('village') or addr.get('municipality', '')
+            road = addr.get('road', '')
+            house = addr.get('house_number', '')
+            parts = [p for p in [country, city, road + (' ' + house if house else '')] if p.strip()]
+            line = ', '.join(parts)
+            if line and line not in seen:
+                seen.add(line)
+                results.append(line)
 
         return {
             'statusCode': 200,

@@ -36,9 +36,10 @@ def handler(event: dict, context) -> dict:
                 'q': query,
                 'format': 'json',
                 'accept-language': 'ru',
-                'limit': '6',
+                'limit': '10',
                 'countrycodes': 'ru,by,kz',
                 'addressdetails': '1',
+                'dedupe': '1',
             })
         )
         req = urllib.request.Request(url, headers={'User-Agent': 'TaxiApp/1.0'})
@@ -50,14 +51,31 @@ def handler(event: dict, context) -> dict:
         for item in data:
             addr = item.get('address', {})
             country = addr.get('country', '')
-            city = addr.get('city') or addr.get('town') or addr.get('village') or addr.get('municipality', '')
+            city = (addr.get('city') or addr.get('town') or addr.get('village')
+                    or addr.get('municipality') or addr.get('county') or '')
+            state = addr.get('state', '')
             road = addr.get('road', '')
             house = addr.get('house_number', '')
-            parts = [p for p in [country, city, road + (' ' + house if house else '')] if p.strip()]
-            line = ', '.join(parts)
-            if line and line not in seen:
-                seen.add(line)
-                results.append(line)
+
+            street = road
+            if house:
+                street = road + ', ' + house if road else house
+
+            city_part = city if city else state
+
+            main_parts = [p for p in [city_part, street] if p.strip()]
+            main = ', '.join(main_parts)
+            line = country + ('|' + main if main else '')
+
+            if not main:
+                continue
+            if line in seen:
+                continue
+            seen.add(line)
+            results.append(country + ', ' + main)
+
+            if len(results) >= 6:
+                break
 
         return {
             'statusCode': 200,

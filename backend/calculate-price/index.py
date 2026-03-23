@@ -115,10 +115,12 @@ def handler(event: dict, context) -> dict:
         specials.append(special)
 
     # Считаем км обычные и км по повышенному тарифу
+    # Коэффициент 1.4 — поправка с прямого расстояния на дорожное
+    ROAD_FACTOR = 1.4
     km_normal = 0.0
     km_special = 0.0
     for i in range(len(coords) - 1):
-        seg_km = haversine(coords[i][0], coords[i][1], coords[i+1][0], coords[i+1][1])
+        seg_km = haversine(coords[i][0], coords[i][1], coords[i+1][0], coords[i+1][1]) * ROAD_FACTOR
         # Если хотя бы одна точка сегмента в спецзоне — весь сегмент по спецтарифу
         if specials[i] or specials[i + 1]:
             km_special += seg_km

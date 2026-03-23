@@ -36,13 +36,25 @@ function loadYmaps(): Promise<void> {
   });
 }
 
+async function geocodeAddress(address: string): Promise<[number, number] | null> {
+  try {
+    const result = await window.ymaps.geocode(address, { results: 1 });
+    const obj = result.geoObjects.get(0);
+    if (!obj) return null;
+    const coords = obj.geometry.getCoordinates();
+    return coords as [number, number];
+  } catch {
+    return null;
+  }
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyRef = any;
 
 export default function HeroBackground({ from, to, stops = [] }: Props) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<AnyRef>(null);
-  const routeRef = useRef<AnyRef>(null);
+  const objectsRef = useRef<AnyRef[]>([]);
 
   useEffect(() => {
     let destroyed = false;
@@ -52,7 +64,7 @@ export default function HeroBackground({ from, to, stops = [] }: Props) {
         mapInstanceRef.current = new window.ymaps.Map(mapRef.current, {
           center: [55.751574, 37.573856],
           zoom: 5,
-          controls: ["zoomControl"],
+          controls: [],
         });
         mapInstanceRef.current.behaviors.disable("scrollZoom");
       }
@@ -64,67 +76,61 @@ export default function HeroBackground({ from, to, stops = [] }: Props) {
     if (!window._ymapsReady || !mapInstanceRef.current) return;
     const map = mapInstanceRef.current;
 
-    if (routeRef.current) {
-      map.geoObjects.remove(routeRef.current);
-      routeRef.current = null;
-    }
+    // Удаляем все старые объекты
+    objectsRef.current.forEach(obj => map.geoObjects.remove(obj));
+    objectsRef.current = [];
 
     if (!from.trim() || !to.trim()) return;
 
-    const CRIMEA_KEYWORDS = ["ялта", "симферополь", "севастополь", "керчь", "феодосия", "евпатория", "крым", "республика крым", "алушта", "судак", "бахчисарай"];
-    const isCrimea = (addr: string) => CRIMEA_KEYWORDS.some(k => addr.toLowerCase().includes(k));
+    (async () => {
+      const CRIMEA_KEYWORDS = ["ялта", "симферополь", "севастополь", "керчь", "феодосия", "евпатория", "крым", "алушта", "судак", "бахчисарай"];
+      const isCrimea = (addr: string) => CRIMEA_KEYWORDS.some(k => addr.toLowerCase().includes(k));
 
-    const userStops = stops.filter(Boolean);
-    let routePoints: string[];
+      // Формируем точки маршрута
+      const allAddresses = [from, ...stops.filter(Boolean), to];
 
-    if (isCrimea(from) || isCrimea(to)) {
-      // Принудительный маршрут через Керчь и Краснодар
-      if (isCrimea(from)) {
-        routePoints = [from, "Керчь", "Краснодар", ...userStops, to];
-      } else {
-        routePoints = [from, ...userStops, "Краснодар", "Керчь", to];
+      // Если из/в Крым — добавляем Керчь и Краснодар как промежуточные для геокодинга
+      if (isCrimea(from) && !isCrimea(to)) {
+        allAddresses.splice(1, 0, "Керчь", "Краснодар");
+      } else if (!isCrimea(from) && isCrimea(to)) {
+        allAddresses.splice(allAddresses.length - 1, 0, "Краснодар", "Керчь");
       }
-    } else {
-      routePoints = [from, ...userStops, to];
-    }
 
-    window.ymaps.route(routePoints, {
-      routingMode: "auto",
-      mapStateAutoApply: false,
-      results: 1,
-    }).then((route: AnyRef) => {
-      // Скрываем все промежуточные точки
-      route.getWayPoints().options.set({ visible: false });
+      const coords = await Promise.all(allAddresses.map(geocodeAddress));
+      const validCoords = coords.filter(Boolean) as [number, number][];
 
-      // Показываем только старт и финиш
-      const wps = route.getWayPoints();
-      const first = wps.get(0);
-      const last = wps.get(wps.getLength() - 1);
-      if (first) first.options.set({ preset: "islands#dotIcon", iconColor: "#c8d44a", visible: true });
-      if (last) last.options.set({ preset: "islands#dotIcon", iconColor: "#c8d44a", visible: true });
+      if (validCoords.length < 2) return;
 
-      route.getPaths().options.set({
+      // Рисуем одну линию через все точки
+      const polyline = new window.ymaps.Polyline(validCoords, {}, {
         strokeColor: "#c8d44a",
         strokeWidth: 4,
         opacity: 0.9,
       });
+      map.geoObjects.add(polyline);
+      objectsRef.current.push(polyline);
 
-      map.geoObjects.add(route);
-      routeRef.current = route;
+      // Только две точки: старт и финиш
+      const startPlacemark = new window.ymaps.Placemark(validCoords[0], {}, {
+        preset: "islands#dotIcon",
+        iconColor: "#c8d44a",
+      });
+      const endPlacemark = new window.ymaps.Placemark(validCoords[validCoords.length - 1], {}, {
+        preset: "islands#dotIcon",
+        iconColor: "#c8d44a",
+      });
+      map.geoObjects.add(startPlacemark);
+      map.geoObjects.add(endPlacemark);
+      objectsRef.current.push(startPlacemark, endPlacemark);
 
-      // Подбираем bounds и смещаем с учётом формы
-      const bounds = route.getBounds();
-      if (!bounds) return;
-
+      // Позиционируем карту
       const isMobile = window.innerWidth < 640;
-      // На мобильных форма занимает нижние ~85% экрана, маршрут виден в верхних ~15%
-      // Поэтому нижний отступ большой — маршрут уходит в видимую зону
       const margin: [number, number, number, number] = isMobile
         ? [20, 20, Math.round(window.innerHeight * 0.88), 20]
         : [80, 80, 80, 80];
 
-      map.setBounds(bounds, { checkZoomRange: true, zoomMargin: margin });
-    }).catch(() => {});
+      map.setBounds(map.geoObjects.getBounds(), { checkZoomRange: true, zoomMargin: margin });
+    })();
   }, [from, to, stops]);
 
   return (

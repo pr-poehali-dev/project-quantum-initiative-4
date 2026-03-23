@@ -98,20 +98,21 @@ def handler(event: dict, context) -> dict:
 
     # Крым → Херсонская/Запорожская: напрямую через Джанкой
     # Крым → всё остальное (ДНР/ЛНР/Россия): через Керчь+Краснодар (дешевле)
-    points = [from_city] + stops + [to_city]
+    # Формат: (адрес, force_normal) — force_normal=True означает всегда обычный тариф
+    raw = [(from_city, False)] + [(s, False) for s in stops] + [(to_city, False)]
     if is_crimea_addr(from_city) and not is_crimea_addr(to_city) and not is_kherson_zap(to_city):
-        points = [from_city, "Керчь", "Краснодар"] + stops + [to_city]
+        raw = [(from_city, False), ("Керчь", True), ("Краснодар", True)] + [(s, False) for s in stops] + [(to_city, False)]
     elif is_crimea_addr(to_city) and not is_crimea_addr(from_city) and not is_kherson_zap(from_city):
-        points = [from_city] + stops + ["Краснодар", "Керчь", to_city]
+        raw = [(from_city, False)] + [(s, False) for s in stops] + [("Краснодар", True), ("Керчь", True), (to_city, False)]
 
     coords = []
     specials = []
-    for p in points:
-        coord, special = geocode(p)
+    for addr, force_normal in raw:
+        coord, special = geocode(addr)
         if not coord:
-            return {"statusCode": 400, "headers": CORS, "body": json.dumps({"error": f"Не удалось найти: {p}"})}
+            return {"statusCode": 400, "headers": CORS, "body": json.dumps({"error": f"Не удалось найти: {addr}"})}
         coords.append(coord)
-        specials.append(special)
+        specials.append(False if force_normal else special)
 
     # Считаем км обычные и км по повышенному тарифу
     # Коэффициент 1.4 — поправка с прямого расстояния на дорожное

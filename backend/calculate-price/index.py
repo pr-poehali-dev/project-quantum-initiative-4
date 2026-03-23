@@ -1,5 +1,4 @@
 import json
-import os
 import urllib.request
 import math
 
@@ -10,6 +9,15 @@ TARIFFS = {
     "comfort":  {"per_km": 40, "base": 0},
     "minivan":  {"per_km": 60, "base": 0},
     "business": {"per_km": 80, "base": 0},
+}
+
+# Повышенный тариф для новых регионов
+TARIFFS_SPECIAL = {
+    "urgent":   {"per_km": 75, "base": 1500},
+    "standard": {"per_km": 75, "base": 0},
+    "comfort":  {"per_km": 85, "base": 0},
+    "minivan":  {"per_km": 95, "base": 0},
+    "business": {"per_km": 180, "base": 0},
 }
 
 EXTRAS = {
@@ -24,19 +32,38 @@ CORS = {
     "Access-Control-Allow-Headers": "Content-Type",
 }
 
+# Новые регионы России (ключевые слова в адресе)
+SPECIAL_REGIONS = [
+    "херсонская область", "херсонська область",
+    "запорожская область", "запорізька область",
+    "донецкая народная республика", "донецька область", "днр",
+    "луганская народная республика", "луганська область", "лнр",
+]
 
-def geocode(address: str, api_key: str = ""):
+
+def is_special_region(address: str) -> bool:
+    """Проверить входит ли адрес в зону повышенного тарифа."""
+    addr_lower = address.lower()
+    return any(region in addr_lower for region in SPECIAL_REGIONS)
+
+
+def geocode(address: str):
     """Получить координаты адреса через Nominatim (OpenStreetMap)."""
     url = (
         f"https://nominatim.openstreetmap.org/search"
-        f"?q={urllib.request.quote(address)}&format=json&limit=1&accept-language=ru"
+        f"?q={urllib.request.quote(address)}&format=json&limit=1&accept-language=ru&addressdetails=1"
     )
     req = urllib.request.Request(url, headers={"User-Agent": "ug-transfer-app/1.0"})
     with urllib.request.urlopen(req, timeout=10) as r:
         data = json.loads(r.read())
     if not data:
-        return None
-    return float(data[0]["lat"]), float(data[0]["lon"])
+        return None, None
+    item = data[0]
+    addr = item.get("address", {})
+    state = addr.get("state", "").lower()
+    country = addr.get("country", "").lower()
+    special = any(region in state for region in SPECIAL_REGIONS) or any(region in country for region in SPECIAL_REGIONS)
+    return (float(item["lat"]), float(item["lon"])), special
 
 
 def haversine(lat1, lon1, lat2, lon2) -> float:
@@ -48,8 +75,15 @@ def haversine(lat1, lon1, lat2, lon2) -> float:
     return R * 2 * math.asin(math.sqrt(a))
 
 
+def calc_price(km_normal, km_special, tariff_key, extras_cost):
+    """Рассчитать комбинированную цену: обычный + повышенный тариф."""
+    t = TARIFFS.get(tariff_key, TARIFFS["standard"])
+    ts = TARIFFS_SPECIAL.get(tariff_key, TARIFFS_SPECIAL["standard"])
+    return t["per_km"] * km_normal + ts["per_km"] * km_special + t["base"] + extras_cost
+
+
 def handler(event: dict, context) -> dict:
-    """Рассчитать стоимость поездки по тарифу и доп. услугам."""
+    """Рассчитать стоимость поездки с учётом зон повышенного тарифа (новые регионы России)."""
     if event.get("httpMethod") == "OPTIONS":
         return {"statusCode": 200, "headers": CORS, "body": ""}
 
@@ -65,27 +99,35 @@ def handler(event: dict, context) -> dict:
 
     points = [from_city] + stops + [to_city]
     coords = []
+    specials = []
     for p in points:
-        c = geocode(p)
-        if not c:
+        coord, special = geocode(p)
+        if not coord:
             return {"statusCode": 400, "headers": CORS, "body": json.dumps({"error": f"Не удалось найти: {p}"})}
-        coords.append(c)
+        coords.append(coord)
+        specials.append(special)
 
-    distance_km = sum(
-        haversine(coords[i][0], coords[i][1], coords[i+1][0], coords[i+1][1])
-        for i in range(len(coords) - 1)
-    )
-    distance_km = round(distance_km)
+    # Считаем км обычные и км по повышенному тарифу
+    km_normal = 0.0
+    km_special = 0.0
+    for i in range(len(coords) - 1):
+        seg_km = haversine(coords[i][0], coords[i][1], coords[i+1][0], coords[i+1][1])
+        # Если хотя бы одна точка сегмента в спецзоне — весь сегмент по спецтарифу
+        if specials[i] or specials[i + 1]:
+            km_special += seg_km
+        else:
+            km_normal += seg_km
+
+    km_normal = round(km_normal)
+    km_special = round(km_special)
+    distance_km = km_normal + km_special
 
     extras_cost = sum(cost for key, cost in EXTRAS.items() if extras_selected.get(key))
 
-    tariff = TARIFFS.get(car_class, TARIFFS["standard"])
-    price = tariff["per_km"] * distance_km + tariff["base"] + extras_cost
+    price = calc_price(km_normal, km_special, car_class, extras_cost)
+    all_prices = {key: calc_price(km_normal, km_special, key, extras_cost) for key in TARIFFS}
 
-    all_prices = {
-        key: t["per_km"] * distance_km + t["base"] + extras_cost
-        for key, t in TARIFFS.items()
-    }
+    has_special = km_special > 0
 
     return {
         "statusCode": 200,
@@ -95,5 +137,8 @@ def handler(event: dict, context) -> dict:
             "price": price,
             "car_class": car_class,
             "all_prices": all_prices,
+            "has_special_zone": has_special,
+            "km_normal": km_normal,
+            "km_special": km_special,
         }),
     }

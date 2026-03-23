@@ -23,6 +23,7 @@ export default function Hero() {
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
   const [priceLoading, setPriceLoading] = useState(false);
   const [allPrices, setAllPrices] = useState<Record<string, number> | null>(null);
+  const [hasSpecialZone, setHasSpecialZone] = useState(false);
   const [extras, setExtras] = useState({ childSeat: false, pet: false, booster: false });
   const [geoHint, setGeoHint] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -64,6 +65,7 @@ export default function Hero() {
           setPrice(data.price);
           setDistanceKm(data.distance_km);
           setAllPrices(data.all_prices ?? null);
+          setHasSpecialZone(data.has_special_zone ?? false);
         }
       } catch {
         // ignore
@@ -122,6 +124,7 @@ export default function Hero() {
     defaultDate, defaultTime,
     price, distanceKm, priceLoading, allPrices,
     extras, setExtras,
+    hasSpecialZone,
   };
 
   return (

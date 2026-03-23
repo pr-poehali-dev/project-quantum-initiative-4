@@ -81,6 +81,7 @@ export interface FormProps {
   allPrices?: Record<string, number> | null;
   extras?: { childSeat: boolean; pet: boolean; booster: boolean };
   setExtras?: (v: { childSeat: boolean; pet: boolean; booster: boolean }) => void;
+  hasSpecialZone?: boolean;
 }
 
 function CityInput({
@@ -403,7 +404,10 @@ export function FormContent(p: FormProps) {
             ) : p.price != null ? (
               <>
                 <span>Заказать</span>
-                <span className="text-[11px] font-black opacity-80">{p.price.toLocaleString("ru-RU")} ₽ · {p.distanceKm} км</span>
+                <span className="text-[11px] font-black opacity-80">
+                  {p.price.toLocaleString("ru-RU")} ₽ · {p.distanceKm} км
+                  {p.hasSpecialZone && " · спец. тариф"}
+                </span>
               </>
             ) : (
               <span>Отправить заявку</span>

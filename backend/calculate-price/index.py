@@ -9,7 +9,7 @@ TARIFFS = {
     "standard": {"per_km": 30, "base": 0},
     "comfort":  {"per_km": 40, "base": 0},
     "minivan":  {"per_km": 60, "base": 0},
-    "business": {"per_km": 180, "base": 0},
+    "business": {"per_km": 80, "base": 0},
 }
 
 EXTRAS = {

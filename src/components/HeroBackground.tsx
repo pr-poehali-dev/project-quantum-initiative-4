@@ -71,20 +71,43 @@ export default function HeroBackground({ from, to, stops = [] }: Props) {
 
     if (!from.trim() || !to.trim()) return;
 
-    const points = [from, ...stops.filter(Boolean), to];
+    const CRIMEA_KEYWORDS = ["ялта", "симферополь", "севастополь", "керчь", "феодосия", "евпатория", "крым", "республика крым", "алушта", "судак", "бахчисарай"];
+    const isCrimea = (addr: string) => CRIMEA_KEYWORDS.some(k => addr.toLowerCase().includes(k));
 
-    window.ymaps.route(points, {
+    const userStops = stops.filter(Boolean);
+    let routePoints: string[];
+
+    if (isCrimea(from) || isCrimea(to)) {
+      // Принудительный маршрут через Керчь и Краснодар
+      if (isCrimea(from)) {
+        routePoints = [from, "Керчь", "Краснодар", ...userStops, to];
+      } else {
+        routePoints = [from, ...userStops, "Краснодар", "Керчь", to];
+      }
+    } else {
+      routePoints = [from, ...userStops, to];
+    }
+
+    window.ymaps.route(routePoints, {
       routingMode: "auto",
       mapStateAutoApply: true,
+      results: 1,
     }).then((route: AnyRef) => {
       route.getPaths().options.set({
         strokeColor: "#c8d44a",
         strokeWidth: 4,
         opacity: 0.9,
+        showJamsTime: false,
       });
       route.getWayPoints().options.set({
         preset: "islands#dotIcon",
         iconColor: "#c8d44a",
+        visible: false,
+      });
+      // Показываем только первую точку и последнюю
+      const wps = route.getWayPoints();
+      wps.each((wp: AnyRef, i: number) => {
+        wp.options.set({ visible: i === 0 || i === wps.getLength() - 1 });
       });
       map.geoObjects.add(route);
       routeRef.current = route;

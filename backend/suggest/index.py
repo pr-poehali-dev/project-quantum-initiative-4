@@ -60,6 +60,11 @@ def handler(event: dict, context) -> dict:
             house = addr.get('house_number', '')
 
             is_crimea = state.lower() in CRIMEA_STATES
+            is_ukraine = country.lower() in ('украина', 'ukraine', 'україна')
+
+            if is_ukraine and not is_crimea:
+                continue
+
             if is_crimea:
                 country = 'Россия'
                 region = 'Республика Крым'

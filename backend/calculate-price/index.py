@@ -34,20 +34,16 @@ CORS = {
 
 # Новые регионы России (ключевые слова в адресе)
 SPECIAL_REGIONS = [
-    "республика крым", "крым", "crimea", "автономна республіка крим",
     "херсонская область", "херсонська область",
     "запорожская область", "запорізька область",
-    "донецкая народная республика", "донецька область", "днр",
-    "луганская народная республика", "луганська область", "лнр",
+    "донецкая народная республика", "донецька область",
+    "луганская народная республика", "луганська область",
 ]
 
-# Географический bbox Крыма (запасная проверка по координатам)
-CRIMEA_BBOX = {"lat_min": 44.3, "lat_max": 46.2, "lon_min": 32.5, "lon_max": 36.7}
-
-
-def in_crimea_bbox(lat: float, lon: float) -> bool:
-    return (CRIMEA_BBOX["lat_min"] <= lat <= CRIMEA_BBOX["lat_max"] and
-            CRIMEA_BBOX["lon_min"] <= lon <= CRIMEA_BBOX["lon_max"])
+EXCLUDE_REGIONS = [
+    "республика крым", "крым", "crimea", "автономна республіка крим",
+    "ялта", "симферополь", "севастополь", "керчь", "феодосия", "евпатория",
+]
 
 
 def geocode(address: str):
@@ -64,12 +60,16 @@ def geocode(address: str):
     item = data[0]
     lat, lon = float(item["lat"]), float(item["lon"])
     addr = item.get("address", {})
-    # Проверяем все поля адреса на спецрегион
-    addr_text = " ".join(str(v) for v in addr.values()).lower()
+    # Проверяем поля адреса на спецрегион
+    state = addr.get("state", "").lower()
+    county = addr.get("county", "").lower()
+
+    addr_text = (state + " " + county).strip()
+    # Сначала исключаем Крым
+    is_crimea = any(ex in addr_text for ex in EXCLUDE_REGIONS)
+    if is_crimea:
+        return (lat, lon), False
     special = any(region in addr_text for region in SPECIAL_REGIONS)
-    # Запасная проверка по координатам для Крыма
-    if not special and in_crimea_bbox(lat, lon):
-        special = True
     return (lat, lon), special
 
 

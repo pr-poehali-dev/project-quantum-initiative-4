@@ -25,7 +25,7 @@ function loadYmaps(): Promise<void> {
     }
     const script = document.createElement("script");
     script.id = "ymaps-script";
-    script.src = "https://api-maps.yandex.ru/2.1/?lang=ru_RU";
+    script.src = "https://api-maps.yandex.ru/2.1/?apikey=feba36e0-0c20-42ea-aac4-e0d61b0ff690&lang=ru_RU";
     script.onload = () => {
       window.ymaps.ready(() => {
         window._ymapsReady = true;

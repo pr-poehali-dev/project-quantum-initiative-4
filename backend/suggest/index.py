@@ -46,6 +46,8 @@ def handler(event: dict, context) -> dict:
         with urllib.request.urlopen(req, timeout=5) as resp:
             data = json.loads(resp.read().decode())
 
+        CRIMEA_STATES = {'республика крым', 'крым', 'crimea', 'автономна республіка крим'}
+
         results = []
         seen = set()
         for item in data:
@@ -56,6 +58,9 @@ def handler(event: dict, context) -> dict:
             state = addr.get('state', '')
             road = addr.get('road', '')
             house = addr.get('house_number', '')
+
+            if state.lower() in CRIMEA_STATES or country.lower() in ('украина', 'ukraine', 'україна') and state.lower() in CRIMEA_STATES:
+                country = 'Россия'
 
             street = road
             if house:

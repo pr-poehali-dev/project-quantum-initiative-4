@@ -82,6 +82,22 @@ export interface FormProps {
   extras?: { childSeat: boolean; pet: boolean; booster: boolean };
   setExtras?: (v: { childSeat: boolean; pet: boolean; booster: boolean }) => void;
   hasSpecialZone?: boolean;
+  kpp?: "matveev" | "veselo";
+  setKpp?: (v: "matveev" | "veselo") => void;
+}
+
+const DNR_LNR_KW = ["донецк", "луганск", "мариуполь", "горловка", "макеевка", "днр", "лнр", "краматорск", "северодонецк", "лисичанск"];
+const CRIMEA_KW = ["ялта", "симферополь", "севастополь", "керчь", "феодосия", "евпатория", "крым", "алушта", "судак", "бахчисарай"];
+const KHERSON_KW = ["херсон", "мелитополь", "бердянск", "токмак", "энергодар", "геническ", "херсонская", "запорожская", "запорожье"];
+const isDnrLnr = (s: string) => DNR_LNR_KW.some(k => s.toLowerCase().includes(k));
+const isCrimeaAddr = (s: string) => CRIMEA_KW.some(k => s.toLowerCase().includes(k));
+const isKhersonZap = (s: string) => KHERSON_KW.some(k => s.toLowerCase().includes(k));
+
+function showKppSelector(from: string, to: string) {
+  if (!from || !to) return false;
+  const toIsDnr = isDnrLnr(to) && !isCrimeaAddr(from) && !isKhersonZap(from);
+  const fromIsDnr = isDnrLnr(from) && !isCrimeaAddr(to) && !isKhersonZap(to);
+  return toIsDnr || fromIsDnr;
 }
 
 function CityInput({
@@ -293,6 +309,37 @@ export function FormContent(p: FormProps) {
           <CityInput placeholder="Куда?" value={p.to} onChange={p.setTo} showGeo />
           {p.errors.to && <p className="text-red-400 text-xs mt-0.5 pl-4">{p.errors.to}</p>}
         </div>
+
+        {/* КПП — только для маршрутов Россия ↔ ДНР/ЛНР */}
+        {showKppSelector(p.from, p.to) && p.kpp && p.setKpp && (
+          <div className="flex flex-col gap-1">
+            <p className="text-gray-400 text-[10px] pl-1">Через какой пограничный пункт?</p>
+            <div className="flex gap-1.5">
+              <button
+                type="button"
+                onClick={() => p.setKpp!("matveev")}
+                className={`flex-1 py-2 rounded-full text-xs font-semibold transition-all border-2 ${
+                  p.kpp === "matveev"
+                    ? "bg-[#3a3a2a] border-[#9aab2a] text-[#c8d44a]"
+                    : "bg-[#2a2a2a] border-transparent text-gray-400 hover:text-white"
+                }`}
+              >
+                Матвеев Курган
+              </button>
+              <button
+                type="button"
+                onClick={() => p.setKpp!("veselo")}
+                className={`flex-1 py-2 rounded-full text-xs font-semibold transition-all border-2 ${
+                  p.kpp === "veselo"
+                    ? "bg-[#3a3a2a] border-[#9aab2a] text-[#c8d44a]"
+                    : "bg-[#2a2a2a] border-transparent text-gray-400 hover:text-white"
+                }`}
+              >
+                Весело-Вознесенка
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Дата + Время */}
         <div className="grid grid-cols-2 gap-2">

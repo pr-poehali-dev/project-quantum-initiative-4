@@ -4,6 +4,7 @@ interface Props {
   from: string;
   to: string;
   stops?: string[];
+  kpp?: "matveev" | "veselo";
 }
 
 declare global {
@@ -97,7 +98,7 @@ const isCrimea = (addr: string) => CRIMEA_KEYWORDS.some(k => addr.toLowerCase().
 const isDnrLnr = (addr: string) => DNR_LNR_KEYWORDS.some(k => addr.toLowerCase().includes(k));
 const isKhersonZap = (addr: string) => KHERSON_ZAP_KEYWORDS.some(k => addr.toLowerCase().includes(k));
 
-export default function HeroBackground({ from, to, stops = [] }: Props) {
+export default function HeroBackground({ from, to, stops = [], kpp = "matveev" }: Props) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<AnyRef>(null);
   const routeObjectsRef = useRef<AnyRef[]>([]);
@@ -142,11 +143,13 @@ export default function HeroBackground({ from, to, stops = [] }: Props) {
           allAddresses.splice(allAddresses.length - 1, 0, "Краснодар", "Керчь");
         }
       } else if (isDnrLnr(to) && !isCrimea(from) && !isKhersonZap(from)) {
-        // Россия → ДНР/ЛНР: через КПП Матвеев Курган + Весело-Вознесенка
-        allAddresses.splice(allAddresses.length - 1, 0, "Матвеев Курган", "Весело-Вознесенка");
+        // Россия → ДНР/ЛНР: через выбранный КПП
+        const kppName = kpp === "veselo" ? "Весело-Вознесенка, Ростовская область" : "Матвеев Курган, Ростовская область";
+        allAddresses.splice(allAddresses.length - 1, 0, kppName);
       } else if (isDnrLnr(from) && !isCrimea(to) && !isKhersonZap(to)) {
-        // ДНР/ЛНР → Россия: через КПП Весело-Вознесенка + Матвеев Курган
-        allAddresses.splice(1, 0, "Весело-Вознесенка", "Матвеев Курган");
+        // ДНР/ЛНР → Россия: через выбранный КПП
+        const kppName = kpp === "veselo" ? "Весело-Вознесенка, Ростовская область" : "Матвеев Курган, Ростовская область";
+        allAddresses.splice(1, 0, kppName);
       } else if (isKhersonZap(to) && !isCrimea(from)) {
         // Россия → Херсонская/Запорожская: через Васильевку
         allAddresses.splice(allAddresses.length - 1, 0, "Васильевка");
@@ -211,7 +214,7 @@ export default function HeroBackground({ from, to, stops = [] }: Props) {
         if (bounds) map.setBounds(bounds, { checkZoomRange: true, zoomMargin: margin });
       }
     })();
-  }, [from, to, stops]);
+  }, [from, to, stops, kpp]);
 
   return (
     <div className="absolute inset-0 w-full h-full">

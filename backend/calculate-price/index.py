@@ -97,6 +97,7 @@ def handler(event: dict, context) -> dict:
     car_class = body.get("carClass", "standard")
     extras_selected = body.get("extras", {})
     stops = body.get("stops", [])
+    kpp = body.get("kpp", "matveev")
 
     if not from_city or not to_city:
         return {"statusCode": 400, "headers": CORS, "body": json.dumps({"error": "Укажите откуда и куда"})}
@@ -120,11 +121,12 @@ def handler(event: dict, context) -> dict:
     # Используем их только для разделения сегментов, сами по себе не добавляют км в тариф
     raw = [(from_city, False)] + [(s, False) for s in stops] + [(to_city, False)]
 
-    # Россия ↔ ДНР/ЛНР: КПП Матвеев Курган + Весело-Вознесенка
+    # Россия ↔ ДНР/ЛНР: через выбранный КПП (matveev = Матвеев Курган, veselo = Весело-Вознесенка)
+    kpp_name = "Весело-Вознесенка, Ростовская область" if kpp == "veselo" else "Матвеев Курган, Ростовская область"
     if is_dnr_lnr(to_city) and from_russia:
-        raw = [(from_city, False)] + [(s, False) for s in stops] + [("Матвеев Курган", True), ("Весело-Вознесенка", True), (to_city, False)]
+        raw = [(from_city, False)] + [(s, False) for s in stops] + [(kpp_name, True), (to_city, False)]
     elif is_dnr_lnr(from_city) and to_russia:
-        raw = [(from_city, False), ("Весело-Вознесенка", True), ("Матвеев Курган", True)] + [(s, False) for s in stops] + [(to_city, False)]
+        raw = [(from_city, False), (kpp_name, True)] + [(s, False) for s in stops] + [(to_city, False)]
 
     # Россия ↔ Херсонская/Запорожская: КПП Васильевка
     elif is_kherson_zap(to_city) and from_russia:

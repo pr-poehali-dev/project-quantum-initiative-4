@@ -25,6 +25,7 @@ export default function Hero() {
   const [allPrices, setAllPrices] = useState<Record<string, number> | null>(null);
   const [hasSpecialZone, setHasSpecialZone] = useState(false);
   const [extras, setExtras] = useState({ childSeat: false, pet: false, booster: false });
+  const [kpp, setKpp] = useState<"matveev" | "veselo">("matveev");
   const [geoHint, setGeoHint] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const addStop = () => setStops([...stops, ""]);
@@ -58,7 +59,7 @@ export default function Hero() {
         const res = await fetch(CALCULATE_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ from, to, carClass, extras, stops }),
+          body: JSON.stringify({ from, to, carClass, extras, stops, kpp }),
         });
         const data = await res.json();
         if (data.price !== undefined) {
@@ -125,11 +126,12 @@ export default function Hero() {
     price, distanceKm, priceLoading, allPrices,
     extras, setExtras,
     hasSpecialZone,
+    kpp, setKpp,
   };
 
   return (
     <div className="relative" style={{ height: "100dvh", overflow: "hidden" }}>
-      <HeroBackground from={from} to={to} stops={stops} />
+      <HeroBackground from={from} to={to} stops={stops} kpp={kpp} />
 
       {/* Подсказка геолокации */}
       <div

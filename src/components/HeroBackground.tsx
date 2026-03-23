@@ -142,11 +142,11 @@ export default function HeroBackground({ from, to, stops = [] }: Props) {
           allAddresses.splice(allAddresses.length - 1, 0, "Краснодар", "Керчь");
         }
       } else if (isDnrLnr(to) && !isCrimea(from) && !isKhersonZap(from)) {
-        // Россия → ДНР/ЛНР: через КПП Весело-Вознесенка
-        allAddresses.splice(allAddresses.length - 1, 0, "Весело-Вознесенка");
+        // Россия → ДНР/ЛНР: через КПП Матвеев Курган + Весело-Вознесенка
+        allAddresses.splice(allAddresses.length - 1, 0, "Матвеев Курган", "Весело-Вознесенка");
       } else if (isDnrLnr(from) && !isCrimea(to) && !isKhersonZap(to)) {
-        // ДНР/ЛНР → Россия: через КПП Весело-Вознесенка
-        allAddresses.splice(1, 0, "Весело-Вознесенка");
+        // ДНР/ЛНР → Россия: через КПП Весело-Вознесенка + Матвеев Курган
+        allAddresses.splice(1, 0, "Весело-Вознесенка", "Матвеев Курган");
       } else if (isKhersonZap(to) && !isCrimea(from)) {
         // Россия → Херсонская/Запорожская: через Васильевку
         allAddresses.splice(allAddresses.length - 1, 0, "Васильевка");

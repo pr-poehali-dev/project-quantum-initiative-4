@@ -116,11 +116,11 @@ def handler(event: dict, context) -> dict:
     from_crimea = is_crimea_addr(from_city)
     to_crimea = is_crimea_addr(to_city)
 
-    # Россия ↔ ДНР/ЛНР: КПП Весело-Вознесенка
+    # Россия ↔ ДНР/ЛНР: КПП Матвеев Курган + Весело-Вознесенка
     if is_dnr_lnr(to_city) and from_russia:
-        raw_points = [from_city] + stops + ["Весело-Вознесенка", to_city]
+        raw_points = [from_city] + stops + ["Матвеев Курган", "Весело-Вознесенка", to_city]
     elif is_dnr_lnr(from_city) and to_russia:
-        raw_points = [from_city, "Весело-Вознесенка"] + stops + [to_city]
+        raw_points = [from_city, "Весело-Вознесенка", "Матвеев Курган"] + stops + [to_city]
 
     # Россия/ДНР ↔ Херсонская/Запорожская: КПП Васильевка
     elif is_kherson_zap(to_city) and from_russia:

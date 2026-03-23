@@ -204,22 +204,18 @@ function CityInput({
         <ul className="absolute z-50 top-full left-0 right-0 mt-1 bg-[#222] border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
           {suggestions.map((item, idx) => {
             const parts = item.split(',').map((p: string) => p.trim());
-            const country = parts[0] || '';
             const rest = parts.slice(1).join(', ');
             const isActive = idx === activeIdx;
             return (
               <li
                 key={item}
                 onMouseDown={() => selectSuggestion(item)}
-                className={`flex items-start gap-2.5 px-4 py-2.5 cursor-pointer transition-colors ${
+                className={`flex items-center gap-2.5 px-4 py-2.5 cursor-pointer transition-colors ${
                   isActive ? "bg-[#9aab2a]/20" : "hover:bg-white/8"
                 }`}
               >
-                <Icon name="MapPin" size={13} className={`mt-0.5 shrink-0 ${isActive ? "text-[#c8d44a]" : "text-gray-500"}`} />
-                <div className="min-w-0">
-                  {rest && <p className={`text-sm truncate ${isActive ? "text-[#c8d44a]" : "text-gray-200"}`}>{rest}</p>}
-                  <p className={`text-xs truncate ${isActive ? "text-[#c8d44a]/70" : "text-gray-300"}`}>{country}</p>
-                </div>
+                <Icon name="MapPin" size={13} className={`shrink-0 ${isActive ? "text-[#c8d44a]" : "text-gray-500"}`} />
+                <p className={`text-sm truncate ${isActive ? "text-[#c8d44a]" : "text-gray-200"}`}>{rest || item}</p>
               </li>
             );
           })}

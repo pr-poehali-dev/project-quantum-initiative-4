@@ -187,11 +187,21 @@ export default function HeroBackground({ from, to, stops = [] }: Props) {
       // margin: [top, right, bottom, left]
       const isMobile = window.innerWidth < 640;
       const margin: [number, number, number, number] = isMobile
-        ? [70, 20, Math.round(window.innerHeight * 0.87), 20]  // мобильный: форма 85dvh снизу
-        : [76, 40, 40, 420]; // десктоп: шапка 56px + отступ сверху, форма 380px + отступ слева
+        ? [70, 20, Math.round(window.innerHeight * 0.87), 20]
+        : [76, 40, 40, 420];
 
-      const bounds = route.getBounds();
-      if (bounds) map.setBounds(bounds, { checkZoomRange: true, zoomMargin: margin });
+      // Берём bounds из маркеров старта/финиша — надёжнее чем route.getBounds()
+      const boundsCoords = [coordFrom, coordTo].filter(Boolean) as [number, number][];
+      if (boundsCoords.length === 2) {
+        const latMin = Math.min(...boundsCoords.map(c => c[0]));
+        const latMax = Math.max(...boundsCoords.map(c => c[0]));
+        const lonMin = Math.min(...boundsCoords.map(c => c[1]));
+        const lonMax = Math.max(...boundsCoords.map(c => c[1]));
+        map.setBounds([[latMin, lonMin], [latMax, lonMax]], { checkZoomRange: true, zoomMargin: margin });
+      } else {
+        const bounds = route.getBounds();
+        if (bounds) map.setBounds(bounds, { checkZoomRange: true, zoomMargin: margin });
+      }
     })();
   }, [from, to, stops]);
 

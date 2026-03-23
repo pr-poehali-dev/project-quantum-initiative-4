@@ -111,19 +111,7 @@ export default function HeroBackground({ from, to, stops = [] }: Props) {
         });
         mapInstanceRef.current.behaviors.disable("scrollZoom");
 
-        // Рисуем зоны спецтарифа один раз
-        if (!zonesAddedRef.current) {
-          SPECIAL_ZONES.forEach(zone => {
-            const polygon = new window.ymaps.Polygon([zone.coords], { hintContent: zone.name }, {
-              fillColor: "#cc000055",
-              strokeColor: "#cc0000",
-              strokeWidth: 1.5,
-              opacity: 1,
-            });
-            mapInstanceRef.current.geoObjects.add(polygon);
-          });
-          zonesAddedRef.current = true;
-        }
+        zonesAddedRef.current = true;
       }
     });
     return () => { destroyed = true; };

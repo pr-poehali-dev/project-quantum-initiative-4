@@ -406,7 +406,6 @@ export function FormContent(p: FormProps) {
                 <span>Заказать</span>
                 <span className="text-[11px] font-black opacity-80">
                   {p.price.toLocaleString("ru-RU")} ₽ · {p.distanceKm} км
-                  {p.hasSpecialZone && " · спец. тариф"}
                 </span>
               </>
             ) : (

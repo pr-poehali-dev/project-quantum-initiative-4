@@ -93,22 +93,23 @@ export default function HeroBackground({ from, to, stops = [] }: Props) {
       mapStateAutoApply: true,
       results: 1,
     }).then((route: AnyRef) => {
+      // Скрываем все промежуточные точки
+      route.getWayPoints().options.set({ visible: false });
+
+      // Показываем только старт и финиш вручную
+      const wps = route.getWayPoints();
+      const first = wps.get(0);
+      const last = wps.get(wps.getLength() - 1);
+      if (first) first.options.set({ preset: "islands#dotIcon", iconColor: "#c8d44a", visible: true });
+      if (last) last.options.set({ preset: "islands#dotIcon", iconColor: "#c8d44a", visible: true });
+
+      // Только одна линия маршрута
       route.getPaths().options.set({
         strokeColor: "#c8d44a",
         strokeWidth: 4,
         opacity: 0.9,
-        showJamsTime: false,
       });
-      route.getWayPoints().options.set({
-        preset: "islands#dotIcon",
-        iconColor: "#c8d44a",
-        visible: false,
-      });
-      // Показываем только первую точку и последнюю
-      const wps = route.getWayPoints();
-      wps.each((wp: AnyRef, i: number) => {
-        wp.options.set({ visible: i === 0 || i === wps.getLength() - 1 });
-      });
+
       map.geoObjects.add(route);
       routeRef.current = route;
     }).catch(() => {});

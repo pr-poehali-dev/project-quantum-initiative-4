@@ -450,10 +450,7 @@ export function FormContent(p: FormProps) {
               </span>
             ) : p.price != null ? (
               <>
-                <span>Заказать</span>
-                <span className="text-[11px] font-black opacity-80">
-                  {p.price.toLocaleString("ru-RU")} ₽ · {p.distanceKm} км
-                </span>
+                <span>Заказать · {p.price.toLocaleString("ru-RU")} ₽</span>
               </>
             ) : (
               <span>Отправить заявку</span>

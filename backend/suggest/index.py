@@ -69,8 +69,9 @@ def handler(event: dict, context) -> dict:
             road = addr.get('road', '')
             house = addr.get('house_number', '')
 
-            is_crimea = state.lower() in CRIMEA_STATES
-            is_russia_region = state.lower() in RUSSIA_REGIONS
+            state_lower = state.lower()
+            is_crimea = any(k in state_lower for k in CRIMEA_STATES)
+            is_russia_region = any(k in state_lower for k in RUSSIA_REGIONS)
             is_ukraine = country.lower() in ('украина', 'ukraine', 'україна')
 
             if is_ukraine and not is_crimea and not is_russia_region:
@@ -78,8 +79,10 @@ def handler(event: dict, context) -> dict:
 
             if is_crimea or is_russia_region:
                 country = 'Россия'
-                region = 'Республика Крым' if is_crimea else RUSSIA_REGIONS[state.lower()]
-                city_label = ('г. ' + city) if city else ''
+                matched_region = next((v for k, v in RUSSIA_REGIONS.items() if k in state_lower), None)
+                region = 'Республика Крым' if is_crimea else (matched_region or state)
+                city_clean = city.replace('город ', '').replace('місто ', '').strip()
+                city_label = ('г. ' + city_clean) if city_clean else ''
                 street_parts = [p for p in [road, house] if p]
                 street = ' '.join(street_parts)
                 main_parts = [p for p in [region, city_label, street] if p.strip()]

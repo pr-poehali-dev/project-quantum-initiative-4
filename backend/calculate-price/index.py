@@ -103,12 +103,27 @@ def handler(event: dict, context) -> dict:
 
     CRIMEA_KEYS = ["крым", "ялта", "симферополь", "севастополь", "керчь", "феодосия", "евпатория", "алушта", "судак", "бахчисарай"]
     KHERSON_ZAP_KEYS = ["херсон", "мелитополь", "бердянск", "токмак", "энергодар", "геническ", "херсонская", "запорожская", "запорожье"]
+    DNR_LNR_KEYS = ["донецк", "луганск", "мариуполь", "горловка", "макеевка", "лисичанск", "северодонецк"]
     def is_crimea_addr(a): return any(k in a.lower() for k in CRIMEA_KEYS)
     def is_kherson_zap(a): return any(k in a.lower() for k in KHERSON_ZAP_KEYS)
+    def is_dnr_lnr(a): return any(k in a.lower() for k in DNR_LNR_KEYS)
 
-    # Для расчёта цены используем только реальные точки маршрута (без служебных Керчь/Краснодар)
-    # Спецтариф определяется по стране адреса (Украина = спецтариф, кроме Крыма)
-    raw = [(from_city, False)] + [(s, False) for s in stops] + [(to_city, False)]
+    # Если маршрут пересекает границу России со спецзоной —
+    # добавляем пограничный пункт чтобы правильно разбить км на обычные и спецтарифные
+    raw_points = [from_city] + stops + [to_city]
+
+    # Россия ↔ ДНР/ЛНР: граница через Матвеев Курган
+    if is_dnr_lnr(to_city) and not is_dnr_lnr(from_city) and not is_crimea_addr(from_city):
+        raw_points = [from_city] + stops + ["Матвеев Курган", to_city]
+    elif is_dnr_lnr(from_city) and not is_dnr_lnr(to_city) and not is_crimea_addr(to_city):
+        raw_points = [from_city, "Матвеев Курган"] + stops + [to_city]
+    # Россия ↔ Херсонская/Запорожская: граница через Геническ/Васильевку
+    elif is_kherson_zap(to_city) and not is_kherson_zap(from_city) and not is_crimea_addr(from_city):
+        raw_points = [from_city] + stops + ["Васильевка", to_city]
+    elif is_kherson_zap(from_city) and not is_kherson_zap(to_city) and not is_crimea_addr(to_city):
+        raw_points = [from_city, "Васильевка"] + stops + [to_city]
+
+    raw = [(p, False) for p in raw_points]
 
     coords = []
     specials = []

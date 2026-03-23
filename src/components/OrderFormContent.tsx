@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import Icon from "@/components/ui/icon";
 import { ExtrasState, ExtrasSheet, PaymentSheet } from "@/components/OrderFormSheets";
 
-function GeoPermissionModal({ onAllow, onCancel }: { onAllow: () => void; onCancel: () => void }) {
+function GeoPermissionModal({ onRetry, onCancel }: { onRetry: () => void; onCancel: () => void }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
       <div className="bg-[#1e1e1e] rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-white/10">
@@ -10,8 +10,11 @@ function GeoPermissionModal({ onAllow, onCancel }: { onAllow: () => void; onCanc
           <Icon name="MapPin" size={28} className="text-[#c8d44a]" />
         </div>
         <h3 className="text-white text-lg font-semibold text-center mb-2">Доступ к геолокации</h3>
-        <p className="text-gray-400 text-sm text-center mb-6">
-          Чтобы автоматически определить ваш адрес, разрешите браузеру доступ к местоположению
+        <p className="text-gray-400 text-sm text-center mb-2">
+          Браузер заблокировал доступ к местоположению.
+        </p>
+        <p className="text-gray-500 text-xs text-center mb-6">
+          Нажмите на значок 🔒 в адресной строке браузера → разрешите геолокацию → затем нажмите «Повторить»
         </p>
         <div className="flex gap-3">
           <button
@@ -21,10 +24,10 @@ function GeoPermissionModal({ onAllow, onCancel }: { onAllow: () => void; onCanc
             Отмена
           </button>
           <button
-            onClick={onAllow}
+            onClick={onRetry}
             className="flex-1 py-2.5 rounded-full bg-[#c8d44a] text-black text-sm font-semibold hover:bg-[#d4e050] transition"
           >
-            Разрешить
+            Повторить
           </button>
         </div>
       </div>
@@ -121,7 +124,7 @@ function CityInput({
     if (e.key === "Escape") setSuggestions([]);
   };
 
-  const doGeo = () => {
+  const requestGeo = () => {
     if (!navigator.geolocation) return;
     setGeoLoading(true);
     navigator.geolocation.getCurrentPosition(
@@ -147,8 +150,7 @@ function CityInput({
   };
 
   const handleGeo = () => {
-    if (!navigator.geolocation) return;
-    setShowGeoModal(true);
+    requestGeo();
   };
 
   const handleFocus = () => {
@@ -159,7 +161,7 @@ function CityInput({
     <div className="relative">
       {showGeoModal && (
         <GeoPermissionModal
-          onAllow={() => { setShowGeoModal(false); doGeo(); }}
+          onRetry={() => { setShowGeoModal(false); requestGeo(); }}
           onCancel={() => setShowGeoModal(false)}
         />
       )}

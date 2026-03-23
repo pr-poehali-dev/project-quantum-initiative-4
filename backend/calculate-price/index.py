@@ -91,7 +91,18 @@ def handler(event: dict, context) -> dict:
     if not from_city or not to_city:
         return {"statusCode": 400, "headers": CORS, "body": json.dumps({"error": "Укажите откуда и куда"})}
 
-    points = [from_city] + stops + [to_city]
+    CRIMEA_KEYS = ["крым", "ялта", "симферополь", "севастополь", "керчь", "феодосия", "евпатория", "алушта", "судак", "бахчисарай"]
+    def is_crimea_addr(a): return any(k in a.lower() for k in CRIMEA_KEYS)
+
+    # Маршрут Крым → спецзона: добавляем промежуточные Керчь+Краснодар
+    # чтобы маршрут шёл через Россию (дешевле)
+    raw_points = [from_city] + stops + [to_city]
+    points = list(raw_points)
+    if is_crimea_addr(from_city) and not is_crimea_addr(to_city):
+        points = [from_city, "Керчь", "Краснодар"] + stops + [to_city]
+    elif is_crimea_addr(to_city) and not is_crimea_addr(from_city):
+        points = [from_city] + stops + ["Краснодар", "Керчь", to_city]
+
     coords = []
     specials = []
     for p in points:

@@ -129,13 +129,11 @@ export default function HeroBackground({ from, to, stops = [] }: Props) {
     (async () => {
       const allAddresses = [from, ...stops.filter(Boolean), to];
 
-      // Керчь/Краснодар только если маршрут Крым ↔ Россия (не Украина/спецзоны)
-      const toIsRussia = !isSpecial(to) && !isCrimea(to);
-      const fromIsRussia = !isSpecial(from) && !isCrimea(from);
-
-      if (isCrimea(from) && toIsRussia) {
+      // Крым → Россия или спецзона (ДНР/ЛНР/Запорожская/Херсонская): через Керчь+Краснодар
+      // Это дешевле чем через Украину
+      if (isCrimea(from) && !isCrimea(to)) {
         allAddresses.splice(1, 0, "Керчь", "Краснодар");
-      } else if (isCrimea(to) && fromIsRussia) {
+      } else if (isCrimea(to) && !isCrimea(from)) {
         allAddresses.splice(allAddresses.length - 1, 0, "Краснодар", "Керчь");
       }
 

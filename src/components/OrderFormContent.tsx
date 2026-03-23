@@ -2,6 +2,36 @@ import { useState, useRef } from "react";
 import Icon from "@/components/ui/icon";
 import { ExtrasState, ExtrasSheet, PaymentSheet } from "@/components/OrderFormSheets";
 
+function GeoPermissionModal({ onAllow, onCancel }: { onAllow: () => void; onCancel: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+      <div className="bg-[#1e1e1e] rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-white/10">
+        <div className="flex items-center justify-center w-14 h-14 rounded-full bg-[#c8d44a]/15 mx-auto mb-4">
+          <Icon name="MapPin" size={28} className="text-[#c8d44a]" />
+        </div>
+        <h3 className="text-white text-lg font-semibold text-center mb-2">Доступ к геолокации</h3>
+        <p className="text-gray-400 text-sm text-center mb-6">
+          Чтобы автоматически определить ваш адрес, разрешите браузеру доступ к местоположению
+        </p>
+        <div className="flex gap-3">
+          <button
+            onClick={onCancel}
+            className="flex-1 py-2.5 rounded-full border border-white/20 text-gray-400 text-sm hover:bg-white/5 transition"
+          >
+            Отмена
+          </button>
+          <button
+            onClick={onAllow}
+            className="flex-1 py-2.5 rounded-full bg-[#c8d44a] text-black text-sm font-semibold hover:bg-[#d4e050] transition"
+          >
+            Разрешить
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const SUGGEST_URL = "https://functions.poehali.dev/dc36ae61-2640-4aae-a1f2-4b07623e0311";
 
 async function fetchSuggestions(query: string): Promise<string[]> {
@@ -59,7 +89,7 @@ function CityInput({
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [focused, setFocused] = useState(false);
   const [geoLoading, setGeoLoading] = useState(false);
-  const [geoError, setGeoError] = useState("");
+  const [showGeoModal, setShowGeoModal] = useState(false);
   const [activeIdx, setActiveIdx] = useState(-1);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -91,13 +121,9 @@ function CityInput({
     if (e.key === "Escape") setSuggestions([]);
   };
 
-  const handleGeo = () => {
-    if (!navigator.geolocation) {
-      setGeoError("Геолокация не поддерживается");
-      return;
-    }
+  const doGeo = () => {
+    if (!navigator.geolocation) return;
     setGeoLoading(true);
-    setGeoError("");
     navigator.geolocation.getCurrentPosition(
       async ({ coords }) => {
         try {
@@ -105,24 +131,24 @@ function CityInput({
             `${SUGGEST_URL}?action=geocode&lon=${coords.longitude}&lat=${coords.latitude}`
           );
           const data = await res.json();
-          if (data.address) {
-            onChange(data.address);
-          } else {
-            setGeoError("Не удалось определить адрес");
-          }
+          if (data.address) onChange(data.address);
         } catch {
-          setGeoError("Ошибка определения адреса");
+          // ignore
         } finally {
           setGeoLoading(false);
         }
       },
       (err) => {
         setGeoLoading(false);
-        if (err.code === 1) setGeoError("Разрешите доступ к геолокации в браузере");
-        else setGeoError("Не удалось определить местоположение");
+        if (err.code === 1) setShowGeoModal(true);
       },
       { timeout: 8000, enableHighAccuracy: true }
     );
+  };
+
+  const handleGeo = () => {
+    if (!navigator.geolocation) return;
+    setShowGeoModal(true);
   };
 
   const handleFocus = () => {
@@ -131,6 +157,12 @@ function CityInput({
 
   return (
     <div className="relative">
+      {showGeoModal && (
+        <GeoPermissionModal
+          onAllow={() => { setShowGeoModal(false); doGeo(); }}
+          onCancel={() => setShowGeoModal(false)}
+        />
+      )}
       <input
         type="text"
         value={value}
@@ -156,7 +188,6 @@ function CityInput({
           )}
         </button>
       )}
-      {geoError && <p className="text-red-400 text-xs mt-1 pl-4">{geoError}</p>}
       {focused && suggestions.length > 0 && (
         <ul className="absolute z-50 top-full left-0 right-0 mt-1 bg-[#222] border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
           {suggestions.map((city, idx) => (

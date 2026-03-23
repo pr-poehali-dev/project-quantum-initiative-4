@@ -14,6 +14,43 @@ declare global {
   }
 }
 
+// Полигоны зон повышенного тарифа (ДНР, ЛНР, Запорожская, Херсонская)
+// Координаты: [lat, lon]
+const SPECIAL_ZONES = [
+  {
+    name: "ДНР",
+    coords: [
+      [48.07, 37.45], [48.35, 38.15], [48.55, 38.85], [48.1, 39.5],
+      [47.8, 39.6], [47.4, 38.9], [47.1, 38.2], [47.3, 37.5],
+      [47.6, 37.1], [47.9, 37.2], [48.07, 37.45],
+    ],
+  },
+  {
+    name: "ЛНР",
+    coords: [
+      [48.55, 38.85], [48.9, 39.3], [49.3, 39.7], [49.5, 40.2],
+      [49.15, 40.5], [48.7, 40.1], [48.3, 39.9], [47.8, 39.6],
+      [48.1, 39.5], [48.55, 38.85],
+    ],
+  },
+  {
+    name: "Запорожская",
+    coords: [
+      [47.6, 34.2], [47.9, 35.1], [47.85, 36.0], [47.6, 36.8],
+      [47.3, 37.1], [47.0, 36.5], [46.7, 35.8], [46.6, 34.8],
+      [46.9, 34.2], [47.3, 33.9], [47.6, 34.2],
+    ],
+  },
+  {
+    name: "Херсонская",
+    coords: [
+      [47.0, 32.5], [47.2, 33.5], [46.9, 34.2], [46.6, 34.8],
+      [46.3, 34.5], [46.0, 33.8], [46.2, 32.8], [46.5, 32.3],
+      [47.0, 32.5],
+    ],
+  },
+];
+
 function loadYmaps(): Promise<void> {
   return new Promise((resolve) => {
     if (window.ymaps && window._ymapsReady) { resolve(); return; }
@@ -41,8 +78,7 @@ async function geocodeAddress(address: string): Promise<[number, number] | null>
     const result = await window.ymaps.geocode(address, { results: 1 });
     const obj = result.geoObjects.get(0);
     if (!obj) return null;
-    const coords = obj.geometry.getCoordinates();
-    return coords as [number, number];
+    return obj.geometry.getCoordinates() as [number, number];
   } catch {
     return null;
   }
@@ -51,10 +87,17 @@ async function geocodeAddress(address: string): Promise<[number, number] | null>
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyRef = any;
 
+const CRIMEA_KEYWORDS = ["ялта", "симферополь", "севастополь", "керчь", "феодосия", "евпатория", "крым", "алушта", "судак", "бахчисарай"];
+const SPECIAL_KEYWORDS = ["донецк", "луганск", "мелитополь", "херсон", "запорожье", "мариуполь", "бердянск", "днр", "лнр", "херсонская", "запорожская"];
+
+const isCrimea = (addr: string) => CRIMEA_KEYWORDS.some(k => addr.toLowerCase().includes(k));
+const isSpecial = (addr: string) => SPECIAL_KEYWORDS.some(k => addr.toLowerCase().includes(k));
+
 export default function HeroBackground({ from, to, stops = [] }: Props) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<AnyRef>(null);
-  const objectsRef = useRef<AnyRef[]>([]);
+  const routeObjectsRef = useRef<AnyRef[]>([]);
+  const zonesAddedRef = useRef(false);
 
   useEffect(() => {
     let destroyed = false;
@@ -67,6 +110,20 @@ export default function HeroBackground({ from, to, stops = [] }: Props) {
           controls: [],
         });
         mapInstanceRef.current.behaviors.disable("scrollZoom");
+
+        // Рисуем зоны спецтарифа один раз
+        if (!zonesAddedRef.current) {
+          SPECIAL_ZONES.forEach(zone => {
+            const polygon = new window.ymaps.Polygon([zone.coords], { hintContent: zone.name }, {
+              fillColor: "#cc000055",
+              strokeColor: "#cc0000",
+              strokeWidth: 1.5,
+              opacity: 1,
+            });
+            mapInstanceRef.current.geoObjects.add(polygon);
+          });
+          zonesAddedRef.current = true;
+        }
       }
     });
     return () => { destroyed = true; };
@@ -76,60 +133,55 @@ export default function HeroBackground({ from, to, stops = [] }: Props) {
     if (!window._ymapsReady || !mapInstanceRef.current) return;
     const map = mapInstanceRef.current;
 
-    // Удаляем все старые объекты
-    objectsRef.current.forEach(obj => map.geoObjects.remove(obj));
-    objectsRef.current = [];
+    routeObjectsRef.current.forEach(obj => map.geoObjects.remove(obj));
+    routeObjectsRef.current = [];
 
     if (!from.trim() || !to.trim()) return;
 
     (async () => {
-      const CRIMEA_KEYWORDS = ["ялта", "симферополь", "севастополь", "керчь", "феодосия", "евпатория", "крым", "алушта", "судак", "бахчисарай"];
-      const isCrimea = (addr: string) => CRIMEA_KEYWORDS.some(k => addr.toLowerCase().includes(k));
-
-      // Формируем точки маршрута
       const allAddresses = [from, ...stops.filter(Boolean), to];
 
-      // Если из/в Крым — добавляем Керчь и Краснодар как промежуточные для геокодинга
+      // Маршрут через Керчь/Краснодар если один конец в Крыму
       if (isCrimea(from) && !isCrimea(to)) {
         allAddresses.splice(1, 0, "Керчь", "Краснодар");
       } else if (!isCrimea(from) && isCrimea(to)) {
         allAddresses.splice(allAddresses.length - 1, 0, "Краснодар", "Керчь");
+      } else if (isCrimea(from) && isSpecial(to)) {
+        // Крым → спецзона: через Керчь
+        allAddresses.splice(1, 0, "Керчь");
       }
 
       const coords = await Promise.all(allAddresses.map(geocodeAddress));
       const validCoords = coords.filter(Boolean) as [number, number][];
-
       if (validCoords.length < 2) return;
 
-      // Рисуем одну линию через все точки
+      // Линия маршрута
       const polyline = new window.ymaps.Polyline(validCoords, {}, {
         strokeColor: "#c8d44a",
         strokeWidth: 4,
         opacity: 0.9,
       });
       map.geoObjects.add(polyline);
-      objectsRef.current.push(polyline);
+      routeObjectsRef.current.push(polyline);
 
-      // Только две точки: старт и финиш
-      const startPlacemark = new window.ymaps.Placemark(validCoords[0], {}, {
-        preset: "islands#dotIcon",
-        iconColor: "#c8d44a",
+      // Только 2 маркера — старт и финиш
+      [validCoords[0], validCoords[validCoords.length - 1]].forEach(coord => {
+        const pm = new window.ymaps.Placemark(coord, {}, {
+          preset: "islands#dotIcon",
+          iconColor: "#c8d44a",
+        });
+        map.geoObjects.add(pm);
+        routeObjectsRef.current.push(pm);
       });
-      const endPlacemark = new window.ymaps.Placemark(validCoords[validCoords.length - 1], {}, {
-        preset: "islands#dotIcon",
-        iconColor: "#c8d44a",
-      });
-      map.geoObjects.add(startPlacemark);
-      map.geoObjects.add(endPlacemark);
-      objectsRef.current.push(startPlacemark, endPlacemark);
 
-      // Позиционируем карту
+      // Позиционирование
       const isMobile = window.innerWidth < 640;
       const margin: [number, number, number, number] = isMobile
         ? [20, 20, Math.round(window.innerHeight * 0.88), 20]
         : [80, 80, 80, 80];
 
-      map.setBounds(map.geoObjects.getBounds(), { checkZoomRange: true, zoomMargin: margin });
+      const bounds = polyline.geometry.getBounds();
+      if (bounds) map.setBounds(bounds, { checkZoomRange: true, zoomMargin: margin });
     })();
   }, [from, to, stops]);
 

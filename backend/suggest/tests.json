@@ -1,0 +1,18 @@
+{
+  "tests": [
+    {
+      "name": "Suggest autocomplete",
+      "method": "GET",
+      "path": "/?action=suggest&q=Москва",
+      "expectedStatus": 200,
+      "expectedBody": {"results": []},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Options CORS",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    }
+  ]
+}

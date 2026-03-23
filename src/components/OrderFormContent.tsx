@@ -2,17 +2,14 @@ import { useState, useRef } from "react";
 import Icon from "@/components/ui/icon";
 import { ExtrasState, ExtrasSheet, PaymentSheet } from "@/components/OrderFormSheets";
 
-const YMAPS_KEY = "AKfycbyeKyBEMLQmRIC9CAXYnO5XVEOyc3_pXrQbtN-GDYqOd_IZDzAF2Wiaa9fQlwtb2JmEkw";
+const SUGGEST_URL = "https://functions.poehali.dev/dc36ae61-2640-4aae-a1f2-4b07623e0311";
 
 async function fetchSuggestions(query: string): Promise<string[]> {
   if (query.length < 2) return [];
   try {
-    const url = `https://suggest-maps.yandex.ru/suggest-geo?text=${encodeURIComponent(query)}&lang=ru_RU&results=6&type=locality,street,house&apikey=${YMAPS_KEY}`;
-    const res = await fetch(url);
+    const res = await fetch(`${SUGGEST_URL}?action=suggest&q=${encodeURIComponent(query)}`);
     const data = await res.json();
-    return (data.results || []).map((r: { title: { text: string }; subtitle?: { text: string } }) =>
-      r.subtitle ? `${r.title.text}, ${r.subtitle.text}` : r.title.text
-    );
+    return data.results || [];
   } catch {
     return [];
   }
@@ -100,13 +97,10 @@ function CityInput({
       async ({ coords }) => {
         try {
           const res = await fetch(
-            `https://geocode-maps.yandex.ru/1.x/?apikey=AKfycbyeKyBEMLQmRIC9CAXYnO5XVEOyc3_pXrQbtN-GDYqOd_IZDzAF2Wiaa9fQlwtb2JmEkw&geocode=${coords.longitude},${coords.latitude}&results=1&format=json&lang=ru_RU`
+            `${SUGGEST_URL}?action=geocode&lon=${coords.longitude}&lat=${coords.latitude}`
           );
           const data = await res.json();
-          const address =
-            data?.response?.GeoObjectCollection?.featureMember?.[0]?.GeoObject
-              ?.metaDataProperty?.GeocoderMetaData?.text || "";
-          if (address) onChange(address);
+          if (data.address) onChange(data.address);
         } catch {
           // ignore
         } finally {

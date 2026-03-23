@@ -33,11 +33,24 @@ CORS = {
 }
 
 UKRAINE_COUNTRIES = {"украина", "ukraine", "україна"}
-CRIMEA_STATES = {"республика крым", "крым", "crimea", "автономна республіка крим"}
+
+# Регионы которые Nominatim считает Украиной, но по факту Россия — обычный тариф
+RUSSIA_NEW_REGIONS = {
+    # Крым
+    "республика крым", "крым", "crimea", "автономна республіка крим",
+    # ДНР — Nominatim возвращает "донецкая область"
+    "донецкая народная республика", "донецька область", "донецкая область",
+    # ЛНР — Nominatim возвращает "луганская область"
+    "луганская народная республика", "луганська область", "луганская область",
+    # Запорожская
+    "запорожская область", "запорізька область",
+    # Херсонская
+    "херсонская область", "херсонська область",
+}
 
 
 def geocode(address: str):
-    """Получить координаты адреса через Nominatim. Спецтариф если адрес на Украине (кроме Крыма)."""
+    """Получить координаты адреса. Спецтариф только если адрес на Украине вне новых регионов России."""
     url = (
         f"https://nominatim.openstreetmap.org/search"
         f"?q={urllib.request.quote(address)}&format=json&limit=1&accept-language=ru&addressdetails=1"
@@ -54,9 +67,31 @@ def geocode(address: str):
     state = addr.get("state", "").lower()
 
     is_ukraine = country in UKRAINE_COUNTRIES
-    is_crimea = any(k in state for k in CRIMEA_STATES)
+    county = addr.get("county", "").lower()
+    city = addr.get("city", addr.get("town", addr.get("village", ""))).lower()
+    addr_text = f"{state} {county} {city}"
+    is_russia_new = any(k in addr_text for k in RUSSIA_NEW_REGIONS)
 
-    special = is_ukraine and not is_crimea
+    # Запасная проверка по координатам для новых регионов
+    # ДНР: ~47.0-48.5 lat, 37.0-39.5 lon
+    # ЛНР: ~48.0-50.0 lat, 38.0-40.5 lon
+    # Запорожская: ~46.5-48.0 lat, 34.5-37.5 lon
+    # Херсонская: ~46.3-47.6 lat, 32.5-35.5 lon
+    NEW_REGIONS_BBOX = [
+        (47.0, 48.5, 37.0, 39.5),   # ДНР
+        (48.0, 50.0, 38.0, 40.5),   # ЛНР
+        (46.5, 48.0, 34.5, 37.5),   # Запорожская
+        (46.3, 47.6, 32.5, 35.5),   # Херсонская
+        (44.3, 46.2, 32.5, 36.7),   # Крым
+    ]
+    if not is_russia_new and is_ukraine:
+        for lat_min, lat_max, lon_min, lon_max in NEW_REGIONS_BBOX:
+            if lat_min <= lat <= lat_max and lon_min <= lon <= lon_max:
+                is_russia_new = True
+                break
+
+    # Спецтариф только если Украина И не новый регион России
+    special = is_ukraine and not is_russia_new
     return (lat, lon), special
 
 

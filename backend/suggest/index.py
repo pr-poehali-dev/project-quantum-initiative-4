@@ -47,6 +47,16 @@ def handler(event: dict, context) -> dict:
             data = json.loads(resp.read().decode())
 
         CRIMEA_STATES = {'республика крым', 'крым', 'crimea', 'автономна республіка крим'}
+        RUSSIA_REGIONS = {
+            'херсонская область': 'Херсонская область',
+            'запорожская область': 'Запорожская область',
+            'донецкая народная республика': 'Донецкая Народная Республика',
+            'донецька область': 'Донецкая Народная Республика',
+            'луганская народная республика': 'Луганская Народная Республика',
+            'луганська область': 'Луганская Народная Республика',
+            'херсонська область': 'Херсонская область',
+            'запорізька область': 'Запорожская область',
+        }
 
         results = []
         seen = set()
@@ -60,14 +70,15 @@ def handler(event: dict, context) -> dict:
             house = addr.get('house_number', '')
 
             is_crimea = state.lower() in CRIMEA_STATES
+            is_russia_region = state.lower() in RUSSIA_REGIONS
             is_ukraine = country.lower() in ('украина', 'ukraine', 'україна')
 
-            if is_ukraine and not is_crimea:
+            if is_ukraine and not is_crimea and not is_russia_region:
                 continue
 
-            if is_crimea:
+            if is_crimea or is_russia_region:
                 country = 'Россия'
-                region = 'Республика Крым'
+                region = 'Республика Крым' if is_crimea else RUSSIA_REGIONS[state.lower()]
                 city_label = ('г. ' + city) if city else ''
                 street_parts = [p for p in [road, house] if p]
                 street = ' '.join(street_parts)

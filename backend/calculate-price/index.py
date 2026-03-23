@@ -32,25 +32,12 @@ CORS = {
     "Access-Control-Allow-Headers": "Content-Type",
 }
 
-# Новые регионы России (ключевые слова в адресе)
-SPECIAL_REGIONS = [
-    "херсонская область", "херсонська область",
-    "запорожская область", "запорізька область",
-    "донецкая народная республика", "донецька область",
-    "луганская народная республика", "луганська область",
-    # Города спецзон
-    "донецк", "луганск", "мариуполь", "бердянск", "мелитополь",
-    "херсон", "геническ", "энергодар", "токмак",
-]
-
-EXCLUDE_REGIONS = [
-    "республика крым", "крым", "crimea", "автономна республіка крим",
-    "ялта", "симферополь", "севастополь", "керчь", "феодосия", "евпатория",
-]
+UKRAINE_COUNTRIES = {"украина", "ukraine", "україна"}
+CRIMEA_STATES = {"республика крым", "крым", "crimea", "автономна республіка крим"}
 
 
 def geocode(address: str):
-    """Получить координаты адреса через Nominatim (OpenStreetMap)."""
+    """Получить координаты адреса через Nominatim. Спецтариф если адрес на Украине (кроме Крыма)."""
     url = (
         f"https://nominatim.openstreetmap.org/search"
         f"?q={urllib.request.quote(address)}&format=json&limit=1&accept-language=ru&addressdetails=1"
@@ -63,16 +50,13 @@ def geocode(address: str):
     item = data[0]
     lat, lon = float(item["lat"]), float(item["lon"])
     addr = item.get("address", {})
-    # Проверяем поля адреса на спецрегион
+    country = addr.get("country", "").lower()
     state = addr.get("state", "").lower()
-    county = addr.get("county", "").lower()
 
-    addr_text = (state + " " + county).strip()
-    # Сначала исключаем Крым
-    is_crimea = any(ex in addr_text for ex in EXCLUDE_REGIONS)
-    if is_crimea:
-        return (lat, lon), False
-    special = any(region in addr_text for region in SPECIAL_REGIONS)
+    is_ukraine = country in UKRAINE_COUNTRIES
+    is_crimea = any(k in state for k in CRIMEA_STATES)
+
+    special = is_ukraine and not is_crimea
     return (lat, lon), special
 
 

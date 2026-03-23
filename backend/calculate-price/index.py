@@ -40,8 +40,13 @@ CRIMEA_ONLY = {
 }
 
 
+DNR_LNR_ADDR_KEYS = ["донецк", "луганск", "мариуполь", "горловка", "макеевка", "лисичанск", "северодонецк", "краматорск", "днр", "лнр"]
+KHERSON_ZAP_ADDR_KEYS = ["херсон", "мелитополь", "бердянск", "токмак", "энергодар", "геническ", "херсонская", "запорожская"]
+
 def geocode(address: str):
     """Получить координаты адреса. Спецтариф только если адрес на Украине вне новых регионов России."""
+    addr_lower = address.lower()
+
     url = (
         f"https://nominatim.openstreetmap.org/search"
         f"?q={urllib.request.quote(address)}&format=json&limit=1&accept-language=ru&addressdetails=1"
@@ -58,15 +63,18 @@ def geocode(address: str):
     state = addr.get("state", "").lower()
 
     is_ukraine = country in UKRAINE_COUNTRIES
-    # Исключаем только Крым — он обычный тариф
     is_crimea = any(k in state for k in CRIMEA_ONLY)
-    # Запасная проверка Крыма по координатам
     if not is_crimea and is_ukraine:
         if 44.3 <= lat <= 46.2 and 32.5 <= lon <= 36.7:
             is_crimea = True
 
-    # Спецтариф: Украина (включая ДНР/ЛНР/Запорожскую/Херсонскую) кроме Крыма
-    special = is_ukraine and not is_crimea
+    # Nominatim может отдать новые регионы как Россию — дополнительно проверяем по тексту запроса
+    force_special = (
+        any(k in addr_lower for k in DNR_LNR_ADDR_KEYS) or
+        any(k in addr_lower for k in KHERSON_ZAP_ADDR_KEYS)
+    )
+
+    special = (is_ukraine and not is_crimea) or force_special
     return (lat, lon), special
 
 

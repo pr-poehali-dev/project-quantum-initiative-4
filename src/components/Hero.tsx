@@ -168,28 +168,23 @@ export default function Hero() {
 
       {/* DESKTOP: контакты в правом нижнем углу */}
       <div className="hidden sm:block absolute z-10 bottom-6 right-6">
-        <div className="bg-[#1a1a1a]/80 backdrop-blur-md rounded-2xl px-5 py-4 shadow-2xl">
-          <div className="flex items-center justify-between gap-6">
-            <div>
-              <a href="tel:+79956141414" className="text-white font-bold text-lg hover:text-brand-yellow transition-colors">
-                +7 (995) 614-14-14
-              </a>
-              <p className="text-white/60 text-sm mt-0.5">Закажите трансфер<br />по телефону или в мессенджере</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <a href="https://t.me/ug_transfer_online" target="_blank" rel="noopener noreferrer"
-                className="w-11 h-11 rounded-xl bg-blue-500/20 hover:bg-blue-500/40 flex items-center justify-center transition-colors">
-                <Icon name="Send" size={20} className="text-blue-400" />
-              </a>
-              <a href="https://max.ru/u/f9LHodD0cOLfcwdQZmP_TA1hXG1fSHf_rVVPptGTy_7FmQh-zvIFpGfU_lg" target="_blank" rel="noopener noreferrer"
-                className="w-11 h-11 rounded-xl bg-purple-500/20 hover:bg-purple-500/40 flex items-center justify-center transition-colors">
-                <Icon name="MessageSquare" size={20} className="text-purple-400" />
-              </a>
-              <a href="tel:+79956141414"
-                className="w-11 h-11 rounded-xl bg-green-500/20 hover:bg-green-500/40 flex items-center justify-center transition-colors">
-                <Icon name="Phone" size={20} className="text-green-400" />
-              </a>
-            </div>
+        <div className="bg-[#1a1a1a]/80 backdrop-blur-md rounded-xl px-3 py-2.5 shadow-2xl">
+          <a href="tel:+79956141414" className="text-white font-bold text-sm hover:text-brand-yellow transition-colors block">
+            +7 (995) 614-14-14
+          </a>
+          <div className="flex items-center gap-1.5 mt-1.5">
+            <a href="https://t.me/ug_transfer_online" target="_blank" rel="noopener noreferrer"
+              className="w-7 h-7 rounded-lg bg-blue-500/20 hover:bg-blue-500/40 flex items-center justify-center transition-colors">
+              <Icon name="Send" size={13} className="text-blue-400" />
+            </a>
+            <a href="https://max.ru/u/f9LHodD0cOLfcwdQZmP_TA1hXG1fSHf_rVVPptGTy_7FmQh-zvIFpGfU_lg" target="_blank" rel="noopener noreferrer"
+              className="w-7 h-7 rounded-lg bg-purple-500/20 hover:bg-purple-500/40 flex items-center justify-center transition-colors">
+              <Icon name="MessageSquare" size={13} className="text-purple-400" />
+            </a>
+            <a href="tel:+79956141414"
+              className="w-7 h-7 rounded-lg bg-green-500/20 hover:bg-green-500/40 flex items-center justify-center transition-colors">
+              <Icon name="Phone" size={13} className="text-green-400" />
+            </a>
           </div>
         </div>
       </div>

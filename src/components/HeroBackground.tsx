@@ -4,7 +4,6 @@ interface Props {
   from: string;
   to: string;
   stops?: string[];
-  kpp?: "matveev" | "veselo";
 }
 
 declare global {
@@ -98,7 +97,7 @@ const isCrimea = (addr: string) => CRIMEA_KEYWORDS.some(k => addr.toLowerCase().
 const isDnrLnr = (addr: string) => DNR_LNR_KEYWORDS.some(k => addr.toLowerCase().includes(k));
 const isKhersonZap = (addr: string) => KHERSON_ZAP_KEYWORDS.some(k => addr.toLowerCase().includes(k));
 
-export default function HeroBackground({ from, to, stops = [], kpp = "matveev" }: Props) {
+export default function HeroBackground({ from, to, stops = [] }: Props) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<AnyRef>(null);
   const routeObjectsRef = useRef<AnyRef[]>([]);
@@ -143,12 +142,24 @@ export default function HeroBackground({ from, to, stops = [], kpp = "matveev" }
           allAddresses.splice(allAddresses.length - 1, 0, "Краснодар", "Керчь");
         }
       } else if (isDnrLnr(to) && !isCrimea(from) && !isKhersonZap(from)) {
-        // Россия → ДНР/ЛНР: через выбранный КПП
-        const kppName = kpp === "veselo" ? "Весело-Вознесенка, Ростовская область" : "Матвеев Курган, Ростовская область";
+        // Россия → ДНР/ЛНР: выбираем КПП с меньшим временем
+        const [r1, r2] = await Promise.all([
+          window.ymaps.route([from, "Матвеев Курган, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
+          window.ymaps.route([from, "Весело-Вознесенка, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
+        ]);
+        const t1 = r1 ? r1.getTime() : Infinity;
+        const t2 = r2 ? r2.getTime() : Infinity;
+        const kppName = t2 < t1 ? "Весело-Вознесенка, Ростовская область" : "Матвеев Курган, Ростовская область";
         allAddresses.splice(allAddresses.length - 1, 0, kppName);
       } else if (isDnrLnr(from) && !isCrimea(to) && !isKhersonZap(to)) {
-        // ДНР/ЛНР → Россия: через выбранный КПП
-        const kppName = kpp === "veselo" ? "Весело-Вознесенка, Ростовская область" : "Матвеев Курган, Ростовская область";
+        // ДНР/ЛНР → Россия: выбираем КПП с меньшим временем
+        const [r1, r2] = await Promise.all([
+          window.ymaps.route([from, "Матвеев Курган, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
+          window.ymaps.route([from, "Весело-Вознесенка, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
+        ]);
+        const t1 = r1 ? r1.getTime() : Infinity;
+        const t2 = r2 ? r2.getTime() : Infinity;
+        const kppName = t2 < t1 ? "Весело-Вознесенка, Ростовская область" : "Матвеев Курган, Ростовская область";
         allAddresses.splice(1, 0, kppName);
       } else if (isKhersonZap(to) && !isCrimea(from)) {
         // Россия → Херсонская/Запорожская: через Васильевку
@@ -214,7 +225,7 @@ export default function HeroBackground({ from, to, stops = [], kpp = "matveev" }
         if (bounds) map.setBounds(bounds, { checkZoomRange: true, zoomMargin: margin });
       }
     })();
-  }, [from, to, stops, kpp]);
+  }, [from, to, stops]);
 
   return (
     <div className="absolute inset-0 w-full h-full">

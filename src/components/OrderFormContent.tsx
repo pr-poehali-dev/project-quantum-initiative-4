@@ -218,7 +218,7 @@ function CityInput({
                 <Icon name="MapPin" size={13} className={`mt-0.5 shrink-0 ${isActive ? "text-[#c8d44a]" : "text-gray-500"}`} />
                 <div className="min-w-0">
                   {rest && <p className={`text-sm truncate ${isActive ? "text-[#c8d44a]" : "text-gray-200"}`}>{rest}</p>}
-                  <p className="text-xs text-gray-500 truncate">{country}</p>
+                  <p className={`text-xs truncate ${isActive ? "text-[#c8d44a]/70" : "text-gray-300"}`}>{country}</p>
                 </div>
               </li>
             );

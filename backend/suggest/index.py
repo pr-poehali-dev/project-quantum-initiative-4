@@ -59,16 +59,20 @@ def handler(event: dict, context) -> dict:
             road = addr.get('road', '')
             house = addr.get('house_number', '')
 
-            if state.lower() in CRIMEA_STATES or country.lower() in ('украина', 'ukraine', 'україна') and state.lower() in CRIMEA_STATES:
+            is_crimea = state.lower() in CRIMEA_STATES
+            if is_crimea:
                 country = 'Россия'
+                region = 'Республика Крым'
+            else:
+                region = ''
 
             street = road
             if house:
                 street = road + ', ' + house if road else house
 
-            city_part = city if city else state
+            city_part = city if city else (state if not is_crimea else '')
 
-            main_parts = [p for p in [city_part, street] if p.strip()]
+            main_parts = [p for p in [region, city_part, street] if p.strip()]
             main = ', '.join(main_parts)
             line = country + ('|' + main if main else '')
 

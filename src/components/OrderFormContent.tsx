@@ -59,6 +59,7 @@ function CityInput({
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [focused, setFocused] = useState(false);
   const [geoLoading, setGeoLoading] = useState(false);
+  const [geoError, setGeoError] = useState("");
   const [activeIdx, setActiveIdx] = useState(-1);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -91,8 +92,12 @@ function CityInput({
   };
 
   const handleGeo = () => {
-    if (!navigator.geolocation) return;
+    if (!navigator.geolocation) {
+      setGeoError("Геолокация не поддерживается");
+      return;
+    }
     setGeoLoading(true);
+    setGeoError("");
     navigator.geolocation.getCurrentPosition(
       async ({ coords }) => {
         try {
@@ -100,15 +105,23 @@ function CityInput({
             `${SUGGEST_URL}?action=geocode&lon=${coords.longitude}&lat=${coords.latitude}`
           );
           const data = await res.json();
-          if (data.address) onChange(data.address);
+          if (data.address) {
+            onChange(data.address);
+          } else {
+            setGeoError("Не удалось определить адрес");
+          }
         } catch {
-          // ignore
+          setGeoError("Ошибка определения адреса");
         } finally {
           setGeoLoading(false);
         }
       },
-      () => setGeoLoading(false),
-      { timeout: 8000 }
+      (err) => {
+        setGeoLoading(false);
+        if (err.code === 1) setGeoError("Разрешите доступ к геолокации в браузере");
+        else setGeoError("Не удалось определить местоположение");
+      },
+      { timeout: 8000, enableHighAccuracy: true }
     );
   };
 
@@ -143,6 +156,7 @@ function CityInput({
           )}
         </button>
       )}
+      {geoError && <p className="text-red-400 text-xs mt-1 pl-4">{geoError}</p>}
       {focused && suggestions.length > 0 && (
         <ul className="absolute z-50 top-full left-0 right-0 mt-1 bg-[#222] border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
           {suggestions.map((city, idx) => (

@@ -142,24 +142,22 @@ export default function HeroBackground({ from, to, stops = [] }: Props) {
           allAddresses.splice(allAddresses.length - 1, 0, "Краснодар", "Керчь");
         }
       } else if (isDnrLnr(to) && !isCrimea(from) && !isKhersonZap(from)) {
-        // Россия → ДНР/ЛНР: выбираем КПП с меньшим временем
+        // Россия → ДНР/ЛНР: выбираем КПП с меньшим расстоянием
+        const getLen = (r: AnyRef) => { try { return r.getPaths().get(0).getLength(); } catch { return Infinity; } };
         const [r1, r2] = await Promise.all([
           window.ymaps.route([from, "Матвеев Курган, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
           window.ymaps.route([from, "Весело-Вознесенка, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
         ]);
-        const t1 = r1 ? r1.getTime() : Infinity;
-        const t2 = r2 ? r2.getTime() : Infinity;
-        const kppName = t2 < t1 ? "Весело-Вознесенка, Ростовская область" : "Матвеев Курган, Ростовская область";
+        const kppName = getLen(r2) < getLen(r1) ? "Весело-Вознесенка, Ростовская область" : "Матвеев Курган, Ростовская область";
         allAddresses.splice(allAddresses.length - 1, 0, kppName);
       } else if (isDnrLnr(from) && !isCrimea(to) && !isKhersonZap(to)) {
-        // ДНР/ЛНР → Россия: выбираем КПП с меньшим временем
+        // ДНР/ЛНР → Россия: выбираем КПП с меньшим расстоянием
+        const getLen = (r: AnyRef) => { try { return r.getPaths().get(0).getLength(); } catch { return Infinity; } };
         const [r1, r2] = await Promise.all([
           window.ymaps.route([from, "Матвеев Курган, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
           window.ymaps.route([from, "Весело-Вознесенка, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
         ]);
-        const t1 = r1 ? r1.getTime() : Infinity;
-        const t2 = r2 ? r2.getTime() : Infinity;
-        const kppName = t2 < t1 ? "Весело-Вознесенка, Ростовская область" : "Матвеев Курган, Ростовская область";
+        const kppName = getLen(r2) < getLen(r1) ? "Весело-Вознесенка, Ростовская область" : "Матвеев Курган, Ростовская область";
         allAddresses.splice(1, 0, kppName);
       } else if (isKhersonZap(to) && !isCrimea(from)) {
         // Россия → Херсонская/Запорожская: через Васильевку

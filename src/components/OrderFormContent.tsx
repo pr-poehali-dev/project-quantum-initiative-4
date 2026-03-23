@@ -401,9 +401,9 @@ export function FormContent(p: FormProps) {
                 <span className="w-3 h-3 border-2 border-black/30 border-t-black rounded-full animate-spin block" />
                 Считаем...
               </span>
-            ) : p.price != null ? (
+            ) : (p.allPrices?.[p.carClass] ?? p.price) != null ? (
               <>
-                <span>Заказать · {p.price.toLocaleString("ru-RU")} ₽</span>
+                <span>Заказать · {(p.allPrices?.[p.carClass] ?? p.price!).toLocaleString("ru-RU")} ₽</span>
               </>
             ) : (
               <span>Отправить заявку</span>

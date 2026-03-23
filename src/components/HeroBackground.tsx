@@ -129,14 +129,14 @@ export default function HeroBackground({ from, to, stops = [] }: Props) {
     (async () => {
       const allAddresses = [from, ...stops.filter(Boolean), to];
 
-      // Маршрут через Керчь/Краснодар если один конец в Крыму
-      if (isCrimea(from) && !isCrimea(to)) {
+      // Керчь/Краснодар только если маршрут Крым ↔ Россия (не Украина/спецзоны)
+      const toIsRussia = !isSpecial(to) && !isCrimea(to);
+      const fromIsRussia = !isSpecial(from) && !isCrimea(from);
+
+      if (isCrimea(from) && toIsRussia) {
         allAddresses.splice(1, 0, "Керчь", "Краснодар");
-      } else if (!isCrimea(from) && isCrimea(to)) {
+      } else if (isCrimea(to) && fromIsRussia) {
         allAddresses.splice(allAddresses.length - 1, 0, "Краснодар", "Керчь");
-      } else if (isCrimea(from) && isSpecial(to)) {
-        // Крым → спецзона: через Керчь
-        allAddresses.splice(1, 0, "Керчь");
       }
 
       // Строим маршрут по дорогам через ymaps.route

@@ -5,7 +5,7 @@ import urllib.parse
 
 
 def handler(event: dict, context) -> dict:
-    """Проксирует запросы к Яндекс Suggest и Geocoder API, используя ключ из секретов."""
+    """Проксирует запросы к Яндекс Geocoder API для подсказок адресов и геокодирования."""
 
     if event.get('httpMethod') == 'OPTIONS':
         return {
@@ -19,7 +19,7 @@ def handler(event: dict, context) -> dict:
             'body': ''
         }
 
-    api_key = os.environ.get('YANDEX_GEOCODER_API_KEY', '')
+    api_key = os.environ.get('YANDEX_GEOCODER_API_KEY', 'feba36e0-0c20-42ea-aac4-e0d61b0ff690')
     params = event.get('queryStringParameters') or {}
     action = params.get('action', 'suggest')
 

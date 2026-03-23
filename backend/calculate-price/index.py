@@ -107,21 +107,32 @@ def handler(event: dict, context) -> dict:
     def is_crimea_addr(a): return any(k in a.lower() for k in CRIMEA_KEYS)
     def is_kherson_zap(a): return any(k in a.lower() for k in KHERSON_ZAP_KEYS)
     def is_dnr_lnr(a): return any(k in a.lower() for k in DNR_LNR_KEYS)
+    def is_special(a): return is_dnr_lnr(a) or is_kherson_zap(a)
 
-    # Если маршрут пересекает границу России со спецзоной —
-    # добавляем пограничный пункт чтобы правильно разбить км на обычные и спецтарифные
     raw_points = [from_city] + stops + [to_city]
 
-    # Россия ↔ ДНР/ЛНР: граница через Матвеев Курган
-    if is_dnr_lnr(to_city) and not is_dnr_lnr(from_city) and not is_crimea_addr(from_city):
-        raw_points = [from_city] + stops + ["Матвеев Курган", to_city]
-    elif is_dnr_lnr(from_city) and not is_dnr_lnr(to_city) and not is_crimea_addr(to_city):
-        raw_points = [from_city, "Матвеев Курган"] + stops + [to_city]
-    # Россия ↔ Херсонская/Запорожская: граница через Геническ/Васильевку
-    elif is_kherson_zap(to_city) and not is_kherson_zap(from_city) and not is_crimea_addr(from_city):
+    from_russia = not is_crimea_addr(from_city) and not is_special(from_city)
+    to_russia = not is_crimea_addr(to_city) and not is_special(to_city)
+    from_crimea = is_crimea_addr(from_city)
+    to_crimea = is_crimea_addr(to_city)
+
+    # Россия ↔ ДНР/ЛНР: КПП Весело-Вознесенка
+    if is_dnr_lnr(to_city) and from_russia:
+        raw_points = [from_city] + stops + ["Весело-Вознесенка", to_city]
+    elif is_dnr_lnr(from_city) and to_russia:
+        raw_points = [from_city, "Весело-Вознесенка"] + stops + [to_city]
+
+    # Россия/ДНР ↔ Херсонская/Запорожская: КПП Васильевка
+    elif is_kherson_zap(to_city) and from_russia:
         raw_points = [from_city] + stops + ["Васильевка", to_city]
-    elif is_kherson_zap(from_city) and not is_kherson_zap(to_city) and not is_crimea_addr(to_city):
+    elif is_kherson_zap(from_city) and to_russia:
         raw_points = [from_city, "Васильевка"] + stops + [to_city]
+
+    # Крым ↔ Херсонская (граница через КПП Армянск или Чонгар)
+    elif to_crimea and is_kherson_zap(from_city):
+        raw_points = [from_city, "Армянск"] + stops + [to_city]
+    elif from_crimea and is_kherson_zap(to_city):
+        raw_points = [from_city] + stops + ["Армянск", to_city]
 
     raw = [(p, False) for p in raw_points]
 

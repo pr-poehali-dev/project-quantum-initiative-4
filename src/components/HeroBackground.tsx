@@ -142,11 +142,17 @@ export default function HeroBackground({ from, to, stops = [] }: Props) {
           allAddresses.splice(allAddresses.length - 1, 0, "Краснодар", "Керчь");
         }
       } else if (isDnrLnr(to) && !isCrimea(from) && !isKhersonZap(from)) {
-        // Россия → ДНР/ЛНР: через Матвеев Курган чтобы не уходить на Украину
-        allAddresses.splice(allAddresses.length - 1, 0, "Матвеев Курган");
+        // Россия → ДНР/ЛНР: через КПП Весело-Вознесенка
+        allAddresses.splice(allAddresses.length - 1, 0, "Весело-Вознесенка");
       } else if (isDnrLnr(from) && !isCrimea(to) && !isKhersonZap(to)) {
-        // ДНР/ЛНР → Россия: через Матвеев Курган
-        allAddresses.splice(1, 0, "Матвеев Курган");
+        // ДНР/ЛНР → Россия: через КПП Весело-Вознесенка
+        allAddresses.splice(1, 0, "Весело-Вознесенка");
+      } else if (isKhersonZap(to) && !isCrimea(from)) {
+        // Россия → Херсонская/Запорожская: через Васильевку
+        allAddresses.splice(allAddresses.length - 1, 0, "Васильевка");
+      } else if (isKhersonZap(from) && !isCrimea(to)) {
+        // Херсонская/Запорожская → Россия
+        allAddresses.splice(1, 0, "Васильевка");
       }
 
       // Строим маршрут по дорогам через ymaps.route

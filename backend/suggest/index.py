@@ -124,21 +124,25 @@ def handler(event: dict, context) -> dict:
                 'lon': lon,
                 'format': 'json',
                 'accept-language': 'ru',
-                'zoom': '14',
+                'zoom': '18',
             })
         )
-        req = urllib.request.Request(url, headers={
-            'User-Agent': 'TaxiApp/1.0',
-        })
+        req = urllib.request.Request(url, headers={'User-Agent': 'TaxiApp/1.0'})
         with urllib.request.urlopen(req, timeout=5) as resp:
             data = json.loads(resp.read().decode())
 
-        address_data = data.get('address', {})
+        addr = data.get('address', {})
+        city = (addr.get('city') or addr.get('town') or addr.get('village') or addr.get('municipality') or '')
+        road = addr.get('road', '')
+        house = addr.get('house_number', '')
+
         parts = []
-        for key in ['city', 'town', 'village', 'suburb', 'road', 'house_number']:
-            val = address_data.get(key)
-            if val:
-                parts.append(val)
+        if city:
+            parts.append(city)
+        if road and road != city:
+            parts.append(road)
+        if house:
+            parts.append(house)
 
         address = ', '.join(parts) if parts else data.get('display_name', '')
 

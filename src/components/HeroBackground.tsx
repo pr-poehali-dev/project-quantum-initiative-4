@@ -88,10 +88,14 @@ async function geocodeAddress(address: string): Promise<[number, number] | null>
 type AnyRef = any;
 
 const CRIMEA_KEYWORDS = ["ялта", "симферополь", "севастополь", "керчь", "феодосия", "евпатория", "крым", "алушта", "судак", "бахчисарай"];
-const SPECIAL_KEYWORDS = ["донецк", "луганск", "мелитополь", "херсон", "запорожье", "мариуполь", "бердянск", "днр", "лнр", "херсонская", "запорожская"];
+// ДНР/ЛНР — маршрут через Керчь+Краснодар
+const DNR_LNR_KEYWORDS = ["донецк", "луганск", "мариуполь", "горловка", "макеевка", "днр", "лнр", "краматорск", "северодонецк", "лисичанск"];
+// Херсонская/Запорожская — напрямую через Джанкой
+const KHERSON_ZAP_KEYWORDS = ["херсон", "мелитополь", "бердянск", "токмак", "энергодар", "геническ", "херсонская", "запорожская", "запорожье"];
 
 const isCrimea = (addr: string) => CRIMEA_KEYWORDS.some(k => addr.toLowerCase().includes(k));
-const isSpecial = (addr: string) => SPECIAL_KEYWORDS.some(k => addr.toLowerCase().includes(k));
+const isDnrLnr = (addr: string) => DNR_LNR_KEYWORDS.some(k => addr.toLowerCase().includes(k));
+const isKhersonZap = (addr: string) => KHERSON_ZAP_KEYWORDS.some(k => addr.toLowerCase().includes(k));
 
 export default function HeroBackground({ from, to, stops = [] }: Props) {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -129,12 +133,18 @@ export default function HeroBackground({ from, to, stops = [] }: Props) {
     (async () => {
       const allAddresses = [from, ...stops.filter(Boolean), to];
 
-      // Крым → Россия или спецзона (ДНР/ЛНР/Запорожская/Херсонская): через Керчь+Краснодар
-      // Это дешевле чем через Украину
       if (isCrimea(from) && !isCrimea(to)) {
-        allAddresses.splice(1, 0, "Керчь", "Краснодар");
+        if (isDnrLnr(to) || (!isKhersonZap(to))) {
+          // Крым → ДНР/ЛНР или Россия: через Керчь + Краснодар
+          allAddresses.splice(1, 0, "Керчь", "Краснодар");
+        }
+        // Крым → Херсонская/Запорожская: напрямую через Джанкой (ничего не добавляем)
       } else if (isCrimea(to) && !isCrimea(from)) {
-        allAddresses.splice(allAddresses.length - 1, 0, "Краснодар", "Керчь");
+        if (isDnrLnr(from) || (!isKhersonZap(from))) {
+          // ДНР/ЛНР или Россия → Крым: через Краснодар + Керчь
+          allAddresses.splice(allAddresses.length - 1, 0, "Краснодар", "Керчь");
+        }
+        // Херсонская/Запорожская → Крым: напрямую
       }
 
       // Строим маршрут по дорогам через ymaps.route

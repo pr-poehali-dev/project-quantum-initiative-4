@@ -92,15 +92,16 @@ def handler(event: dict, context) -> dict:
         return {"statusCode": 400, "headers": CORS, "body": json.dumps({"error": "Укажите откуда и куда"})}
 
     CRIMEA_KEYS = ["крым", "ялта", "симферополь", "севастополь", "керчь", "феодосия", "евпатория", "алушта", "судак", "бахчисарай"]
+    KHERSON_ZAP_KEYS = ["херсон", "мелитополь", "бердянск", "токмак", "энергодар", "геническ", "херсонская", "запорожская", "запорожье"]
     def is_crimea_addr(a): return any(k in a.lower() for k in CRIMEA_KEYS)
+    def is_kherson_zap(a): return any(k in a.lower() for k in KHERSON_ZAP_KEYS)
 
-    # Маршрут Крым → спецзона: добавляем промежуточные Керчь+Краснодар
-    # чтобы маршрут шёл через Россию (дешевле)
-    raw_points = [from_city] + stops + [to_city]
-    points = list(raw_points)
-    if is_crimea_addr(from_city) and not is_crimea_addr(to_city):
+    # Крым → Херсонская/Запорожская: напрямую через Джанкой
+    # Крым → всё остальное (ДНР/ЛНР/Россия): через Керчь+Краснодар (дешевле)
+    points = [from_city] + stops + [to_city]
+    if is_crimea_addr(from_city) and not is_crimea_addr(to_city) and not is_kherson_zap(to_city):
         points = [from_city, "Керчь", "Краснодар"] + stops + [to_city]
-    elif is_crimea_addr(to_city) and not is_crimea_addr(from_city):
+    elif is_crimea_addr(to_city) and not is_crimea_addr(from_city) and not is_kherson_zap(from_city):
         points = [from_city] + stops + ["Краснодар", "Керчь", to_city]
 
     coords = []

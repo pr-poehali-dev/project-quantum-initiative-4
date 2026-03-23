@@ -96,14 +96,9 @@ def handler(event: dict, context) -> dict:
     def is_crimea_addr(a): return any(k in a.lower() for k in CRIMEA_KEYS)
     def is_kherson_zap(a): return any(k in a.lower() for k in KHERSON_ZAP_KEYS)
 
-    # Крым → Херсонская/Запорожская: напрямую через Джанкой
-    # Крым → всё остальное (ДНР/ЛНР/Россия): через Керчь+Краснодар (дешевле)
-    # Формат: (адрес, force_normal) — force_normal=True означает всегда обычный тариф
+    # Для расчёта цены используем только реальные точки маршрута (без служебных Керчь/Краснодар)
+    # Спецтариф определяется по стране адреса (Украина = спецтариф, кроме Крыма)
     raw = [(from_city, False)] + [(s, False) for s in stops] + [(to_city, False)]
-    if is_crimea_addr(from_city) and not is_crimea_addr(to_city) and not is_kherson_zap(to_city):
-        raw = [(from_city, False), ("Керчь", True), ("Краснодар", True)] + [(s, False) for s in stops] + [(to_city, False)]
-    elif is_crimea_addr(to_city) and not is_crimea_addr(from_city) and not is_kherson_zap(from_city):
-        raw = [(from_city, False)] + [(s, False) for s in stops] + [("Краснодар", True), ("Керчь", True), (to_city, False)]
 
     coords = []
     specials = []

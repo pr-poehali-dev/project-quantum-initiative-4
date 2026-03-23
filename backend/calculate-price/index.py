@@ -13,11 +13,11 @@ TARIFFS = {
 
 # Повышенный тариф для новых регионов
 TARIFFS_SPECIAL = {
-    "urgent":   {"per_km": 75, "base": 1500},
-    "standard": {"per_km": 75, "base": 0},
-    "comfort":  {"per_km": 85, "base": 0},
-    "minivan":  {"per_km": 95, "base": 0},
-    "business": {"per_km": 180, "base": 0},
+    "urgent":   {"per_km": 60, "base": 1500},
+    "standard": {"per_km": 60, "base": 0},
+    "comfort":  {"per_km": 70, "base": 0},
+    "minivan":  {"per_km": 80, "base": 0},
+    "business": {"per_km": 150, "base": 0},
 }
 
 EXTRAS = {

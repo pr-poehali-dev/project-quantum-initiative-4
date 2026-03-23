@@ -114,9 +114,6 @@ function CityInput({
 
   const handleFocus = () => {
     setFocused(true);
-    if (showGeo && !value.trim()) {
-      handleGeo();
-    }
   };
 
   return (

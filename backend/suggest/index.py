@@ -63,16 +63,15 @@ def handler(event: dict, context) -> dict:
             if is_crimea:
                 country = 'Россия'
                 region = 'Республика Крым'
+                city_label = ('г. ' + city) if city else ''
+                street_parts = [p for p in [road, house] if p]
+                street = ' '.join(street_parts)
+                main_parts = [p for p in [region, city_label, street] if p.strip()]
             else:
-                region = ''
+                city_part = city if city else state
+                street = (road + ', ' + house) if (road and house) else (road or house or '')
+                main_parts = [p for p in [city_part, street] if p.strip()]
 
-            street = road
-            if house:
-                street = road + ', ' + house if road else house
-
-            city_part = city if city else (state if not is_crimea else '')
-
-            main_parts = [p for p in [region, city_part, street] if p.strip()]
             main = ', '.join(main_parts)
             line = country + ('|' + main if main else '')
 

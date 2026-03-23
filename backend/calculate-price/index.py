@@ -11,13 +11,22 @@ TARIFFS = {
     "business": {"per_km": 80, "base": 0},
 }
 
-# Повышенный тариф для новых регионов
+# Повышенный тариф — ДНР/ЛНР
 TARIFFS_SPECIAL = {
     "urgent":   {"per_km": 60, "base": 1500},
     "standard": {"per_km": 60, "base": 0},
     "comfort":  {"per_km": 70, "base": 0},
     "minivan":  {"per_km": 80, "base": 0},
     "business": {"per_km": 150, "base": 0},
+}
+
+# Повышенный тариф — Херсонская/Запорожская (дальше и сложнее)
+TARIFFS_SPECIAL2 = {
+    "urgent":   {"per_km": 91, "base": 1500},
+    "standard": {"per_km": 91, "base": 0},
+    "comfort":  {"per_km": 105, "base": 0},
+    "minivan":  {"per_km": 125, "base": 0},
+    "business": {"per_km": 220, "base": 0},
 }
 
 EXTRAS = {
@@ -87,10 +96,10 @@ def haversine(lat1, lon1, lat2, lon2) -> float:
     return R * 2 * math.asin(math.sqrt(a))
 
 
-def calc_price(km_normal, km_special, tariff_key, extras_cost):
+def calc_price(km_normal, km_special, tariff_key, extras_cost, special_tariffs=None):
     """Рассчитать комбинированную цену: обычный + повышенный тариф."""
     t = TARIFFS.get(tariff_key, TARIFFS["standard"])
-    ts = TARIFFS_SPECIAL.get(tariff_key, TARIFFS_SPECIAL["standard"])
+    ts = (special_tariffs or TARIFFS_SPECIAL).get(tariff_key, (special_tariffs or TARIFFS_SPECIAL)["standard"])
     return t["per_km"] * km_normal + ts["per_km"] * km_special + t["base"] + extras_cost
 
 
@@ -123,37 +132,45 @@ def handler(event: dict, context) -> dict:
     from_russia = not is_crimea_addr(from_city) and not is_special(from_city)
     to_russia = not is_crimea_addr(to_city) and not is_special(to_city)
     from_crimea = is_crimea_addr(from_city)
+    # Выбираем повышенный тариф: Херсонская/Запорожская — дороже чем ДНР/ЛНР
+    use_special2 = is_kherson_zap(to_city) or is_kherson_zap(from_city)
+    active_special_tariff = TARIFFS_SPECIAL2 if use_special2 else TARIFFS_SPECIAL
     to_crimea = is_crimea_addr(to_city)
 
-    # КПП — нейтральные точки границы (force_normal=True: не спецзона, не обычная — ноль км)
-    # Используем их только для разделения сегментов, сами по себе не добавляют км в тариф
-    raw = [(from_city, False)] + [(s, False) for s in stops] + [(to_city, False)]
+    # Хардкод координат КПП (чтобы не зависеть от геокодирования)
+    KPP_COORDS = {
+        "matveev":  (47.556, 38.882),   # Матвеев Курган
+        "veselo":   (47.393, 38.474),   # Весело-Вознесенка
+        "vasilevka": (47.471, 35.283),  # Васильевка (КПП Запорожская обл.)
+        "armiansk": (46.103, 33.691),   # Армянск (КПП Крым)
+    }
 
-    # Россия ↔ ДНР/ЛНР: через выбранный КПП (matveev = Матвеев Курган, veselo = Весело-Вознесенка)
-    kpp_name = "Весело-Вознесенка, Ростовская область" if kpp == "veselo" else "Матвеев Курган, Ростовская область"
+    # КПП — нейтральные точки границы (force_normal=True)
+    raw = [(from_city, False, None)] + [(s, False, None) for s in stops] + [(to_city, False, None)]
+
     if is_dnr_lnr(to_city) and from_russia:
-        raw = [(from_city, False)] + [(s, False) for s in stops] + [(kpp_name, True), (to_city, False)]
+        raw = [(from_city, False, None)] + [(s, False, None) for s in stops] + [("kpp", True, KPP_COORDS["matveev"]), (to_city, False, None)]
     elif is_dnr_lnr(from_city) and to_russia:
-        raw = [(from_city, False), (kpp_name, True)] + [(s, False) for s in stops] + [(to_city, False)]
-
-    # Россия ↔ Херсонская/Запорожская: КПП Васильевка
+        raw = [(from_city, False, None), ("kpp", True, KPP_COORDS["matveev"])] + [(s, False, None) for s in stops] + [(to_city, False, None)]
     elif is_kherson_zap(to_city) and from_russia:
-        raw = [(from_city, False)] + [(s, False) for s in stops] + [("Васильевка", True), (to_city, False)]
+        raw = [(from_city, False, None)] + [(s, False, None) for s in stops] + [("kpp", True, KPP_COORDS["vasilevka"]), (to_city, False, None)]
     elif is_kherson_zap(from_city) and to_russia:
-        raw = [(from_city, False), ("Васильевка", True)] + [(s, False) for s in stops] + [(to_city, False)]
-
-    # Крым ↔ Херсонская: КПП Армянск
+        raw = [(from_city, False, None), ("kpp", True, KPP_COORDS["vasilevka"])] + [(s, False, None) for s in stops] + [(to_city, False, None)]
     elif to_crimea and is_kherson_zap(from_city):
-        raw = [(from_city, False), ("Армянск", True)] + [(s, False) for s in stops] + [(to_city, False)]
+        raw = [(from_city, False, None), ("kpp", True, KPP_COORDS["armiansk"])] + [(s, False, None) for s in stops] + [(to_city, False, None)]
     elif from_crimea and is_kherson_zap(to_city):
-        raw = [(from_city, False)] + [(s, False) for s in stops] + [("Армянск", True), (to_city, False)]
+        raw = [(from_city, False, None)] + [(s, False, None) for s in stops] + [("kpp", True, KPP_COORDS["armiansk"]), (to_city, False, None)]
 
     coords = []
     specials = []
-    for addr, force_normal in raw:
-        coord, special = geocode(addr)
-        if not coord:
-            return {"statusCode": 400, "headers": CORS, "body": json.dumps({"error": f"Не удалось найти: {addr}"})}
+    for addr, force_normal, preset_coord in raw:
+        if preset_coord:
+            coord = preset_coord
+            special = False
+        else:
+            coord, special = geocode(addr)
+            if not coord:
+                return {"statusCode": 400, "headers": CORS, "body": json.dumps({"error": f"Не удалось найти: {addr}"})}
         coords.append(coord)
         specials.append(False if force_normal else special)
 
@@ -176,8 +193,8 @@ def handler(event: dict, context) -> dict:
 
     extras_cost = sum(cost for key, cost in EXTRAS.items() if extras_selected.get(key))
 
-    price = calc_price(km_normal, km_special, car_class, extras_cost)
-    all_prices = {key: calc_price(km_normal, km_special, key, extras_cost) for key in TARIFFS}
+    price = calc_price(km_normal, km_special, car_class, extras_cost, active_special_tariff)
+    all_prices = {key: calc_price(km_normal, km_special, key, extras_cost, active_special_tariff) for key in TARIFFS}
 
     has_special = km_special > 0
 

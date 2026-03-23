@@ -173,11 +173,13 @@ export default function HeroBackground({ from, to, stops = [] }: Props) {
         routeObjectsRef.current.push(pm);
       });
 
-      // Позиционирование
+      // Позиционирование с учётом шапки и формы
       const isMobile = window.innerWidth < 640;
+      // Десктоп: шапка ~64px сверху, форма ~380px слева, отступы по краям
+      // Мобильный: форма занимает нижние 85% экрана, маршрут в верхних 15%
       const margin: [number, number, number, number] = isMobile
-        ? [20, 20, Math.round(window.innerHeight * 0.88), 20]
-        : [80, 80, 80, 80];
+        ? [20, 20, Math.round(window.innerHeight * 0.87), 20]
+        : [80, 60, 60, 400]; // [top, right, bottom, left]
 
       const bounds = route.getBounds();
       if (bounds) map.setBounds(bounds, { checkZoomRange: true, zoomMargin: margin });

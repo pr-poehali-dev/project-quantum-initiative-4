@@ -116,25 +116,27 @@ def handler(event: dict, context) -> dict:
     from_crimea = is_crimea_addr(from_city)
     to_crimea = is_crimea_addr(to_city)
 
+    # КПП — нейтральные точки границы (force_normal=True: не спецзона, не обычная — ноль км)
+    # Используем их только для разделения сегментов, сами по себе не добавляют км в тариф
+    raw = [(from_city, False)] + [(s, False) for s in stops] + [(to_city, False)]
+
     # Россия ↔ ДНР/ЛНР: КПП Матвеев Курган + Весело-Вознесенка
     if is_dnr_lnr(to_city) and from_russia:
-        raw_points = [from_city] + stops + ["Матвеев Курган", "Весело-Вознесенка", to_city]
+        raw = [(from_city, False)] + [(s, False) for s in stops] + [("Матвеев Курган", True), ("Весело-Вознесенка", True), (to_city, False)]
     elif is_dnr_lnr(from_city) and to_russia:
-        raw_points = [from_city, "Весело-Вознесенка", "Матвеев Курган"] + stops + [to_city]
+        raw = [(from_city, False), ("Весело-Вознесенка", True), ("Матвеев Курган", True)] + [(s, False) for s in stops] + [(to_city, False)]
 
-    # Россия/ДНР ↔ Херсонская/Запорожская: КПП Васильевка
+    # Россия ↔ Херсонская/Запорожская: КПП Васильевка
     elif is_kherson_zap(to_city) and from_russia:
-        raw_points = [from_city] + stops + ["Васильевка", to_city]
+        raw = [(from_city, False)] + [(s, False) for s in stops] + [("Васильевка", True), (to_city, False)]
     elif is_kherson_zap(from_city) and to_russia:
-        raw_points = [from_city, "Васильевка"] + stops + [to_city]
+        raw = [(from_city, False), ("Васильевка", True)] + [(s, False) for s in stops] + [(to_city, False)]
 
-    # Крым ↔ Херсонская (граница через КПП Армянск или Чонгар)
+    # Крым ↔ Херсонская: КПП Армянск
     elif to_crimea and is_kherson_zap(from_city):
-        raw_points = [from_city, "Армянск"] + stops + [to_city]
+        raw = [(from_city, False), ("Армянск", True)] + [(s, False) for s in stops] + [(to_city, False)]
     elif from_crimea and is_kherson_zap(to_city):
-        raw_points = [from_city] + stops + ["Армянск", to_city]
-
-    raw = [(p, False) for p in raw_points]
+        raw = [(from_city, False)] + [(s, False) for s in stops] + [("Армянск", True), (to_city, False)]
 
     coords = []
     specials = []

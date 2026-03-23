@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import Icon from "@/components/ui/icon";
 import { ExtrasState, ExtrasSheet, PaymentSheet } from "@/components/OrderFormSheets";
 
-function GeoPermissionModal({ onRetry, onCancel }: { onRetry: () => void; onCancel: () => void }) {
+function GeoPermissionModal({ onAllow, onCancel, blocked }: { onAllow: () => void; onCancel: () => void; blocked: boolean }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
       <div className="bg-[#1e1e1e] rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-white/10">
@@ -10,12 +10,15 @@ function GeoPermissionModal({ onRetry, onCancel }: { onRetry: () => void; onCanc
           <Icon name="MapPin" size={28} className="text-[#c8d44a]" />
         </div>
         <h3 className="text-white text-lg font-semibold text-center mb-2">Доступ к геолокации</h3>
-        <p className="text-gray-400 text-sm text-center mb-2">
-          Браузер заблокировал доступ к местоположению.
-        </p>
-        <p className="text-gray-500 text-xs text-center mb-6">
-          Нажмите на значок 🔒 в адресной строке браузера → разрешите геолокацию → затем нажмите «Повторить»
-        </p>
+        {blocked ? (
+          <p className="text-gray-400 text-sm text-center mb-6">
+            Доступ заблокирован. Нажмите на значок 🔒 в адресной строке браузера, разрешите геолокацию и попробуйте снова.
+          </p>
+        ) : (
+          <p className="text-gray-400 text-sm text-center mb-6">
+            Нажмите «Разрешить» — браузер запросит доступ к вашему местоположению и автоматически заполнит адрес.
+          </p>
+        )}
         <div className="flex gap-3">
           <button
             onClick={onCancel}
@@ -23,12 +26,14 @@ function GeoPermissionModal({ onRetry, onCancel }: { onRetry: () => void; onCanc
           >
             Отмена
           </button>
-          <button
-            onClick={onRetry}
-            className="flex-1 py-2.5 rounded-full bg-[#c8d44a] text-black text-sm font-semibold hover:bg-[#d4e050] transition"
-          >
-            Повторить
-          </button>
+          {!blocked && (
+            <button
+              onClick={onAllow}
+              className="flex-1 py-2.5 rounded-full bg-[#c8d44a] text-black text-sm font-semibold hover:bg-[#d4e050] transition"
+            >
+              Разрешить
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -93,6 +98,7 @@ function CityInput({
   const [focused, setFocused] = useState(false);
   const [geoLoading, setGeoLoading] = useState(false);
   const [showGeoModal, setShowGeoModal] = useState(false);
+  const [geoBlocked, setGeoBlocked] = useState(false);
   const [activeIdx, setActiveIdx] = useState(-1);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -126,6 +132,7 @@ function CityInput({
 
   const requestGeo = () => {
     if (!navigator.geolocation) return;
+    setShowGeoModal(false);
     setGeoLoading(true);
     navigator.geolocation.getCurrentPosition(
       async ({ coords }) => {
@@ -143,14 +150,16 @@ function CityInput({
       },
       (err) => {
         setGeoLoading(false);
-        if (err.code === 1) setShowGeoModal(true);
+        setGeoBlocked(err.code === 1);
+        setShowGeoModal(true);
       },
       { timeout: 8000, enableHighAccuracy: true }
     );
   };
 
   const handleGeo = () => {
-    requestGeo();
+    setGeoBlocked(false);
+    setShowGeoModal(true);
   };
 
   const handleFocus = () => {
@@ -161,7 +170,8 @@ function CityInput({
     <div className="relative">
       {showGeoModal && (
         <GeoPermissionModal
-          onRetry={() => { setShowGeoModal(false); requestGeo(); }}
+          blocked={geoBlocked}
+          onAllow={requestGeo}
           onCancel={() => setShowGeoModal(false)}
         />
       )}

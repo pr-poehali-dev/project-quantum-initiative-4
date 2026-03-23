@@ -37,10 +37,10 @@ export default function Header() {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 shrink-0">
             <div className="w-8 h-8 bg-brand-blue rounded-lg flex items-center justify-center">
-              <Icon name="Car" size={18} className="text-white" />
+              <img src="https://cdn.poehali.dev/projects/4e7661bb-56aa-4a32-b0f4-260fcdbc0e28/bucket/c5e317e1-5473-4f94-a2ab-855b7895171e.png" alt="Такси Сокол" className="w-8 h-8 object-contain rounded-full" />
             </div>
             <span className="font-bold text-lg leading-tight text-white">
-              Юг-<span className="text-brand-yellow">Трансфер</span>
+              Такси <span className="text-brand-yellow">Сокол</span>
             </span>
           </Link>
 
@@ -117,10 +117,10 @@ export default function Header() {
           <div className="flex items-center justify-between px-4 pt-3 pb-2">
             <Link to="/" className="flex items-center gap-2" onClick={() => setMobileOpen(false)}>
               <div className="w-8 h-8 bg-brand-blue rounded-lg flex items-center justify-center">
-                <Icon name="Car" size={18} className="text-white" />
+                <img src="https://cdn.poehali.dev/projects/4e7661bb-56aa-4a32-b0f4-260fcdbc0e28/bucket/c5e317e1-5473-4f94-a2ab-855b7895171e.png" alt="Такси Сокол" className="w-8 h-8 object-contain rounded-full" />
               </div>
               <span className="font-bold text-lg text-white">
-                Юг-<span className="text-brand-yellow">Трансфер</span>
+                Такси <span className="text-brand-yellow">Сокол</span>
               </span>
             </Link>
             <button

@@ -21,7 +21,7 @@ export default function Footer() {
                 <Icon name="Car" size={18} className="text-white" />
               </div>
               <span className="font-bold text-lg">
-                Юг-<span className="text-brand-yellow">Трансфер</span>
+                Такси <span className="text-brand-yellow">Сокол</span>
               </span>
             </div>
             <p className="text-white/60 text-sm leading-relaxed mb-4">
@@ -105,7 +105,7 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="border-t border-white/10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-white/40 text-xs">
-            © {year} УГТрансфер. Все права защищены.
+            © {year} Такси Сокол. Все права защищены.
           </p>
           <div className="flex gap-4">
             <Link to="/offer" className="text-white/40 hover:text-white/70 text-xs transition-colors">

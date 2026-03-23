@@ -90,20 +90,19 @@ export default function HeroBackground({ from, to, stops = [] }: Props) {
 
     window.ymaps.route(routePoints, {
       routingMode: "auto",
-      mapStateAutoApply: true,
+      mapStateAutoApply: false,
       results: 1,
     }).then((route: AnyRef) => {
       // Скрываем все промежуточные точки
       route.getWayPoints().options.set({ visible: false });
 
-      // Показываем только старт и финиш вручную
+      // Показываем только старт и финиш
       const wps = route.getWayPoints();
       const first = wps.get(0);
       const last = wps.get(wps.getLength() - 1);
       if (first) first.options.set({ preset: "islands#dotIcon", iconColor: "#c8d44a", visible: true });
       if (last) last.options.set({ preset: "islands#dotIcon", iconColor: "#c8d44a", visible: true });
 
-      // Только одна линия маршрута
       route.getPaths().options.set({
         strokeColor: "#c8d44a",
         strokeWidth: 4,
@@ -113,20 +112,18 @@ export default function HeroBackground({ from, to, stops = [] }: Props) {
       map.geoObjects.add(route);
       routeRef.current = route;
 
-      // Смещаем карту с учётом формы снизу на мобильных
-      try {
-        const bounds = route.getBounds();
-        if (bounds) {
-          const isMobile = window.innerWidth < 640;
-          // На мобильных форма занимает ~85dvh снизу — отступ сверху ~15%
-          const topPaddingPx = isMobile ? window.innerHeight * 0.05 : 60;
-          const bottomPaddingPx = isMobile ? window.innerHeight * 0.87 : 60;
-          map.setBounds(bounds, {
-            checkZoomRange: true,
-            zoomMargin: [topPaddingPx, 60, bottomPaddingPx, 60],
-          });
-        }
-      } catch { /* ignore */ }
+      // Подбираем bounds и смещаем с учётом формы
+      const bounds = route.getBounds();
+      if (!bounds) return;
+
+      const isMobile = window.innerWidth < 640;
+      // На мобильных форма занимает нижние ~85% экрана, маршрут виден в верхних ~15%
+      // Поэтому нижний отступ большой — маршрут уходит в видимую зону
+      const margin: [number, number, number, number] = isMobile
+        ? [20, 20, Math.round(window.innerHeight * 0.88), 20]
+        : [80, 80, 80, 80];
+
+      map.setBounds(bounds, { checkZoomRange: true, zoomMargin: margin });
     }).catch(() => {});
   }, [from, to, stops]);
 

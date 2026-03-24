@@ -27,6 +27,10 @@ export default function Hero() {
   const [priceLoading, setPriceLoading] = useState(false);
   const [allPrices, setAllPrices] = useState<Record<string, number> | null>(null);
   const [hasSpecialZone, setHasSpecialZone] = useState(false);
+  const [alternatives, setAlternatives] = useState<Array<{
+    variant: string; km_normal: number; km_special: number; km_total: number;
+    price: number; all_prices: Record<string,number>; via: string|null; time_hours: number|null; notes: string|null;
+  }>>([]);
   const [extras, setExtras] = useState({ childSeat: false, pet: false, booster: false });
   const [geoHint, setGeoHint] = useState(false);
   const [formHeight, setFormHeight] = useState<number | undefined>(undefined);
@@ -70,6 +74,7 @@ export default function Hero() {
     if (!from.trim() || !to.trim() || !fromConfirmed || !toConfirmed) {
       setPrice(null);
       setDistanceKm(null);
+      setAlternatives([]);
       return;
     }
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -88,6 +93,7 @@ export default function Hero() {
           setDistanceKm(data.distance_km);
           setAllPrices(data.all_prices ?? null);
           setHasSpecialZone(data.has_special_zone ?? false);
+          setAlternatives(data.alternatives ?? []);
         }
       } catch {
         // ignore
@@ -147,6 +153,12 @@ export default function Hero() {
     price, distanceKm, priceLoading, allPrices,
     extras, setExtras,
     hasSpecialZone,
+    alternatives,
+    onSelectAlternative: (alt: typeof alternatives[0]) => {
+      setAllPrices(alt.all_prices);
+      setPrice(alt.price);
+      setDistanceKm(alt.km_total);
+    },
   };
 
   return (

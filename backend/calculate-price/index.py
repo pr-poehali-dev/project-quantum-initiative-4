@@ -216,6 +216,77 @@ def lookup_reference(from_city: str, to_city: str):
     return None
 
 
+def lookup_alternatives(from_city: str, to_city: str, car_class: str, extras_cost: int) -> list:
+    """Ищет альтернативные маршруты в БД и считает цены для них."""
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        from_candidates = extract_city_candidates(from_city)
+        to_candidates   = extract_city_candidates(to_city)
+        results = []
+        for fc in from_candidates:
+            for tc in to_candidates:
+                cur.execute(
+                    """SELECT variant, km_normal, km_special, via, time_hours, notes
+                       FROM routes_alternatives
+                       WHERE LOWER(from_city) = LOWER(%s) AND LOWER(to_city) = LOWER(%s)
+                       ORDER BY variant""",
+                    (fc, tc)
+                )
+                rows = cur.fetchall()
+                if rows:
+                    for row in rows:
+                        variant, km_n, km_s, via, time_h, notes = row
+                        price = calc_price(km_n, km_s, car_class, extras_cost)
+                        all_p = {k: calc_price(km_n, km_s, k, extras_cost) for k in TARIFFS}
+                        results.append({
+                            "variant": variant,
+                            "km_normal": km_n,
+                            "km_special": km_s,
+                            "km_total": km_n + km_s,
+                            "price": price,
+                            "all_prices": all_p,
+                            "via": via,
+                            "time_hours": float(time_h) if time_h else None,
+                            "notes": notes,
+                        })
+                    conn.close()
+                    return results
+        conn.close()
+    except Exception:
+        pass
+    return []
+
+
+def build_auto_alternatives(km_normal: int, km_special: int, car_class: str, extras_cost: int) -> list:
+    """
+    Генерирует альтернативу "дешевле" автоматически — только если маршрут СМЕШАННЫЙ
+    (есть и нормальные, и спецкм). Чисто-спецзонные маршруты объезда не имеют.
+    """
+    alts = []
+    # Только если есть хотя бы 20% нормальных км — значит маршрут смешанный
+    if km_special > 0 and km_normal > 0:
+        total = km_normal + km_special
+        # Вариант "дешевле" — чуть длиннее нормального пути, сокращаем спецзону
+        cheaper_normal  = round(km_normal * 1.20 + km_special * 0.25)
+        cheaper_special = round(km_special * 0.75)
+        cheaper_price   = calc_price(cheaper_normal, cheaper_special, car_class, extras_cost)
+        main_price      = calc_price(km_normal, km_special, car_class, extras_cost)
+        if cheaper_price < main_price:
+            alts.append({
+                "variant": "cheaper",
+                "km_normal": cheaper_normal,
+                "km_special": cheaper_special,
+                "km_total": cheaper_normal + cheaper_special,
+                "price": cheaper_price,
+                "all_prices": {k: calc_price(cheaper_normal, cheaper_special, k, extras_cost) for k in TARIFFS},
+                "via": "объезд спецзоны",
+                "time_hours": None,
+                "notes": "Длиннее, но меньше км по спецтарифу",
+            })
+    return alts
+
+
 def save_log(data: dict):
     """Сохраняет лог расчёта в БД."""
     try:
@@ -490,6 +561,19 @@ def handler(event: dict, context) -> dict:
     price = calc_price(km_normal, km_special, car_class, extras_cost)
     all_prices = {key: calc_price(km_normal, km_special, key, extras_cost) for key in TARIFFS}
 
+    # ── 5а. Альтернативные маршруты (только для прямых поездок без остановок) ──
+    alternatives = []
+    if not stops:
+        alternatives = lookup_alternatives(from_city, to_city, car_class, extras_cost)
+        # Если в БД нет — генерируем автоматически при наличии спецзоны
+        if not alternatives and km_special > 0:
+            alternatives = build_auto_alternatives(km_normal, km_special, car_class, extras_cost)
+        # Убираем альтернативы идентичные основному маршруту
+        alternatives = [
+            a for a in alternatives
+            if not (a["km_normal"] == km_normal and a["km_special"] == km_special)
+        ]
+
     # ── 6. Логируем ───────────────────────────────────────────────────────────
     save_log({
         "from_city": from_city,
@@ -513,13 +597,14 @@ def handler(event: dict, context) -> dict:
         "statusCode": 200,
         "headers": CORS,
         "body": json.dumps({
-            "distance_km":   distance_km,
-            "price":         price,
-            "car_class":     car_class,
-            "all_prices":    all_prices,
+            "distance_km":      distance_km,
+            "price":            price,
+            "car_class":        car_class,
+            "all_prices":       all_prices,
             "has_special_zone": km_special > 0,
-            "km_normal":     km_normal,
-            "km_special":    km_special,
-            "source":        source,
+            "km_normal":        km_normal,
+            "km_special":       km_special,
+            "source":           source,
+            "alternatives":     alternatives,
         }),
     }

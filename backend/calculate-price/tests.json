@@ -1,12 +1,30 @@
 {
   "tests": [
     {
-      "name": "Расчёт стандарт Москва-Ростов",
+      "name": "Стандарт Москва-Ростов (обычный тариф)",
       "method": "POST",
       "path": "/",
       "body": {"from": "Москва", "to": "Ростов-на-Дону", "carClass": "standard", "extras": {}, "stops": []},
       "expectedStatus": 200,
-      "expectedBody": {"car_class": "standard"},
+      "expectedBody": {"car_class": "standard", "has_special_zone": false},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Стандарт Ростов-Донецк (повышенный тариф)",
+      "method": "POST",
+      "path": "/",
+      "body": {"from": "Ростов-на-Дону", "to": "Донецк", "carClass": "standard", "extras": {}, "stops": []},
+      "expectedStatus": 200,
+      "expectedBody": {"car_class": "standard", "has_special_zone": true},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Бизнес Ростов-Мелитополь (повышенный тариф)",
+      "method": "POST",
+      "path": "/",
+      "body": {"from": "Ростов-на-Дону", "to": "Мелитополь", "carClass": "business", "extras": {}, "stops": []},
+      "expectedStatus": 200,
+      "expectedBody": {"car_class": "business", "has_special_zone": true},
       "bodyMatcher": "partial"
     }
   ]

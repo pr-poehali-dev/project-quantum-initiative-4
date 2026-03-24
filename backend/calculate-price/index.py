@@ -11,22 +11,13 @@ TARIFFS = {
     "business": {"per_km": 80, "base": 0},
 }
 
-# Повышенный тариф — ДНР/ЛНР
+# Единый повышенный тариф для всех 4 регионов: ДНР, ЛНР, Херсонская, Запорожская
 TARIFFS_SPECIAL = {
-    "urgent":   {"per_km": 60, "base": 1500},
-    "standard": {"per_km": 60, "base": 0},
-    "comfort":  {"per_km": 70, "base": 0},
-    "minivan":  {"per_km": 80, "base": 0},
-    "business": {"per_km": 150, "base": 0},
-}
-
-# Повышенный тариф — Херсонская/Запорожская (дальше и сложнее)
-TARIFFS_SPECIAL2 = {
-    "urgent":   {"per_km": 91, "base": 1500},
-    "standard": {"per_km": 91, "base": 0},
-    "comfort":  {"per_km": 105, "base": 0},
-    "minivan":  {"per_km": 125, "base": 0},
-    "business": {"per_km": 220, "base": 0},
+    "urgent":   {"per_km": 80, "base": 1500},
+    "standard": {"per_km": 80, "base": 0},
+    "comfort":  {"per_km": 90, "base": 0},
+    "minivan":  {"per_km": 100, "base": 0},
+    "business": {"per_km": 180, "base": 0},
 }
 
 EXTRAS = {
@@ -43,17 +34,67 @@ CORS = {
 
 UKRAINE_COUNTRIES = {"украина", "ukraine", "україна"}
 
-# Только Крым исключён из спецтарифа (обычная стоимость как Россия)
 CRIMEA_ONLY = {
     "республика крым", "крым", "crimea", "автономна республіка крим",
 }
 
+# Точные полигоны границ регионов повышенного тарифа [lat, lon]
+SPECIAL_ZONE_POLYGONS = [
+    # ДНР
+    [
+        (48.07, 37.45), (48.35, 38.15), (48.55, 38.85), (48.1, 39.5),
+        (47.8, 39.6), (47.4, 38.9), (47.1, 38.2), (47.3, 37.5),
+        (47.6, 37.1), (47.9, 37.2), (48.07, 37.45),
+    ],
+    # ЛНР
+    [
+        (48.55, 38.85), (48.9, 39.3), (49.3, 39.7), (49.5, 40.2),
+        (49.15, 40.5), (48.7, 40.1), (48.3, 39.9), (47.8, 39.6),
+        (48.1, 39.5), (48.55, 38.85),
+    ],
+    # Запорожская область
+    [
+        (47.6, 34.2), (47.9, 35.1), (47.85, 36.0), (47.6, 36.8),
+        (47.3, 37.1), (47.0, 36.5), (46.7, 35.8), (46.6, 34.8),
+        (46.9, 34.2), (47.3, 33.9), (47.6, 34.2),
+    ],
+    # Херсонская область
+    [
+        (47.0, 32.5), (47.2, 33.5), (46.9, 34.2), (46.6, 34.8),
+        (46.4, 34.4), (46.35, 33.6), (46.4, 32.8), (46.6, 32.3),
+        (47.0, 32.5),
+    ],
+]
 
 DNR_LNR_ADDR_KEYS = ["донецк", "луганск", "мариуполь", "горловка", "макеевка", "лисичанск", "северодонецк", "краматорск", "днр", "лнр"]
-KHERSON_ZAP_ADDR_KEYS = ["херсон", "мелитополь", "бердянск", "токмак", "энергодар", "геническ", "херсонская", "запорожская"]
+KHERSON_ZAP_ADDR_KEYS = ["херсон", "мелитополь", "бердянск", "токмак", "энергодар", "геническ", "херсонская", "запорожская", "запорожье"]
+CRIMEA_ADDR_KEYS = ["крым", "ялта", "симферополь", "севастополь", "керчь", "феодосия", "евпатория", "алушта", "судак", "бахчисарай"]
+
+
+def point_in_polygon(lat: float, lon: float, polygon: list) -> bool:
+    """Ray casting алгоритм: проверка попадания точки в полигон."""
+    n = len(polygon)
+    inside = False
+    j = n - 1
+    for i in range(n):
+        xi, yi = polygon[i]
+        xj, yj = polygon[j]
+        if ((yi > lon) != (yj > lon)) and (lat < (xj - xi) * (lon - yi) / (yj - yi) + xi):
+            inside = not inside
+        j = i
+    return inside
+
+
+def is_in_special_zone(lat: float, lon: float) -> bool:
+    """Проверить попадание координат в любой из регионов повышенного тарифа."""
+    for polygon in SPECIAL_ZONE_POLYGONS:
+        if point_in_polygon(lat, lon, polygon):
+            return True
+    return False
+
 
 def geocode(address: str):
-    """Получить координаты адреса. Спецтариф только если адрес на Украине вне новых регионов России."""
+    """Получить координаты адреса и определить зону тарифа."""
     addr_lower = address.lower()
 
     url = (
@@ -77,13 +118,16 @@ def geocode(address: str):
         if 44.3 <= lat <= 46.2 and 32.5 <= lon <= 36.7:
             is_crimea = True
 
-    # Nominatim может отдать новые регионы как Россию — дополнительно проверяем по тексту запроса
+    # Проверка по ключевым словам адреса
     force_special = (
         any(k in addr_lower for k in DNR_LNR_ADDR_KEYS) or
         any(k in addr_lower for k in KHERSON_ZAP_ADDR_KEYS)
     )
 
-    special = (is_ukraine and not is_crimea) or force_special
+    # Проверка по координатам (point-in-polygon)
+    coord_special = is_in_special_zone(lat, lon)
+
+    special = (is_ukraine and not is_crimea) or force_special or coord_special
     return (lat, lon), special
 
 
@@ -96,10 +140,10 @@ def haversine(lat1, lon1, lat2, lon2) -> float:
     return R * 2 * math.asin(math.sqrt(a))
 
 
-def calc_price(km_normal, km_special, tariff_key, extras_cost, special_tariffs=None):
+def calc_price(km_normal, km_special, tariff_key, extras_cost):
     """Рассчитать комбинированную цену: обычный + повышенный тариф."""
     t = TARIFFS.get(tariff_key, TARIFFS["standard"])
-    ts = (special_tariffs or TARIFFS_SPECIAL).get(tariff_key, (special_tariffs or TARIFFS_SPECIAL)["standard"])
+    ts = TARIFFS_SPECIAL.get(tariff_key, TARIFFS_SPECIAL["standard"])
     return t["per_km"] * km_normal + ts["per_km"] * km_special + t["base"] + extras_cost
 
 
@@ -119,39 +163,30 @@ def handler(event: dict, context) -> dict:
     if not from_city or not to_city:
         return {"statusCode": 400, "headers": CORS, "body": json.dumps({"error": "Укажите откуда и куда"})}
 
-    CRIMEA_KEYS = ["крым", "ялта", "симферополь", "севастополь", "керчь", "феодосия", "евпатория", "алушта", "судак", "бахчисарай"]
-    KHERSON_ZAP_KEYS = ["херсон", "мелитополь", "бердянск", "токмак", "энергодар", "геническ", "херсонская", "запорожская", "запорожье"]
-    DNR_LNR_KEYS = ["донецк", "луганск", "мариуполь", "горловка", "макеевка", "лисичанск", "северодонецк"]
-    def is_crimea_addr(a): return any(k in a.lower() for k in CRIMEA_KEYS)
-    def is_kherson_zap(a): return any(k in a.lower() for k in KHERSON_ZAP_KEYS)
-    def is_dnr_lnr(a): return any(k in a.lower() for k in DNR_LNR_KEYS)
+    def is_crimea_addr(a): return any(k in a.lower() for k in CRIMEA_ADDR_KEYS)
+    def is_kherson_zap(a): return any(k in a.lower() for k in KHERSON_ZAP_ADDR_KEYS)
+    def is_dnr_lnr(a): return any(k in a.lower() for k in DNR_LNR_ADDR_KEYS)
     def is_special(a): return is_dnr_lnr(a) or is_kherson_zap(a)
-
-    raw_points = [from_city] + stops + [to_city]
 
     from_russia = not is_crimea_addr(from_city) and not is_special(from_city)
     to_russia = not is_crimea_addr(to_city) and not is_special(to_city)
     from_crimea = is_crimea_addr(from_city)
-    # Выбираем повышенный тариф: Херсонская/Запорожская — дороже чем ДНР/ЛНР
-    use_special2 = is_kherson_zap(to_city) or is_kherson_zap(from_city)
-    active_special_tariff = TARIFFS_SPECIAL2 if use_special2 else TARIFFS_SPECIAL
     to_crimea = is_crimea_addr(to_city)
 
-    # Хардкод координат КПП (чтобы не зависеть от геокодирования)
+    # Хардкод координат КПП
     KPP_COORDS = {
-        "matveev":  (47.556, 38.882),   # Матвеев Курган
-        "veselo":   (47.393, 38.474),   # Весело-Вознесенка
-        "vasilevka": (47.471, 35.283),  # Васильевка (КПП Запорожская обл.)
-        "armiansk": (46.103, 33.691),   # Армянск (КПП Крым)
+        "matveev":   (47.556, 38.882),  # Матвеев Курган (ДНР/ЛНР)
+        "veselo":    (47.393, 38.474),  # Весело-Вознесенка (ДНР/ЛНР)
+        "vasilevka": (47.471, 35.283),  # Васильевка (Запорожская обл.)
+        "armiansk":  (46.103, 33.691),  # Армянск (Крым)
     }
 
-    # КПП — нейтральные точки границы (force_normal=True)
     raw = [(from_city, False, None)] + [(s, False, None) for s in stops] + [(to_city, False, None)]
 
     if is_dnr_lnr(to_city) and from_russia:
-        raw = [(from_city, False, None)] + [(s, False, None) for s in stops] + [("kpp", True, KPP_COORDS["matveev"]), (to_city, False, None)]
+        raw = [(from_city, False, None)] + [(s, False, None) for s in stops] + [("kpp", True, KPP_COORDS[kpp if kpp in ("matveev", "veselo") else "matveev"]), (to_city, False, None)]
     elif is_dnr_lnr(from_city) and to_russia:
-        raw = [(from_city, False, None), ("kpp", True, KPP_COORDS["matveev"])] + [(s, False, None) for s in stops] + [(to_city, False, None)]
+        raw = [(from_city, False, None), ("kpp", True, KPP_COORDS[kpp if kpp in ("matveev", "veselo") else "matveev"])] + [(s, False, None) for s in stops] + [(to_city, False, None)]
     elif is_kherson_zap(to_city) and from_russia:
         raw = [(from_city, False, None)] + [(s, False, None) for s in stops] + [("kpp", True, KPP_COORDS["vasilevka"]), (to_city, False, None)]
     elif is_kherson_zap(from_city) and to_russia:
@@ -174,14 +209,11 @@ def handler(event: dict, context) -> dict:
         coords.append(coord)
         specials.append(False if force_normal else special)
 
-    # Считаем км обычные и км по повышенному тарифу
-    # Коэффициент 1.4 — поправка с прямого расстояния на дорожное
     ROAD_FACTOR = 1.4
     km_normal = 0.0
     km_special = 0.0
     for i in range(len(coords) - 1):
         seg_km = haversine(coords[i][0], coords[i][1], coords[i+1][0], coords[i+1][1]) * ROAD_FACTOR
-        # Если хотя бы одна точка сегмента в спецзоне — весь сегмент по спецтарифу
         if specials[i] or specials[i + 1]:
             km_special += seg_km
         else:
@@ -193,8 +225,8 @@ def handler(event: dict, context) -> dict:
 
     extras_cost = sum(cost for key, cost in EXTRAS.items() if extras_selected.get(key))
 
-    price = calc_price(km_normal, km_special, car_class, extras_cost, active_special_tariff)
-    all_prices = {key: calc_price(km_normal, km_special, key, extras_cost, active_special_tariff) for key in TARIFFS}
+    price = calc_price(km_normal, km_special, car_class, extras_cost)
+    all_prices = {key: calc_price(km_normal, km_special, key, extras_cost) for key in TARIFFS}
 
     has_special = km_special > 0
 

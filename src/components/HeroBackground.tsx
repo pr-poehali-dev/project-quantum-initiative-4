@@ -89,13 +89,15 @@ async function geocodeAddress(address: string): Promise<[number, number] | null>
 type AnyRef = any;
 
 const CRIMEA_KEYWORDS = ["ялта", "симферополь", "севастополь", "керчь", "феодосия", "евпатория", "крым", "алушта", "судак", "бахчисарай"];
-// ДНР/ЛНР — маршрут через Керчь+Краснодар
 const DNR_LNR_KEYWORDS = ["донецк", "луганск", "мариуполь", "горловка", "макеевка", "днр", "лнр", "краматорск", "северодонецк", "лисичанск"];
-// Херсонская/Запорожская — напрямую через Джанкой
-const KHERSON_ZAP_KEYWORDS = ["херсон", "мелитополь", "бердянск", "токмак", "энергодар", "геническ", "херсонская", "запорожская", "запорожье"];
+const KHERSON_KEYWORDS = ["херсон", "херсонская", "геническ", "каховка", "скадовск"];
+const ZAP_KEYWORDS = ["мелитополь", "бердянск", "токмак", "энергодар", "запорожская", "запорожье", "пологи"];
+const KHERSON_ZAP_KEYWORDS = [...KHERSON_KEYWORDS, ...ZAP_KEYWORDS];
 
 const isCrimea = (addr: string) => CRIMEA_KEYWORDS.some(k => addr.toLowerCase().includes(k));
 const isDnrLnr = (addr: string) => DNR_LNR_KEYWORDS.some(k => addr.toLowerCase().includes(k));
+const isKherson = (addr: string) => KHERSON_KEYWORDS.some(k => addr.toLowerCase().includes(k));
+const isZap = (addr: string) => ZAP_KEYWORDS.some(k => addr.toLowerCase().includes(k));
 const isKhersonZap = (addr: string) => KHERSON_ZAP_KEYWORDS.some(k => addr.toLowerCase().includes(k));
 
 export default function HeroBackground({ from, to, stops = [], formHeight }: Props) {
@@ -156,33 +158,49 @@ export default function HeroBackground({ from, to, stops = [], formHeight }: Pro
       const fromArmiansk = from.toLowerCase().includes("армянск");
       const toArmiansk = to.toLowerCase().includes("армянск");
 
+      const getLen = (r: AnyRef) => { try { return r.getPaths().get(0).getLength(); } catch { return Infinity; } };
+
       if (isCrimea(from) && !isCrimea(to)) {
         if (fromArmiansk) {
           // Армянск сам КПП — промежуточная точка не нужна
-        } else if (isKhersonZap(to)) {
-          const getLen = (r: AnyRef) => { try { return r.getPaths().get(0).getLength(); } catch { return Infinity; } };
+        } else if (isKherson(to)) {
+          // Херсонская: Армянск или Чонгар
           const [rc, ra] = await Promise.all([
             window.ymaps.route([from, "Чонгар", to], { routingMode: "auto" }).catch(() => null),
             window.ymaps.route([from, "Армянск", to], { routingMode: "auto" }).catch(() => null),
           ]);
           if (cancelled) return;
-          const kpp = getLen(ra) < getLen(rc) ? "Армянск" : "Чонгар";
-          allAddresses.splice(1, 0, kpp);
+          allAddresses.splice(1, 0, getLen(ra) < getLen(rc) ? "Армянск" : "Чонгар");
+        } else if (isZap(to)) {
+          // Запорожская: Чонгар или Весело-Вознесенка
+          const [rc, rv] = await Promise.all([
+            window.ymaps.route([from, "Чонгар", to], { routingMode: "auto" }).catch(() => null),
+            window.ymaps.route([from, "Весело-Вознесенка, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
+          ]);
+          if (cancelled) return;
+          allAddresses.splice(1, 0, getLen(rv) < getLen(rc) ? "Весело-Вознесенка, Ростовская область" : "Чонгар");
         } else {
           allAddresses.splice(1, 0, "Керчь", "Краснодар");
         }
       } else if (isCrimea(to) && !isCrimea(from)) {
         if (toArmiansk) {
           // Армянск сам КПП — промежуточная точка не нужна
-        } else if (isKhersonZap(from)) {
-          const getLen = (r: AnyRef) => { try { return r.getPaths().get(0).getLength(); } catch { return Infinity; } };
+        } else if (isKherson(from)) {
+          // Херсонская: Армянск или Чонгар
           const [rc, ra] = await Promise.all([
             window.ymaps.route([from, "Чонгар", to], { routingMode: "auto" }).catch(() => null),
             window.ymaps.route([from, "Армянск", to], { routingMode: "auto" }).catch(() => null),
           ]);
           if (cancelled) return;
-          const kpp = getLen(ra) < getLen(rc) ? "Армянск" : "Чонгар";
-          allAddresses.splice(allAddresses.length - 1, 0, kpp);
+          allAddresses.splice(allAddresses.length - 1, 0, getLen(ra) < getLen(rc) ? "Армянск" : "Чонгар");
+        } else if (isZap(from)) {
+          // Запорожская: Чонгар или Весело-Вознесенка
+          const [rc, rv] = await Promise.all([
+            window.ymaps.route([from, "Чонгар", to], { routingMode: "auto" }).catch(() => null),
+            window.ymaps.route([from, "Весело-Вознесенка, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
+          ]);
+          if (cancelled) return;
+          allAddresses.splice(allAddresses.length - 1, 0, getLen(rv) < getLen(rc) ? "Весело-Вознесенка, Ростовская область" : "Чонгар");
         } else {
           allAddresses.splice(allAddresses.length - 1, 0, "Краснодар", "Керчь");
         }

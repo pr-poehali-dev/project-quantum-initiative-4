@@ -345,9 +345,9 @@ def build_waypoints(from_city, to_city):
             (tc[0], tc[1], False),
         ]
 
-    # ── Крым ↔ Запорожская/Херсонская (Чонгар или Армянск — ближайший) ────
-    if is_crimea(from_city) and is_kherson_zap(to_city):
-        kpp = best_kpp_for(fc, tc, ["chongar", "armiansk"])
+    # ── Крым ↔ Херсонская (Армянск или Чонгар) ───────────────────────────
+    if is_crimea(from_city) and is_kherson(to_city):
+        kpp = best_kpp_for(fc, tc, ["armiansk", "chongar"])
         kc = KPP[kpp]["coord"]
         return [
             (fc[0], fc[1], False),
@@ -355,8 +355,27 @@ def build_waypoints(from_city, to_city):
             (tc[0], tc[1], True),
         ]
 
-    if is_kherson_zap(from_city) and is_crimea(to_city):
-        kpp = best_kpp_for(fc, tc, ["chongar", "armiansk"])
+    if is_kherson(from_city) and is_crimea(to_city):
+        kpp = best_kpp_for(fc, tc, ["armiansk", "chongar"])
+        kc = KPP[kpp]["coord"]
+        return [
+            (fc[0], fc[1], True),
+            (kc[0], kc[1], False),
+            (tc[0], tc[1], False),
+        ]
+
+    # ── Крым ↔ Запорожская (Чонгар или Весело-Вознесенка) ────────────────
+    if is_crimea(from_city) and is_zap(to_city):
+        kpp = best_kpp_for(fc, tc, ["chongar", "veselo"])
+        kc = KPP[kpp]["coord"]
+        return [
+            (fc[0], fc[1], False),
+            (kc[0], kc[1], False),
+            (tc[0], tc[1], True),
+        ]
+
+    if is_zap(from_city) and is_crimea(to_city):
+        kpp = best_kpp_for(fc, tc, ["chongar", "veselo"])
         kc = KPP[kpp]["coord"]
         return [
             (fc[0], fc[1], True),

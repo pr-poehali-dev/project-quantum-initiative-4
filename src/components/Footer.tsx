@@ -42,9 +42,6 @@ export default function Footer() {
             <h4 className="font-semibold text-sm uppercase tracking-wide text-white/50 mb-4">Сервис</h4>
             <ul className="space-y-2">
               {[
-                { label: "Направления", href: "/routes" },
-                { label: "Тарифы", href: "/tariffs" },
-                { label: "Контакты", href: "/contacts" },
                 { label: "Заказать трансфер", href: "/#order" },
               ].map((l) => (
                 <li key={l.href}>
@@ -66,7 +63,7 @@ export default function Footer() {
                 "Москва → Цимлянск",
               ].map((r) => (
                 <li key={r}>
-                  <Link to="/routes" className="text-white/70 hover:text-white text-sm transition-colors">
+                  <Link to="/#order" className="text-white/70 hover:text-white text-sm transition-colors">
                     {r}
                   </Link>
                 </li>
@@ -106,12 +103,9 @@ export default function Footer() {
             © {year} Такси Сокол. Все права защищены.
           </p>
           <div className="flex gap-4">
-            <Link to="/offer" className="text-white/40 hover:text-white/70 text-xs transition-colors">
-              Публичная оферта
-            </Link>
-            <Link to="/privacy" className="text-white/40 hover:text-white/70 text-xs transition-colors">
-              Политика конфиденциальности
-            </Link>
+            <a href="https://poehali.dev/help" target="_blank" rel="noopener noreferrer" className="text-white/40 hover:text-white/70 text-xs transition-colors">
+              Поддержка
+            </a>
           </div>
         </div>
       </div>

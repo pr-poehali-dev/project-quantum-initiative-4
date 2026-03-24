@@ -4,9 +4,6 @@ import Icon from "@/components/ui/icon";
 
 const NAV_LINKS = [
   { label: "Главная", href: "/" },
-  { label: "Направления", href: "/routes" },
-  { label: "Тарифы", href: "/tariffs" },
-  { label: "Контакты", href: "/contacts" },
 ];
 
 const PHONE = "+7 (995) 614-14-14";
@@ -180,10 +177,7 @@ export default function Header() {
                 ))}
               </div>
             </div>
-            <div className="flex gap-4 flex-wrap">
-              <a href="/offer" className="text-white/30 text-xs hover:text-white/60 transition-colors">Публичная оферта</a>
-              <a href="/privacy" className="text-white/30 text-xs hover:text-white/60 transition-colors">Политика конфиденциальности</a>
-            </div>
+
             <p className="text-white/20 text-xs">© {new Date().getFullYear()} УГТрансфер. Все права защищены.</p>
           </div>
         </div>

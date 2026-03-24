@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import HeroBackground from "@/components/HeroBackground";
 import { FormContent, FormProps } from "@/components/OrderFormContent";
@@ -49,7 +49,11 @@ export default function Hero() {
 
   const dismissHint = useCallback(() => setGeoHint(false), []);
 
-  const confirmedStops = stops.filter((_, i) => stopsConfirmed[i]);
+  const confirmedStops = useMemo(
+    () => stops.filter((_, i) => stopsConfirmed[i]),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [stops.join("|"), stopsConfirmed.join("|")]
+  );
 
   useEffect(() => {
     if (!from.trim() || !to.trim() || !fromConfirmed || !toConfirmed) {

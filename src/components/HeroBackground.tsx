@@ -190,12 +190,12 @@ export default function HeroBackground({ from, to, stops = [], formHeight }: Pro
       }
 
       const [route, coordFrom, coordTo] = await Promise.all([
-        window.ymaps.route(allAddresses, { routingMode: "auto", mapStateAutoApply: false }),
+        window.ymaps.route(allAddresses, { routingMode: "auto", mapStateAutoApply: false }).catch(() => null),
         geocodeAddress(from),
         geocodeAddress(to),
       ]);
 
-      if (cancelled) return;
+      if (cancelled || !route) return;
 
       const wps = route.getWayPoints();
       for (let i = 0; i < wps.getLength(); i++) {

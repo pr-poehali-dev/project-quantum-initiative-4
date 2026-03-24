@@ -36,7 +36,7 @@ export default function Header() {
         <div className="container mx-auto px-6 h-14 flex items-center justify-between gap-4">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 shrink-0">
-            <img src="https://cdn.poehali.dev/projects/4e7661bb-56aa-4a32-b0f4-260fcdbc0e28/bucket/ada7ecb8-4358-4599-9ef2-20a722789a54.png" alt="Такси Сокол" className="w-10 h-10 object-contain" />
+            <img src="https://cdn.poehali.dev/projects/4e7661bb-56aa-4a32-b0f4-260fcdbc0e28/bucket/ada7ecb8-4358-4599-9ef2-20a722789a54.png" alt="Такси Сокол" className="w-10 h-10 object-cover rounded-full" />
             <span className="font-bold text-lg leading-tight text-white">
               Такси <span className="text-brand-yellow">Сокол</span>
             </span>
@@ -114,7 +114,7 @@ export default function Header() {
           {/* Шапка панели */}
           <div className="flex items-center justify-between px-4 pt-3 pb-2">
             <Link to="/" className="flex items-center gap-2" onClick={() => setMobileOpen(false)}>
-              <img src="https://cdn.poehali.dev/projects/4e7661bb-56aa-4a32-b0f4-260fcdbc0e28/bucket/ada7ecb8-4358-4599-9ef2-20a722789a54.png" alt="Такси Сокол" className="w-10 h-10 object-contain" />
+              <img src="https://cdn.poehali.dev/projects/4e7661bb-56aa-4a32-b0f4-260fcdbc0e28/bucket/ada7ecb8-4358-4599-9ef2-20a722789a54.png" alt="Такси Сокол" className="w-10 h-10 object-cover rounded-full" />
               <span className="font-bold text-lg text-white">
                 Такси <span className="text-brand-yellow">Сокол</span>
               </span>

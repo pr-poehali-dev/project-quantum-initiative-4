@@ -167,12 +167,13 @@ export default function HeroBackground({ from, to, stops = [], formHeight }: Pro
         }
       } else if (isDnrLnr(to) && !isCrimea(from) && !isKhersonZap(from)) {
         const getLen = (r: AnyRef) => { try { return r.getPaths().get(0).getLength(); } catch { return Infinity; } };
-        const [r1, r2, r3, r4, r5] = await Promise.all([
+        const [r1, r2, r3, r4, r5, r6] = await Promise.all([
           window.ymaps.route([from, "Матвеев Курган, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
           window.ymaps.route([from, "Весело-Вознесенка, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
           window.ymaps.route([from, "Новошахтинск, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
           window.ymaps.route([from, "Изварино, Луганская Народная Республика", to], { routingMode: "auto" }).catch(() => null),
           window.ymaps.route([from, "Чертково, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
+          window.ymaps.route([from, "Бугаевка, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
         ]);
         if (cancelled) return;
         const best = [
@@ -181,16 +182,18 @@ export default function HeroBackground({ from, to, stops = [], formHeight }: Pro
           { name: "Новошахтинск, Ростовская область", len: getLen(r3) },
           { name: "Изварино, Луганская Народная Республика", len: getLen(r4) },
           { name: "Чертково, Ростовская область", len: getLen(r5) },
+          { name: "Бугаевка, Ростовская область", len: getLen(r6) },
         ].reduce((a, b) => a.len <= b.len ? a : b);
         allAddresses.splice(allAddresses.length - 1, 0, best.name);
       } else if (isDnrLnr(from) && !isCrimea(to) && !isKhersonZap(to)) {
         const getLen = (r: AnyRef) => { try { return r.getPaths().get(0).getLength(); } catch { return Infinity; } };
-        const [r1, r2, r3, r4, r5] = await Promise.all([
+        const [r1, r2, r3, r4, r5, r6] = await Promise.all([
           window.ymaps.route([from, "Матвеев Курган, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
           window.ymaps.route([from, "Весело-Вознесенка, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
           window.ymaps.route([from, "Новошахтинск, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
           window.ymaps.route([from, "Изварино, Луганская Народная Республика", to], { routingMode: "auto" }).catch(() => null),
           window.ymaps.route([from, "Чертково, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
+          window.ymaps.route([from, "Бугаевка, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
         ]);
         if (cancelled) return;
         const best = [
@@ -199,6 +202,7 @@ export default function HeroBackground({ from, to, stops = [], formHeight }: Pro
           { name: "Новошахтинск, Ростовская область", len: getLen(r3) },
           { name: "Изварино, Луганская Народная Республика", len: getLen(r4) },
           { name: "Чертково, Ростовская область", len: getLen(r5) },
+          { name: "Бугаевка, Ростовская область", len: getLen(r6) },
         ].reduce((a, b) => a.len <= b.len ? a : b);
         allAddresses.splice(1, 0, best.name);
       }

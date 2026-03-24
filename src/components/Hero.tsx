@@ -29,6 +29,8 @@ export default function Hero() {
   const [hasSpecialZone, setHasSpecialZone] = useState(false);
   const [extras, setExtras] = useState({ childSeat: false, pet: false, booster: false });
   const [geoHint, setGeoHint] = useState(false);
+  const [formHeight, setFormHeight] = useState<number | undefined>(undefined);
+  const formRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const addStop = () => { setStops([...stops, ""]); setStopsConfirmed([...stopsConfirmed, false]); };
   const updateStop = (i: number, v: string) => setStops(stops.map((s, idx) => idx === i ? v : s));
@@ -48,6 +50,15 @@ export default function Hero() {
   }, []);
 
   const dismissHint = useCallback(() => setGeoHint(false), []);
+
+  useEffect(() => {
+    const el = formRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setFormHeight(el.offsetHeight));
+    ro.observe(el);
+    setFormHeight(el.offsetHeight);
+    return () => ro.disconnect();
+  }, []);
 
   const confirmedStops = useMemo(
     () => stops.filter((_, i) => stopsConfirmed[i]),
@@ -140,7 +151,7 @@ export default function Hero() {
 
   return (
     <div className="relative" style={{ height: "100dvh", overflow: "hidden" }}>
-      <HeroBackground from={fromConfirmed ? from : ""} to={toConfirmed ? to : ""} stops={confirmedStops} />
+      <HeroBackground from={fromConfirmed ? from : ""} to={toConfirmed ? to : ""} stops={confirmedStops} formHeight={formHeight} />
 
       {/* Подсказка геолокации */}
       <div
@@ -165,7 +176,7 @@ export default function Hero() {
       {/* MOBILE: форма прилипает к низу */}
       <div className="sm:hidden relative z-10 flex flex-col" style={{ height: "100dvh", overflow: "hidden" }}>
         <div className="flex-1 overflow-hidden" />
-        <div id="order" className="bg-[#1a1a1a] rounded-t-3xl px-4 pt-5 pb-[52px] w-full overflow-y-auto" style={{ maxHeight: "85dvh" }}>
+        <div ref={formRef} id="order" className="bg-[#1a1a1a] rounded-t-3xl px-4 pt-5 pb-[52px] w-full overflow-y-auto" style={{ maxHeight: "85dvh" }}>
           <FormContent {...formProps} />
         </div>
       </div>

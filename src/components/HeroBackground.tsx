@@ -4,6 +4,7 @@ interface Props {
   from: string;
   to: string;
   stops?: string[];
+  formHeight?: number;
 }
 
 declare global {
@@ -97,7 +98,7 @@ const isCrimea = (addr: string) => CRIMEA_KEYWORDS.some(k => addr.toLowerCase().
 const isDnrLnr = (addr: string) => DNR_LNR_KEYWORDS.some(k => addr.toLowerCase().includes(k));
 const isKhersonZap = (addr: string) => KHERSON_ZAP_KEYWORDS.some(k => addr.toLowerCase().includes(k));
 
-export default function HeroBackground({ from, to, stops = [] }: Props) {
+export default function HeroBackground({ from, to, stops = [], formHeight }: Props) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<AnyRef>(null);
   const routeObjectsRef = useRef<AnyRef[]>([]);
@@ -105,10 +106,12 @@ export default function HeroBackground({ from, to, stops = [] }: Props) {
   const fromRef = useRef(from);
   const toRef = useRef(to);
   const stopsRef = useRef(stops);
+  const formHeightRef = useRef(formHeight);
 
   fromRef.current = from;
   toRef.current = to;
   stopsRef.current = stops;
+  formHeightRef.current = formHeight;
 
   const drawRoute = useCallback(async (fromAddr: string, toAddr: string, stopsArr: string[]) => {
     if (!mapInstanceRef.current) return;
@@ -193,8 +196,11 @@ export default function HeroBackground({ from, to, stops = [] }: Props) {
       routeObjectsRef.current = newObjects;
 
       const isMobile = window.innerWidth < 640;
+      const bottomMargin = isMobile
+        ? (formHeightRef.current ?? Math.round(window.innerHeight * 0.55)) + 16
+        : 40;
       const margin: [number, number, number, number] = isMobile
-        ? [60, 16, Math.round(window.innerHeight * 0.55), 16]
+        ? [60, 16, bottomMargin, 16]
         : [76, 40, 40, 420];
 
       const boundsCoords = [coordFrom, coordTo].filter(Boolean) as [number, number][];

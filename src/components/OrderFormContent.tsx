@@ -70,7 +70,7 @@ export interface FormProps {
   phone: string; handlePhoneChange: (v: string) => void;
   carClass: string; setCarClass: (v: string) => void;
   payment: string; setPayment: (v: string) => void;
-  stops: string[]; addStop: () => void; updateStop: (i: number, v: string) => void; removeStop: (i: number) => void;
+  stops: string[]; addStop: () => void; updateStop: (i: number, v: string) => void; updateStopConfirmed?: (i: number, v: boolean) => void; removeStop: (i: number) => void;
   errors: Record<string, string>;
   handleSubmit: (e: React.FormEvent) => void;
   defaultDate: string;
@@ -271,7 +271,7 @@ export function FormContent(p: FormProps) {
         {/* Промежуточные адреса */}
         {p.stops.map((stop, i) => (
           <div key={i} className="relative">
-            <CityInput placeholder="Промежуточный адрес" value={stop} onChange={(v) => p.updateStop(i, v)} />
+            <CityInput placeholder="Промежуточный адрес" value={stop} onChange={(v) => { p.updateStop(i, v); }} onConfirm={(v) => p.updateStopConfirmed?.(i, v)} />
             <button
               type="button"
               onClick={() => p.removeStop(i)}

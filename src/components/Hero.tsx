@@ -20,6 +20,7 @@ export default function Hero() {
   const [carClass, setCarClass] = useState("standard");
   const [payment, setPayment] = useState("transfer");
   const [stops, setStops] = useState<string[]>([]);
+  const [stopsConfirmed, setStopsConfirmed] = useState<boolean[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [price, setPrice] = useState<number | null>(null);
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
@@ -29,9 +30,10 @@ export default function Hero() {
   const [extras, setExtras] = useState({ childSeat: false, pet: false, booster: false });
   const [geoHint, setGeoHint] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const addStop = () => setStops([...stops, ""]);
+  const addStop = () => { setStops([...stops, ""]); setStopsConfirmed([...stopsConfirmed, false]); };
   const updateStop = (i: number, v: string) => setStops(stops.map((s, idx) => idx === i ? v : s));
-  const removeStop = (i: number) => setStops(stops.filter((_, idx) => idx !== i));
+  const updateStopConfirmed = (i: number, v: boolean) => setStopsConfirmed(stopsConfirmed.map((c, idx) => idx === i ? v : c));
+  const removeStop = (i: number) => { setStops(stops.filter((_, idx) => idx !== i)); setStopsConfirmed(stopsConfirmed.filter((_, idx) => idx !== i)); };
 
   useEffect(() => {
     if (!("geolocation" in navigator)) return;
@@ -47,6 +49,8 @@ export default function Hero() {
 
   const dismissHint = useCallback(() => setGeoHint(false), []);
 
+  const confirmedStops = stops.filter((_, i) => stopsConfirmed[i]);
+
   useEffect(() => {
     if (!from.trim() || !to.trim() || !fromConfirmed || !toConfirmed) {
       setPrice(null);
@@ -60,7 +64,7 @@ export default function Hero() {
         const res = await fetch(CALCULATE_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ from, to, carClass, extras, stops }),
+          body: JSON.stringify({ from, to, carClass, extras, stops: confirmedStops }),
         });
         let data = await res.json();
         if (typeof data === "string") data = JSON.parse(data);
@@ -76,7 +80,7 @@ export default function Hero() {
         setPriceLoading(false);
       }
     }, 800);
-  }, [from, to, fromConfirmed, toConfirmed, carClass, extras, stops]);
+  }, [from, to, fromConfirmed, toConfirmed, carClass, extras, confirmedStops]);
 
   const today = new Date();
   const defaultDate = today.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric" });
@@ -122,7 +126,7 @@ export default function Hero() {
     name, setName, phone, handlePhoneChange,
     carClass, setCarClass,
     payment, setPayment,
-    stops, addStop, updateStop, removeStop,
+    stops, addStop, updateStop, updateStopConfirmed, removeStop,
     errors, handleSubmit,
     defaultDate, defaultTime,
     price, distanceKm, priceLoading, allPrices,
@@ -132,7 +136,7 @@ export default function Hero() {
 
   return (
     <div className="relative" style={{ height: "100dvh", overflow: "hidden" }}>
-      <HeroBackground from={fromConfirmed ? from : ""} to={toConfirmed ? to : ""} stops={stops} />
+      <HeroBackground from={fromConfirmed ? from : ""} to={toConfirmed ? to : ""} stops={confirmedStops} />
 
       {/* Подсказка геолокации */}
       <div

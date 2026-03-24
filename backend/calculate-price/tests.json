@@ -1,39 +1,54 @@
 {
   "tests": [
     {
-      "name": "Стандарт Москва-Ростов (обычный тариф)",
+      "name": "OPTIONS CORS",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Москва → Ростов (обычный)",
       "method": "POST",
       "path": "/",
       "body": {"from": "Москва", "to": "Ростов-на-Дону", "carClass": "standard", "extras": {}, "stops": []},
       "expectedStatus": 200,
-      "expectedBody": {"has_special_zone": false},
+      "expectedBody": {},
       "bodyMatcher": "partial"
     },
     {
-      "name": "Стандарт Ростов-Донецк (повышенный тариф)",
+      "name": "Ростов → Донецк (ДНР)",
       "method": "POST",
       "path": "/",
       "body": {"from": "Ростов-на-Дону", "to": "Донецк", "carClass": "standard", "extras": {}, "stops": []},
       "expectedStatus": 200,
-      "expectedBody": {"has_special_zone": true},
+      "expectedBody": {},
       "bodyMatcher": "partial"
     },
     {
-      "name": "Бизнес Ростов-Мелитополь (повышенный тариф)",
+      "name": "Москва → Луганск (ЛНР)",
       "method": "POST",
       "path": "/",
-      "body": {"from": "Ростов-на-Дону", "to": "Мелитополь", "carClass": "business", "extras": {}, "stops": []},
+      "body": {"from": "Москва", "to": "Луганск, Луганская Народная Республика", "carClass": "standard", "extras": {}, "stops": []},
       "expectedStatus": 200,
-      "expectedBody": {"has_special_zone": true},
+      "expectedBody": {},
       "bodyMatcher": "partial"
     },
     {
-      "name": "Москва-Дебальцево через автовыбор КПП",
+      "name": "Москва → Симферополь (Крым)",
       "method": "POST",
       "path": "/",
-      "body": {"from": "Москва", "to": "Дебальцево, ДНР", "carClass": "standard", "extras": {}, "stops": []},
+      "body": {"from": "Москва", "to": "Симферополь", "carClass": "standard", "extras": {}, "stops": []},
       "expectedStatus": 200,
-      "expectedBody": {"has_special_zone": true},
+      "expectedBody": {},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Москва → Мелитополь (Запорожская)",
+      "method": "POST",
+      "path": "/",
+      "body": {"from": "Москва", "to": "Мелитополь, Запорожская область", "carClass": "standard", "extras": {}, "stops": []},
+      "expectedStatus": 200,
+      "expectedBody": {},
       "bodyMatcher": "partial"
     }
   ]

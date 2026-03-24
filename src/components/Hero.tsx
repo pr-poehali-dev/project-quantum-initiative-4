@@ -159,15 +159,6 @@ export default function Hero() {
         </div>
       </div>
 
-      {/* DESKTOP: логотип поверх карты */}
-      <div className="hidden sm:flex absolute z-10 top-20 left-1/2 -translate-x-1/2 items-center gap-3 pointer-events-none">
-        <img src="https://cdn.poehali.dev/projects/4e7661bb-56aa-4a32-b0f4-260fcdbc0e28/bucket/ada7ecb8-4358-4599-9ef2-20a722789a54.png" alt="Такси Сокол" className="w-14 h-14 object-contain drop-shadow-2xl" />
-        <div className="text-white drop-shadow-2xl">
-          <div className="font-bold text-2xl leading-tight">Такси <span className="text-brand-yellow">Сокол</span></div>
-          <div className="text-white/60 text-xs">Быстро. Надёжно. Комфортно.</div>
-        </div>
-      </div>
-
       {/* DESKTOP: форма в левом нижнем углу */}
       <div className="hidden sm:block absolute z-10 bottom-0 left-0">
         <div id="order" className="bg-[#1a1a1a] rounded-tr-3xl shadow-2xl p-4 w-[380px] overflow-y-auto" style={{ maxHeight: "calc(100dvh - 56px)" }}>

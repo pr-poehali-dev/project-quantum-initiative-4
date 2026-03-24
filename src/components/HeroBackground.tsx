@@ -124,8 +124,9 @@ export default function HeroBackground({ from, to, stops = [] }: Props) {
   useEffect(() => {
     if (!window._ymapsReady || !mapInstanceRef.current) return;
     const map = mapInstanceRef.current;
+    let cancelled = false;
 
-    routeObjectsRef.current.forEach(obj => map.geoObjects.remove(obj));
+    routeObjectsRef.current.forEach(obj => { try { map.geoObjects.remove(obj); } catch (e) { /* ignore */ } });
     routeObjectsRef.current = [];
 
     if (!from.trim() || !to.trim()) return;
@@ -135,59 +136,50 @@ export default function HeroBackground({ from, to, stops = [] }: Props) {
 
       if (isCrimea(from) && !isCrimea(to)) {
         if (isKhersonZap(to)) {
-          // Крым → Херсонская/Запорожская: через Чонгар
           allAddresses.splice(1, 0, "Чонгар");
-        } else if (isDnrLnr(to)) {
-          // Крым → ДНР/ЛНР: через Керчь и Краснодар
-          allAddresses.splice(1, 0, "Керчь", "Краснодар");
         } else {
-          // Крым → Россия: через Керчь и Краснодар
           allAddresses.splice(1, 0, "Керчь", "Краснодар");
         }
       } else if (isCrimea(to) && !isCrimea(from)) {
         if (isKhersonZap(from)) {
-          // Херсонская/Запорожская → Крым: через Чонгар
           allAddresses.splice(allAddresses.length - 1, 0, "Чонгар");
-        } else if (isDnrLnr(from)) {
-          // ДНР/ЛНР → Крым: через Краснодар и Керчь
-          allAddresses.splice(allAddresses.length - 1, 0, "Краснодар", "Керчь");
         } else {
-          // Россия → Крым: через Краснодар и Керчь
           allAddresses.splice(allAddresses.length - 1, 0, "Краснодар", "Керчь");
         }
       } else if (isDnrLnr(to) && !isCrimea(from) && !isKhersonZap(from)) {
-        // Россия → ДНР/ЛНР: выбираем КПП с меньшим расстоянием
         const getLen = (r: AnyRef) => { try { return r.getPaths().get(0).getLength(); } catch { return Infinity; } };
         const [r1, r2] = await Promise.all([
           window.ymaps.route([from, "Матвеев Курган, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
           window.ymaps.route([from, "Весело-Вознесенка, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
         ]);
+        if (cancelled) return;
         const kppName = getLen(r2) < getLen(r1) ? "Весело-Вознесенка, Ростовская область" : "Матвеев Курган, Ростовская область";
         allAddresses.splice(allAddresses.length - 1, 0, kppName);
       } else if (isDnrLnr(from) && !isCrimea(to) && !isKhersonZap(to)) {
-        // ДНР/ЛНР → Россия: выбираем КПП с меньшим расстоянием
         const getLen = (r: AnyRef) => { try { return r.getPaths().get(0).getLength(); } catch { return Infinity; } };
         const [r1, r2] = await Promise.all([
           window.ymaps.route([from, "Матвеев Курган, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
           window.ymaps.route([from, "Весело-Вознесенка, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
         ]);
+        if (cancelled) return;
         const kppName = getLen(r2) < getLen(r1) ? "Весело-Вознесенка, Ростовская область" : "Матвеев Курган, Ростовская область";
         allAddresses.splice(1, 0, kppName);
       } else if (isKhersonZap(to) && !isCrimea(from)) {
-        // Россия → Херсонская/Запорожская: через Васильевку
         allAddresses.splice(allAddresses.length - 1, 0, "Васильевка");
       } else if (isKhersonZap(from) && !isCrimea(to)) {
-        // Херсонская/Запорожская → Россия
         allAddresses.splice(1, 0, "Васильевка");
       }
 
-      // Строим маршрут по дорогам через ymaps.route
-      const route = await window.ymaps.route(allAddresses, {
-        routingMode: "auto",
-        mapStateAutoApply: false,
-      });
+      // Геокодируем старт и финиш параллельно с построением маршрута
+      const [route, coordFrom, coordTo] = await Promise.all([
+        window.ymaps.route(allAddresses, { routingMode: "auto", mapStateAutoApply: false }),
+        geocodeAddress(from),
+        geocodeAddress(to),
+      ]);
 
-      // Скрываем все путевые точки
+      if (cancelled) return;
+
+      // Скрываем путевые точки
       const wps = route.getWayPoints();
       for (let i = 0; i < wps.getLength(); i++) {
         wps.get(i).options.set({ visible: false });
@@ -199,32 +191,27 @@ export default function HeroBackground({ from, to, stops = [] }: Props) {
         opacity: 0.9,
       });
 
-      map.geoObjects.add(route);
-      routeObjectsRef.current.push(route);
-
-      // Два маркера — только реальный старт и финиш
-      const [coordFrom, coordTo] = await Promise.all([
-        geocodeAddress(from),
-        geocodeAddress(to),
-      ]);
+      // Маркеры старта и финиша
+      const newObjects: AnyRef[] = [route];
       [coordFrom, coordTo].forEach(coord => {
         if (!coord) return;
         const pm = new window.ymaps.Placemark(coord, {}, {
           preset: "islands#dotIcon",
           iconColor: "#c8d44a",
         });
-        map.geoObjects.add(pm);
-        routeObjectsRef.current.push(pm);
+        newObjects.push(pm);
       });
 
-      // Позиционирование с учётом шапки и формы
-      // margin: [top, right, bottom, left]
+      // Добавляем всё на карту одновременно
+      newObjects.forEach(obj => map.geoObjects.add(obj));
+      routeObjectsRef.current = newObjects;
+
+      // Позиционирование — один вызов setBounds
       const isMobile = window.innerWidth < 640;
       const margin: [number, number, number, number] = isMobile
         ? [70, 20, Math.round(window.innerHeight * 0.87), 20]
         : [76, 40, 40, 420];
 
-      // Берём bounds из маркеров старта/финиша — надёжнее чем route.getBounds()
       const boundsCoords = [coordFrom, coordTo].filter(Boolean) as [number, number][];
       if (boundsCoords.length === 2) {
         const latMin = Math.min(...boundsCoords.map(c => c[0]));
@@ -237,6 +224,8 @@ export default function HeroBackground({ from, to, stops = [] }: Props) {
         if (bounds) map.setBounds(bounds, { checkZoomRange: true, zoomMargin: margin });
       }
     })();
+
+    return () => { cancelled = true; };
   }, [from, to, stops]);
 
   return (

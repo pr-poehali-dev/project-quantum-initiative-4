@@ -214,23 +214,38 @@ def handler(event: dict, context) -> dict:
 
     fc = all_coords[0]
     tc = all_coords[-1]
-    from_special = is_special_addr(from_city)
-    to_special   = is_special_addr(to_city)
-    from_crimea  = is_crimea_addr(from_city)
-    to_crimea    = is_crimea_addr(to_city)
+    from_crimea = is_crimea_addr(from_city)
+    to_crimea   = is_crimea_addr(to_city)
 
-    # Формируем список точек для OSRM
-    # Крым → материк: добавляем Керченский мост как промежуточную точку
-    # чтобы OSRM не строил маршрут через материк в обход
-    KERCH = (36.467, 45.360)   # lon, lat Керченский мост
+    # Промежуточные точки — lon,lat для OSRM
+    KERCH    = (36.467, 45.360)  # Керченский мост
+    ARMIANSK = (33.691, 46.103)  # Армянск — КПП Крым↔Херсонская/Запорожская
+    CHONGAR  = (34.394, 46.003)  # Чонгар — КПП Крым↔Запорожская/Херсонская
+
+    def is_kherson_addr(a): return any(k in a.lower() for k in ["херсон","херсонская","геническ","каховка"])
+    def is_zap_addr(a):     return any(k in a.lower() for k in ["мелитополь","запорожская","бердянск","токмак","энергодар","пологи"])
 
     osrm_coords = [(lon, lat) for lat, lon in all_coords]
 
-    if (from_crimea and not to_crimea) or (to_crimea and not from_crimea):
-        # Добавляем Керчь как промежуточную точку
-        if from_crimea:
-            osrm_coords.insert(1, KERCH)
+    if from_crimea and not to_crimea:
+        if is_kherson_addr(to_city):
+            # Крым → Херсонская: через Армянск
+            osrm_coords.insert(1, ARMIANSK)
+        elif is_zap_addr(to_city):
+            # Крым → Запорожская: через Чонгар
+            osrm_coords.insert(1, CHONGAR)
         else:
+            # Крым → Россия/ДНР/ЛНР: через Керчь
+            osrm_coords.insert(1, KERCH)
+    elif to_crimea and not from_crimea:
+        if is_kherson_addr(from_city):
+            # Херсонская → Крым: через Армянск
+            osrm_coords.insert(len(osrm_coords)-1, ARMIANSK)
+        elif is_zap_addr(from_city):
+            # Запорожская → Крым: через Чонгар
+            osrm_coords.insert(len(osrm_coords)-1, CHONGAR)
+        else:
+            # Россия/ДНР/ЛНР → Крым: через Керчь
             osrm_coords.insert(len(osrm_coords)-1, KERCH)
 
     # Один запрос к OSRM — весь маршрут целиком

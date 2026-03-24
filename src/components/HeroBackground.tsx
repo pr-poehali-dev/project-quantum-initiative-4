@@ -185,8 +185,8 @@ export default function HeroBackground({ from, to, stops = [], formHeight }: Pro
         allAddresses.splice(1, 0, kppName);
       }
 
-      // Для Запорожской/Херсонской строим два сегмента через Новоалексеевку (реальный КПП)
-      const KPP_ZAP = "Новоалексеевка, Херсонская область";
+      // Для Запорожской/Херсонской строим два сегмента через КПП Весело-Вознесенка
+      const KPP_ZAP = "Весело-Вознесенка, Ростовская область";
       let routes: AnyRef[] = [];
       if ((isKhersonZap(to) || isKhersonZap(from)) && !isCrimea(from) && !isCrimea(to)) {
         const [r1, r2] = await Promise.all([

@@ -184,12 +184,32 @@ def handler(event: dict, context) -> dict:
         "veselo":    (47.393, 38.474),  # Весело-Вознесенка (ДНР/ЛНР)
         "vasilevka": (47.471, 35.283),  # Васильевка (Запорожская обл.)
         "armiansk":  (46.103, 33.691),  # Армянск (Крым — западный въезд)
-        "chongar":   (46.003, 34.394), # Чонгар (Крым — восточный въезд, через Херсонскую/Запорожскую)
+        "chongar":   (46.003, 34.394),  # Чонгар (Крым — восточный въезд)
+        "kerch":     (45.360, 36.467),  # Крымский мост (Керчь)
+        "rostov":    (47.222, 39.718),  # Ростов-на-Дону (транзит)
+    }
+
+    # Хардкодные расстояния для маршрутов Крым ↔ ДНР/ЛНР (через Крымский мост)
+    # Реальные дорожные км без коэффициента
+    CRIMEA_DNR_FIXED_KM = {
+        # (from_key, to_key): (km_normal, km_special)
+        # Средние значения: Ялта/Симф → Донецк/Мариуполь/Луганск
+        "crimea_dnr": (630, 80),   # ~710 км всего, 630 обычный + 80 спецзона
+        "crimea_lnr": (700, 100),  # чуть дальше для Луганска
     }
 
     raw = [(from_city, False, None)] + [(s, False, None) for s in stops] + [(to_city, False, None)]
+    fixed_km = None  # (km_normal, km_special) — если хардкод
 
-    if is_dnr_lnr(to_city) and from_russia:
+    if (is_dnr_lnr(to_city) and from_crimea) or (is_dnr_lnr(from_city) and to_crimea):
+        # Крым ↔ ДНР/ЛНР через Крымский мост — фиксированное расстояние
+        lnr_keys = ["луганск", "лисичанск", "северодонецк", "лнр"]
+        is_lnr = any(k in (from_city + to_city).lower() for k in lnr_keys)
+        fixed_key = "crimea_lnr" if is_lnr else "crimea_dnr"
+        fixed_km = CRIMEA_DNR_FIXED_KM[fixed_key]
+        # raw оставляем только для геокодинга начала/конца (маркеры на карте)
+        raw = [(from_city, False, None), (to_city, False, None)]
+    elif is_dnr_lnr(to_city) and from_russia:
         raw = [(from_city, False, None)] + [(s, False, None) for s in stops] + [("kpp", True, KPP_COORDS[kpp if kpp in ("matveev", "veselo") else "matveev"]), (to_city, False, None)]
     elif is_dnr_lnr(from_city) and to_russia:
         raw = [(from_city, False, None), ("kpp", True, KPP_COORDS[kpp if kpp in ("matveev", "veselo") else "matveev"])] + [(s, False, None) for s in stops] + [(to_city, False, None)]
@@ -215,18 +235,21 @@ def handler(event: dict, context) -> dict:
         coords.append(coord)
         specials.append(False if force_normal else special)
 
-    ROAD_FACTOR = 1.4
-    km_normal = 0.0
-    km_special = 0.0
-    for i in range(len(coords) - 1):
-        seg_km = haversine(coords[i][0], coords[i][1], coords[i+1][0], coords[i+1][1]) * ROAD_FACTOR
-        if specials[i] or specials[i + 1]:
-            km_special += seg_km
-        else:
-            km_normal += seg_km
-
-    km_normal = round(km_normal)
-    km_special = round(km_special)
+    if fixed_km is not None:
+        km_normal = fixed_km[0]
+        km_special = fixed_km[1]
+    else:
+        ROAD_FACTOR = 1.4
+        km_normal = 0.0
+        km_special = 0.0
+        for i in range(len(coords) - 1):
+            seg_km = haversine(coords[i][0], coords[i][1], coords[i+1][0], coords[i+1][1]) * ROAD_FACTOR
+            if specials[i] or specials[i + 1]:
+                km_special += seg_km
+            else:
+                km_normal += seg_km
+        km_normal = round(km_normal)
+        km_special = round(km_special)
     distance_km = km_normal + km_special
 
     extras_cost = sum(cost for key, cost in EXTRAS.items() if extras_selected.get(key))

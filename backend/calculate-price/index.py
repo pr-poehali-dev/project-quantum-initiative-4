@@ -11,7 +11,6 @@ TARIFFS = {
     "business": {"per_km": 80, "base": 0},
 }
 
-# Единый повышенный тариф для всех 4 регионов: ДНР, ЛНР, Херсонская, Запорожская
 TARIFFS_SPECIAL = {
     "urgent":   {"per_km": 80, "base": 1500},
     "standard": {"per_km": 80, "base": 0},
@@ -38,7 +37,6 @@ CRIMEA_ONLY = {
     "республика крым", "крым", "crimea", "автономна республіка крим",
 }
 
-# Точные полигоны границ регионов повышенного тарифа [lat, lon]
 SPECIAL_ZONE_POLYGONS = [
     # ДНР
     [
@@ -70,9 +68,37 @@ DNR_LNR_ADDR_KEYS = ["донецк", "луганск", "мариуполь", "г
 KHERSON_ZAP_ADDR_KEYS = ["херсон", "мелитополь", "бердянск", "токмак", "энергодар", "геническ", "херсонская", "запорожская", "запорожье"]
 CRIMEA_ADDR_KEYS = ["крым", "ялта", "симферополь", "севастополь", "керчь", "феодосия", "евпатория", "алушта", "судак", "бахчисарай"]
 
+# КПП — точки входа/выхода в спецзоны
+KPP_COORDS = {
+    "matveev":   (47.556, 38.882),  # Матвеев Курган (ДНР)
+    "veselo":    (47.393, 38.474),  # Весело-Вознесенка (ДНР)
+    "vasilevka": (47.471, 35.283),  # Васильевка (Запорожская обл.)
+    "armiansk":  (46.103, 33.691),  # Армянск (Крым — западный)
+    "chongar":   (46.003, 34.394),  # Чонгар (Крым — восточный)
+    "kerch":     (45.360, 36.467),  # Крымский мост
+    "rostov":    (47.222, 39.718),  # Ростов-на-Дону
+}
+
+# Координаты городов в спецзонах (для OSRM внутри зоны)
+SPECIAL_CITY_COORDS = {
+    "донецк":        (48.015, 37.802),
+    "луганск":       (48.574, 39.307),
+    "мариуполь":     (47.095, 37.541),
+    "горловка":      (48.290, 38.069),
+    "макеевка":      (47.985, 37.967),
+    "лисичанск":     (48.901, 38.432),
+    "северодонецк":  (48.952, 38.491),
+    "краматорск":    (48.723, 37.537),
+    "мелитополь":    (46.847, 35.367),
+    "бердянск":      (46.756, 36.800),
+    "токмак":        (47.253, 35.706),
+    "энергодар":     (47.503, 34.653),
+    "херсон":        (46.636, 32.617),
+    "геническ":      (46.167, 34.817),
+}
+
 
 def point_in_polygon(lat: float, lon: float, polygon: list) -> bool:
-    """Ray casting алгоритм: проверка попадания точки в полигон."""
     n = len(polygon)
     inside = False
     j = n - 1
@@ -86,7 +112,6 @@ def point_in_polygon(lat: float, lon: float, polygon: list) -> bool:
 
 
 def is_in_special_zone(lat: float, lon: float) -> bool:
-    """Проверить попадание координат в любой из регионов повышенного тарифа."""
     for polygon in SPECIAL_ZONE_POLYGONS:
         if point_in_polygon(lat, lon, polygon):
             return True
@@ -96,6 +121,12 @@ def is_in_special_zone(lat: float, lon: float) -> bool:
 def geocode(address: str):
     """Получить координаты адреса и определить зону тарифа."""
     addr_lower = address.lower()
+
+    # Проверяем известные спецгорода — берём хардкодные координаты
+    for key, coord in SPECIAL_CITY_COORDS.items():
+        if key in addr_lower:
+            special = any(k in addr_lower for k in DNR_LNR_ADDR_KEYS + KHERSON_ZAP_ADDR_KEYS)
+            return coord, special
 
     url = (
         f"https://nominatim.openstreetmap.org/search"
@@ -118,42 +149,51 @@ def geocode(address: str):
         if 44.3 <= lat <= 46.2 and 32.5 <= lon <= 36.7:
             is_crimea = True
 
-    # Принудительная проверка Крыма по ключевым словам — он НЕ спецзона
     force_crimea = any(k in addr_lower for k in CRIMEA_ADDR_KEYS)
     if force_crimea:
         return (lat, lon), False
 
-    # Проверка по ключевым словам адреса
     force_special = (
         any(k in addr_lower for k in DNR_LNR_ADDR_KEYS) or
         any(k in addr_lower for k in KHERSON_ZAP_ADDR_KEYS)
     )
 
-    # Проверка по координатам (point-in-polygon)
     coord_special = is_in_special_zone(lat, lon)
-
     special = (is_ukraine and not is_crimea) or force_special or coord_special
     return (lat, lon), special
 
 
-def haversine(lat1, lon1, lat2, lon2) -> float:
-    """Расстояние между двумя точками по формуле Гаверсина (км)."""
+def osrm_distance(lat1, lon1, lat2, lon2) -> float:
+    """Реальное дорожное расстояние через OSRM (км). Fallback на haversine×1.35."""
+    try:
+        url = (
+            f"http://router.project-osrm.org/route/v1/driving/"
+            f"{lon1},{lat1};{lon2},{lat2}"
+            f"?overview=false&alternatives=false"
+        )
+        req = urllib.request.Request(url, headers={"User-Agent": "ug-transfer-app/1.0"})
+        with urllib.request.urlopen(req, timeout=8) as r:
+            data = json.loads(r.read())
+        if data.get("code") == "Ok":
+            return data["routes"][0]["distance"] / 1000.0
+    except Exception:
+        pass
+    # Fallback: haversine × 1.35
     R = 6371
     d_lat = math.radians(lat2 - lat1)
     d_lon = math.radians(lon2 - lon1)
     a = math.sin(d_lat / 2) ** 2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(d_lon / 2) ** 2
-    return R * 2 * math.asin(math.sqrt(a))
+    return R * 2 * math.asin(math.sqrt(a)) * 1.35
 
 
 def calc_price(km_normal, km_special, tariff_key, extras_cost):
-    """Рассчитать комбинированную цену: обычный + повышенный тариф."""
     t = TARIFFS.get(tariff_key, TARIFFS["standard"])
     ts = TARIFFS_SPECIAL.get(tariff_key, TARIFFS_SPECIAL["standard"])
     return t["per_km"] * km_normal + ts["per_km"] * km_special + t["base"] + extras_cost
 
 
 def handler(event: dict, context) -> dict:
-    """Рассчитать стоимость поездки с учётом зон повышенного тарифа (новые регионы России)."""
+    """Рассчитать стоимость поездки с учётом зон повышенного тарифа (новые регионы России). Использует OSRM для точного дорожного расстояния."""
     if event.get("httpMethod") == "OPTIONS":
         return {"statusCode": 200, "headers": CORS, "body": ""}
 
@@ -178,86 +218,140 @@ def handler(event: dict, context) -> dict:
     from_crimea = is_crimea_addr(from_city)
     to_crimea = is_crimea_addr(to_city)
 
-    # Хардкод координат КПП
-    KPP_COORDS = {
-        "matveev":   (47.556, 38.882),  # Матвеев Курган (ДНР/ЛНР)
-        "veselo":    (47.393, 38.474),  # Весело-Вознесенка (ДНР/ЛНР)
-        "vasilevka": (47.471, 35.283),  # Васильевка (Запорожская обл.)
-        "armiansk":  (46.103, 33.691),  # Армянск (Крым — западный въезд)
-        "chongar":   (46.003, 34.394),  # Чонгар (Крым — восточный въезд)
-        "kerch":     (45.360, 36.467),  # Крымский мост (Керчь)
-        "rostov":    (47.222, 39.718),  # Ростов-на-Дону (транзит)
-    }
+    kpp_key = kpp if kpp in ("matveev", "veselo") else "matveev"
 
-    # Хардкодные расстояния для маршрутов Крым ↔ ДНР/ЛНР (через Крымский мост)
-    # Реальные дорожные км без коэффициента
-    CRIMEA_DNR_FIXED_KM = {
-        # (from_key, to_key): (km_normal, km_special)
-        # Средние значения: Ялта/Симф → Донецк/Мариуполь/Луганск
-        "crimea_dnr": (630, 80),   # ~710 км всего, 630 обычный + 80 спецзона
-        "crimea_lnr": (700, 100),  # чуть дальше для Луганска
-    }
+    # Сегменты: список (addr_or_label, is_special_segment, preset_coord)
+    # is_special_segment=True → этот сегмент считается по спецтарифу
+    all_cities = [from_city] + stops + [to_city]
 
-    raw = [(from_city, False, None)] + [(s, False, None) for s in stops] + [(to_city, False, None)]
-    fixed_km = None  # (km_normal, km_special) — если хардкод
+    # --- Строим список точек маршрута ---
+    # Каждая точка: (lat, lon, is_special)
+    waypoints = []  # список (lat, lon, is_special_zone_flag)
 
-    if (is_dnr_lnr(to_city) and from_crimea) or (is_dnr_lnr(from_city) and to_crimea):
-        # Крым ↔ ДНР/ЛНР через Крымский мост — фиксированное расстояние
-        lnr_keys = ["луганск", "лисичанск", "северодонецк", "лнр"]
-        is_lnr = any(k in (from_city + to_city).lower() for k in lnr_keys)
-        fixed_key = "crimea_lnr" if is_lnr else "crimea_dnr"
-        fixed_km = CRIMEA_DNR_FIXED_KM[fixed_key]
-        # raw оставляем только для геокодинга начала/конца (маркеры на карте)
-        raw = [(from_city, False, None), (to_city, False, None)]
+    if is_dnr_lnr(to_city) and from_crimea:
+        # Крым → (мост) → Ростов → КПП → ДНР
+        fc, _ = geocode(from_city)
+        tc, _ = geocode(to_city)
+        if not fc or not tc:
+            return {"statusCode": 400, "headers": CORS, "body": json.dumps({"error": "Не удалось определить адрес"})}
+        waypoints = [
+            (fc[0], fc[1], False),
+            (KPP_COORDS["kerch"][0], KPP_COORDS["kerch"][1], False),
+            (KPP_COORDS["rostov"][0], KPP_COORDS["rostov"][1], False),
+            (KPP_COORDS[kpp_key][0], KPP_COORDS[kpp_key][1], False),
+            (tc[0], tc[1], True),
+        ]
+
+    elif is_dnr_lnr(from_city) and to_crimea:
+        # ДНР → КПП → Ростов → (мост) → Крым
+        fc, _ = geocode(from_city)
+        tc, _ = geocode(to_city)
+        if not fc or not tc:
+            return {"statusCode": 400, "headers": CORS, "body": json.dumps({"error": "Не удалось определить адрес"})}
+        waypoints = [
+            (fc[0], fc[1], True),
+            (KPP_COORDS[kpp_key][0], KPP_COORDS[kpp_key][1], False),
+            (KPP_COORDS["rostov"][0], KPP_COORDS["rostov"][1], False),
+            (KPP_COORDS["kerch"][0], KPP_COORDS["kerch"][1], False),
+            (tc[0], tc[1], False),
+        ]
+
     elif is_dnr_lnr(to_city) and from_russia:
-        raw = [(from_city, False, None)] + [(s, False, None) for s in stops] + [("kpp", True, KPP_COORDS[kpp if kpp in ("matveev", "veselo") else "matveev"]), (to_city, False, None)]
-    elif is_dnr_lnr(from_city) and to_russia:
-        raw = [(from_city, False, None), ("kpp", True, KPP_COORDS[kpp if kpp in ("matveev", "veselo") else "matveev"])] + [(s, False, None) for s in stops] + [(to_city, False, None)]
-    elif is_kherson_zap(to_city) and from_russia:
-        raw = [(from_city, False, None)] + [(s, False, None) for s in stops] + [("kpp", True, KPP_COORDS["vasilevka"]), (to_city, False, None)]
-    elif is_kherson_zap(from_city) and to_russia:
-        raw = [(from_city, False, None), ("kpp", True, KPP_COORDS["vasilevka"])] + [(s, False, None) for s in stops] + [(to_city, False, None)]
-    elif to_crimea and is_kherson_zap(from_city):
-        raw = [(from_city, False, None), ("kpp", True, KPP_COORDS["chongar"])] + [(s, False, None) for s in stops] + [(to_city, False, None)]
-    elif from_crimea and is_kherson_zap(to_city):
-        raw = [(from_city, False, None)] + [(s, False, None) for s in stops] + [("kpp", True, KPP_COORDS["chongar"]), (to_city, False, None)]
+        fc, _ = geocode(from_city)
+        tc, _ = geocode(to_city)
+        if not fc or not tc:
+            return {"statusCode": 400, "headers": CORS, "body": json.dumps({"error": "Не удалось определить адрес"})}
+        waypoints = [
+            (fc[0], fc[1], False),
+            (KPP_COORDS[kpp_key][0], KPP_COORDS[kpp_key][1], False),
+            (tc[0], tc[1], True),
+        ]
 
-    coords = []
-    specials = []
-    for addr, force_normal, preset_coord in raw:
-        if preset_coord:
-            coord = preset_coord
-            special = False
-        else:
+    elif is_dnr_lnr(from_city) and to_russia:
+        fc, _ = geocode(from_city)
+        tc, _ = geocode(to_city)
+        if not fc or not tc:
+            return {"statusCode": 400, "headers": CORS, "body": json.dumps({"error": "Не удалось определить адрес"})}
+        waypoints = [
+            (fc[0], fc[1], True),
+            (KPP_COORDS[kpp_key][0], KPP_COORDS[kpp_key][1], False),
+            (tc[0], tc[1], False),
+        ]
+
+    elif is_kherson_zap(to_city) and from_russia:
+        fc, _ = geocode(from_city)
+        tc, _ = geocode(to_city)
+        if not fc or not tc:
+            return {"statusCode": 400, "headers": CORS, "body": json.dumps({"error": "Не удалось определить адрес"})}
+        waypoints = [
+            (fc[0], fc[1], False),
+            (KPP_COORDS["vasilevka"][0], KPP_COORDS["vasilevka"][1], False),
+            (tc[0], tc[1], True),
+        ]
+
+    elif is_kherson_zap(from_city) and to_russia:
+        fc, _ = geocode(from_city)
+        tc, _ = geocode(to_city)
+        if not fc or not tc:
+            return {"statusCode": 400, "headers": CORS, "body": json.dumps({"error": "Не удалось определить адрес"})}
+        waypoints = [
+            (fc[0], fc[1], True),
+            (KPP_COORDS["vasilevka"][0], KPP_COORDS["vasilevka"][1], False),
+            (tc[0], tc[1], False),
+        ]
+
+    elif to_crimea and is_kherson_zap(from_city):
+        fc, _ = geocode(from_city)
+        tc, _ = geocode(to_city)
+        if not fc or not tc:
+            return {"statusCode": 400, "headers": CORS, "body": json.dumps({"error": "Не удалось определить адрес"})}
+        waypoints = [
+            (fc[0], fc[1], True),
+            (KPP_COORDS["chongar"][0], KPP_COORDS["chongar"][1], False),
+            (tc[0], tc[1], False),
+        ]
+
+    elif from_crimea and is_kherson_zap(to_city):
+        fc, _ = geocode(from_city)
+        tc, _ = geocode(to_city)
+        if not fc or not tc:
+            return {"statusCode": 400, "headers": CORS, "body": json.dumps({"error": "Не удалось определить адрес"})}
+        waypoints = [
+            (fc[0], fc[1], False),
+            (KPP_COORDS["chongar"][0], KPP_COORDS["chongar"][1], False),
+            (tc[0], tc[1], True),
+        ]
+
+    else:
+        # Обычный маршрут — геокодируем все точки
+        for addr in all_cities:
             coord, special = geocode(addr)
             if not coord:
                 return {"statusCode": 400, "headers": CORS, "body": json.dumps({"error": f"Не удалось найти: {addr}"})}
-        coords.append(coord)
-        specials.append(False if force_normal else special)
+            waypoints.append((coord[0], coord[1], special))
 
-    if fixed_km is not None:
-        km_normal = fixed_km[0]
-        km_special = fixed_km[1]
-    else:
-        ROAD_FACTOR = 1.4
-        km_normal = 0.0
-        km_special = 0.0
-        for i in range(len(coords) - 1):
-            seg_km = haversine(coords[i][0], coords[i][1], coords[i+1][0], coords[i+1][1]) * ROAD_FACTOR
-            if specials[i] or specials[i + 1]:
-                km_special += seg_km
-            else:
-                km_normal += seg_km
-        km_normal = round(km_normal)
-        km_special = round(km_special)
+    # --- Считаем расстояние по сегментам через OSRM ---
+    km_normal = 0.0
+    km_special = 0.0
+
+    for i in range(len(waypoints) - 1):
+        lat1, lon1, sp1 = waypoints[i]
+        lat2, lon2, sp2 = waypoints[i + 1]
+        seg_km = osrm_distance(lat1, lon1, lat2, lon2)
+        # Сегмент спецзоны если хотя бы одна из точек в спецзоне
+        if sp1 or sp2:
+            km_special += seg_km
+        else:
+            km_normal += seg_km
+
+    km_normal = round(km_normal)
+    km_special = round(km_special)
     distance_km = km_normal + km_special
 
     extras_cost = sum(cost for key, cost in EXTRAS.items() if extras_selected.get(key))
 
     price = calc_price(km_normal, km_special, car_class, extras_cost)
     all_prices = {key: calc_price(km_normal, km_special, key, extras_cost) for key in TARIFFS}
-
-    has_special = km_special > 0
 
     return {
         "statusCode": 200,
@@ -267,7 +361,7 @@ def handler(event: dict, context) -> dict:
             "price": price,
             "car_class": car_class,
             "all_prices": all_prices,
-            "has_special_zone": has_special,
+            "has_special_zone": km_special > 0,
             "km_normal": km_normal,
             "km_special": km_special,
         }),

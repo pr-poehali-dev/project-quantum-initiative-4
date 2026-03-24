@@ -118,6 +118,11 @@ def geocode(address: str):
         if 44.3 <= lat <= 46.2 and 32.5 <= lon <= 36.7:
             is_crimea = True
 
+    # Принудительная проверка Крыма по ключевым словам — он НЕ спецзона
+    force_crimea = any(k in addr_lower for k in CRIMEA_ADDR_KEYS)
+    if force_crimea:
+        return (lat, lon), False
+
     # Проверка по ключевым словам адреса
     force_special = (
         any(k in addr_lower for k in DNR_LNR_ADDR_KEYS) or

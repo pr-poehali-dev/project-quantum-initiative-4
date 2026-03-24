@@ -134,11 +134,25 @@ export default function HeroBackground({ from, to, stops = [] }: Props) {
       const allAddresses = [from, ...stops.filter(Boolean), to];
 
       if (isCrimea(from) && !isCrimea(to)) {
-        if (isDnrLnr(to) || (!isKhersonZap(to))) {
+        if (isKhersonZap(to)) {
+          // Крым → Херсонская/Запорожская: через Чонгар
+          allAddresses.splice(1, 0, "Чонгар");
+        } else if (isDnrLnr(to)) {
+          // Крым → ДНР/ЛНР: через Керчь и Краснодар
+          allAddresses.splice(1, 0, "Керчь", "Краснодар");
+        } else {
+          // Крым → Россия: через Керчь и Краснодар
           allAddresses.splice(1, 0, "Керчь", "Краснодар");
         }
       } else if (isCrimea(to) && !isCrimea(from)) {
-        if (isDnrLnr(from) || (!isKhersonZap(from))) {
+        if (isKhersonZap(from)) {
+          // Херсонская/Запорожская → Крым: через Чонгар
+          allAddresses.splice(allAddresses.length - 1, 0, "Чонгар");
+        } else if (isDnrLnr(from)) {
+          // ДНР/ЛНР → Крым: через Краснодар и Керчь
+          allAddresses.splice(allAddresses.length - 1, 0, "Краснодар", "Керчь");
+        } else {
+          // Россия → Крым: через Краснодар и Керчь
           allAddresses.splice(allAddresses.length - 1, 0, "Краснодар", "Керчь");
         }
       } else if (isDnrLnr(to) && !isCrimea(from) && !isKhersonZap(from)) {

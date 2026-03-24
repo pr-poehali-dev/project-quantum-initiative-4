@@ -185,25 +185,15 @@ export default function HeroBackground({ from, to, stops = [], formHeight }: Pro
         allAddresses.splice(1, 0, kppName);
       }
 
-      // Для Запорожской/Херсонской Яндекс не строит сквозной маршрут —
-      // строим два сегмента: РФ ↔ КПП Васильевка (Ростовская) и КПП ↔ пункт назначения через ДНР
-      const KPP_ZAP = "Матвеев Курган, Ростовская область";
+      // Для Запорожской/Херсонской строим два сегмента через Новоалексеевку (реальный КПП)
+      const KPP_ZAP = "Новоалексеевка, Херсонская область";
       let routes: AnyRef[] = [];
       if ((isKhersonZap(to) || isKhersonZap(from)) && !isCrimea(from) && !isCrimea(to)) {
-        const kppAddr = KPP_ZAP;
-        if (isKhersonZap(to)) {
-          const [r1, r2] = await Promise.all([
-            window.ymaps.route([from, kppAddr], { routingMode: "auto", mapStateAutoApply: false }).catch(() => null),
-            window.ymaps.route([kppAddr, to], { routingMode: "auto", mapStateAutoApply: false }).catch(() => null),
-          ]);
-          if (!cancelled) routes = [r1, r2].filter(Boolean);
-        } else {
-          const [r1, r2] = await Promise.all([
-            window.ymaps.route([from, kppAddr], { routingMode: "auto", mapStateAutoApply: false }).catch(() => null),
-            window.ymaps.route([kppAddr, to], { routingMode: "auto", mapStateAutoApply: false }).catch(() => null),
-          ]);
-          if (!cancelled) routes = [r1, r2].filter(Boolean);
-        }
+        const [r1, r2] = await Promise.all([
+          window.ymaps.route([from, KPP_ZAP], { routingMode: "auto", mapStateAutoApply: false }).catch(() => null),
+          window.ymaps.route([KPP_ZAP, to], { routingMode: "auto", mapStateAutoApply: false }).catch(() => null),
+        ]);
+        if (!cancelled) routes = [r1, r2].filter(Boolean);
       } else {
         const r = await window.ymaps.route(allAddresses, { routingMode: "auto", mapStateAutoApply: false }).catch(() => null);
         if (r) routes = [r];

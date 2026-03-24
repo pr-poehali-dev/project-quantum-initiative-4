@@ -254,6 +254,21 @@ def build_waypoints(from_city, to_city):
     if not fc or not tc:
         return None
 
+    # Армянск — приграничный крымский город, сам является КПП.
+    # Маршрут Армянск↔Херсонская/Запорожская — прямой без промежуточных точек.
+    from_armiansk = "армянск" in from_city.lower()
+    to_armiansk = "армянск" in to_city.lower()
+    if (from_armiansk and is_kherson_zap(to_city)) or (to_armiansk and is_kherson_zap(from_city)):
+        return [
+            (fc[0], fc[1], False),
+            (tc[0], tc[1], True),
+        ]
+    if (from_armiansk and is_kherson_zap(to_city) is False and not is_special(to_city)):
+        return [
+            (fc[0], fc[1], False),
+            (tc[0], tc[1], False),
+        ]
+
     # ── Россия → ДНР ──────────────────────────────────────────────────────
     if is_russia(from_city) and is_dnr(to_city):
         kpp_list = KPP_DNR

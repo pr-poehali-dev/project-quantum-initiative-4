@@ -153,8 +153,13 @@ export default function HeroBackground({ from, to, stops = [], formHeight }: Pro
 
       const allAddresses = [from, ...stops.filter(Boolean), to];
 
+      const fromArmiansk = from.toLowerCase().includes("армянск");
+      const toArmiansk = to.toLowerCase().includes("армянск");
+
       if (isCrimea(from) && !isCrimea(to)) {
-        if (isKhersonZap(to)) {
+        if (fromArmiansk) {
+          // Армянск сам КПП — промежуточная точка не нужна
+        } else if (isKhersonZap(to)) {
           const getLen = (r: AnyRef) => { try { return r.getPaths().get(0).getLength(); } catch { return Infinity; } };
           const [rc, ra] = await Promise.all([
             window.ymaps.route([from, "Чонгар", to], { routingMode: "auto" }).catch(() => null),
@@ -167,7 +172,9 @@ export default function HeroBackground({ from, to, stops = [], formHeight }: Pro
           allAddresses.splice(1, 0, "Керчь", "Краснодар");
         }
       } else if (isCrimea(to) && !isCrimea(from)) {
-        if (isKhersonZap(from)) {
+        if (toArmiansk) {
+          // Армянск сам КПП — промежуточная точка не нужна
+        } else if (isKhersonZap(from)) {
           const getLen = (r: AnyRef) => { try { return r.getPaths().get(0).getLength(); } catch { return Infinity; } };
           const [rc, ra] = await Promise.all([
             window.ymaps.route([from, "Чонгар", to], { routingMode: "auto" }).catch(() => null),

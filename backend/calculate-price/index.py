@@ -86,29 +86,81 @@ def get_db():
 
 
 def normalize_city(name: str) -> str:
-    """Нормализует название города для поиска в БД."""
+    """
+    Нормализует название города для поиска в БД.
+    Обрабатывает форматы: 'г. Каховка', 'город Каховка', 'Россия, Херсонская область, г. Каховка',
+    'Ялта, улица Крупской, 13' — извлекает только название города.
+    """
+    import re
     n = name.strip()
-    # Убираем суффиксы типа "город ...", "г. ..."
-    for prefix in ["г.", "г ", "город "]:
+    # Убираем страну и область в начале строки через запятую
+    # Пример: "Россия, Херсонская область, г. Каховка" → "г. Каховка"
+    parts = [p.strip() for p in n.split(',')]
+    # Ищем часть с "г." или "город" или которая не содержит "область", "регион", "район", "республика", "Россия"
+    skip_words = ['россия', 'область', 'регион', 'район', 'республика', 'округ', 'край', 'ssr', 'ukraine']
+    city_part = None
+    for i, part in enumerate(parts):
+        pl = part.lower()
+        # Если часть содержит "г." или "город" — берём её
+        if re.match(r'^г\.?\s+', pl) or pl.startswith('город '):
+            city_part = part.strip()
+            break
+        # Если это последняя часть с адресом (улица, дом) — берём предыдущую
+        if i > 0 and any(w in pl for w in ['улица', 'ул.', 'пр.', 'проспект', 'переулок', 'площадь', 'бульвар', 'набережная']):
+            city_part = parts[i-1].strip()
+            break
+        # Если часть не содержит стоп-слов — кандидат на город
+        if not any(w in pl for w in skip_words):
+            city_part = part.strip()
+
+    if city_part:
+        n = city_part
+
+    # Убираем префиксы "г.", "г ", "город "
+    for prefix in ['г. ', 'г.', 'г ', 'город ']:
         if n.lower().startswith(prefix):
             n = n[len(prefix):].strip()
-    return n.title()
+            break
+
+    # Берём только первое слово если осталось несколько (защита от "Симферополь центр")
+    # Но сохраняем "Ростов-на-Дону" и подобные
+    words = n.split()
+    if len(words) > 2 and '-' not in n:
+        n = words[0]
+
+    return n.strip().title()
+
+
+def extract_city_candidates(name: str) -> list:
+    """Возвращает список вариантов названия города для поиска."""
+    normalized = normalize_city(name)
+    candidates = [normalized]
+    # Дополнительно: оригинальное название title-case
+    original_title = name.strip().title()
+    if original_title != normalized:
+        candidates.append(original_title)
+    return candidates
 
 
 def lookup_reference(from_city: str, to_city: str):
-    """Ищет эталонный маршрут в БД (без учёта регистра)."""
+    """Ищет эталонный маршрут в БД (без учёта регистра, с нормализацией)."""
     try:
         conn = get_db()
         cur = conn.cursor()
-        cur.execute(
-            "SELECT id, km_normal, km_special FROM routes_reference "
-            "WHERE LOWER(from_city) = LOWER(%s) AND LOWER(to_city) = LOWER(%s) LIMIT 1",
-            (normalize_city(from_city), normalize_city(to_city))
-        )
-        row = cur.fetchone()
+        from_candidates = extract_city_candidates(from_city)
+        to_candidates   = extract_city_candidates(to_city)
+        for fc in from_candidates:
+            for tc in to_candidates:
+                cur.execute(
+                    "SELECT id, km_normal, km_special FROM routes_reference "
+                    "WHERE LOWER(from_city) = LOWER(%s) AND LOWER(to_city) = LOWER(%s) LIMIT 1",
+                    (fc, tc)
+                )
+                row = cur.fetchone()
+                if row:
+                    conn.close()
+                    return {"id": row[0], "km_normal": row[1], "km_special": row[2]}
         conn.close()
-        if row:
-            return {"id": row[0], "km_normal": row[1], "km_special": row[2]}
     except Exception:
         pass
     return None

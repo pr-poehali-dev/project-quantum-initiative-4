@@ -183,28 +183,48 @@ export default function HeroBackground({ from, to, stops = [], formHeight }: Pro
         if (cancelled) return;
         const kppName = getLen(r2) < getLen(r1) ? "Весело-Вознесенка, Ростовская область" : "Матвеев Курган, Ростовская область";
         allAddresses.splice(1, 0, kppName);
-      } else if (isKhersonZap(to) && !isCrimea(from)) {
-        allAddresses.splice(allAddresses.length - 1, 0, "Васильевка");
-      } else if (isKhersonZap(from) && !isCrimea(to)) {
-        allAddresses.splice(1, 0, "Васильевка");
       }
 
-      const [route, coordFrom, coordTo] = await Promise.all([
-        window.ymaps.route(allAddresses, { routingMode: "auto", mapStateAutoApply: false }).catch(() => null),
-        geocodeAddress(from),
-        geocodeAddress(to),
-      ]);
-
-      if (cancelled || !route) return;
-
-      const wps = route.getWayPoints();
-      for (let i = 0; i < wps.getLength(); i++) {
-        wps.get(i).options.set({ visible: false });
+      // Для Запорожской/Херсонской Яндекс не строит сквозной маршрут —
+      // строим два сегмента: РФ ↔ КПП Васильевка (Ростовская) и КПП ↔ пункт назначения через ДНР
+      const KPP_ZAP = "Матвеев Курган, Ростовская область";
+      let routes: AnyRef[] = [];
+      if ((isKhersonZap(to) || isKhersonZap(from)) && !isCrimea(from) && !isCrimea(to)) {
+        const kppAddr = KPP_ZAP;
+        if (isKhersonZap(to)) {
+          const [r1, r2] = await Promise.all([
+            window.ymaps.route([from, kppAddr], { routingMode: "auto", mapStateAutoApply: false }).catch(() => null),
+            window.ymaps.route([kppAddr, to], { routingMode: "auto", mapStateAutoApply: false }).catch(() => null),
+          ]);
+          if (!cancelled) routes = [r1, r2].filter(Boolean);
+        } else {
+          const [r1, r2] = await Promise.all([
+            window.ymaps.route([from, kppAddr], { routingMode: "auto", mapStateAutoApply: false }).catch(() => null),
+            window.ymaps.route([kppAddr, to], { routingMode: "auto", mapStateAutoApply: false }).catch(() => null),
+          ]);
+          if (!cancelled) routes = [r1, r2].filter(Boolean);
+        }
+      } else {
+        const r = await window.ymaps.route(allAddresses, { routingMode: "auto", mapStateAutoApply: false }).catch(() => null);
+        if (r) routes = [r];
       }
 
-      route.getPaths().options.set({ strokeColor: "#c8d44a", strokeWidth: 4, opacity: 0.9 });
+      if (cancelled || routes.length === 0) return;
 
-      const newObjects: AnyRef[] = [route];
+      const [coordFrom, coordTo] = await Promise.all([geocodeAddress(from), geocodeAddress(to)]);
+      if (cancelled) return;
+
+      const newObjects: AnyRef[] = [];
+
+      routes.forEach(route => {
+        const wps = route.getWayPoints();
+        for (let i = 0; i < wps.getLength(); i++) {
+          wps.get(i).options.set({ visible: false });
+        }
+        route.getPaths().options.set({ strokeColor: "#c8d44a", strokeWidth: 4, opacity: 0.9 });
+        newObjects.push(route);
+      });
+
       [coordFrom, coordTo].forEach(coord => {
         if (!coord) return;
         newObjects.push(new window.ymaps.Placemark(coord, {}, { preset: "islands#dotIcon", iconColor: "#c8d44a" }));
@@ -212,6 +232,9 @@ export default function HeroBackground({ from, to, stops = [], formHeight }: Pro
 
       newObjects.forEach(obj => map.geoObjects.add(obj));
       routeObjectsRef.current = newObjects;
+
+      // Для bounds берём первый маршрут
+      const route = routes[0];
 
       const isMobile = window.innerWidth < 640;
       const bottomMargin = isMobile

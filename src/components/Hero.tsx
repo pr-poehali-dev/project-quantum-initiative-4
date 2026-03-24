@@ -60,7 +60,8 @@ export default function Hero() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ from, to, carClass, extras, stops }),
         });
-        const data = await res.json();
+        let data = await res.json();
+        if (typeof data === "string") data = JSON.parse(data);
         if (data.price !== undefined) {
           setPrice(data.price);
           setDistanceKm(data.distance_km);

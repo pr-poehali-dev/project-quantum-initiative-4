@@ -185,7 +185,7 @@ function CityInput({
         value={value}
         onChange={(e) => handleInput(e.target.value)}
         onFocus={handleFocus}
-        onBlur={() => setTimeout(() => { setFocused(false); setSuggestions([]); }, 200)}
+        onBlur={() => setTimeout(() => { setFocused(false); setSuggestions([]); if (value.trim()) onConfirm?.(true); }, 200)}
         onKeyDown={handleKeyDown}
         placeholder={geoLoading ? "Определяем местоположение..." : placeholder}
         className={`w-full px-4 py-2 bg-[#2a2a2a] rounded-full text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#9aab2a]/60 transition ${showGeo ? "pr-10" : ""}`}

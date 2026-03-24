@@ -178,7 +178,8 @@ def handler(event: dict, context) -> dict:
         "matveev":   (47.556, 38.882),  # Матвеев Курган (ДНР/ЛНР)
         "veselo":    (47.393, 38.474),  # Весело-Вознесенка (ДНР/ЛНР)
         "vasilevka": (47.471, 35.283),  # Васильевка (Запорожская обл.)
-        "armiansk":  (46.103, 33.691),  # Армянск (Крым)
+        "armiansk":  (46.103, 33.691),  # Армянск (Крым — западный въезд)
+        "chongar":   (46.003, 34.394), # Чонгар (Крым — восточный въезд, через Херсонскую/Запорожскую)
     }
 
     raw = [(from_city, False, None)] + [(s, False, None) for s in stops] + [(to_city, False, None)]
@@ -192,9 +193,9 @@ def handler(event: dict, context) -> dict:
     elif is_kherson_zap(from_city) and to_russia:
         raw = [(from_city, False, None), ("kpp", True, KPP_COORDS["vasilevka"])] + [(s, False, None) for s in stops] + [(to_city, False, None)]
     elif to_crimea and is_kherson_zap(from_city):
-        raw = [(from_city, False, None), ("kpp", True, KPP_COORDS["armiansk"])] + [(s, False, None) for s in stops] + [(to_city, False, None)]
+        raw = [(from_city, False, None), ("kpp", True, KPP_COORDS["chongar"])] + [(s, False, None) for s in stops] + [(to_city, False, None)]
     elif from_crimea and is_kherson_zap(to_city):
-        raw = [(from_city, False, None)] + [(s, False, None) for s in stops] + [("kpp", True, KPP_COORDS["armiansk"]), (to_city, False, None)]
+        raw = [(from_city, False, None)] + [(s, False, None) for s in stops] + [("kpp", True, KPP_COORDS["chongar"]), (to_city, False, None)]
 
     coords = []
     specials = []

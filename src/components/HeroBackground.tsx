@@ -153,33 +153,59 @@ export default function HeroBackground({ from, to, stops = [], formHeight }: Pro
       routeObjectsRef.current.forEach(obj => { try { map.geoObjects.remove(obj); } catch { /* ignore */ } });
       routeObjectsRef.current = [];
 
-      const allPoints = [from, ...stops.filter(Boolean), to];
+      const cleanStops = stops.filter(Boolean);
+      const allPoints = [from, ...cleanStops, to];
+      const hasSpecialStop = cleanStops.some(s => isKhersonZap(s) || isDnrLnr(s) || isCrimea(s));
 
-      // Если есть промежуточные остановки в спецзонах — строим посегментно
-      const hasSpecialStop = stops.filter(Boolean).some(s => isKhersonZap(s) || isDnrLnr(s) || isCrimea(s));
-
-      if (hasSpecialStop || stops.filter(Boolean).length > 0) {
-        // Строим маршрут по всем точкам сразу — Яндекс сам найдёт путь
-        const r = await window.ymaps.route(allPoints, { routingMode: "auto", mapStateAutoApply: false }).catch(() => null);
-        if (cancelled) return;
-
-        const routes: AnyRef[] = r ? [r] : [];
-        if (cancelled || routes.length === 0) return;
-
-        const [coordFrom, coordTo] = await Promise.all([geocodeAddress(from), geocodeAddress(to)]);
-        if (cancelled) return;
-
-        const newObjects: AnyRef[] = [];
-        routes.forEach(route => {
+      if (hasSpecialStop) {
+        // Строим маршрут посегментно с правильными КПП для каждого участка
+        const addRouteToMap = (route: AnyRef) => {
           const wps = route.getWayPoints();
           for (let i = 0; i < wps.getLength(); i++) wps.get(i).options.set({ visible: false });
           route.getPaths().options.set({ strokeColor: "#c8d44a", strokeWidth: 4, opacity: 0.9 });
-          newObjects.push(route);
-        });
+        };
 
-        // Маркеры для всех точек маршрута
+        const segments: string[][] = [];
+        for (let i = 0; i < allPoints.length - 1; i++) {
+          const sFrom = allPoints[i];
+          const sTo = allPoints[i + 1];
+          const seg: string[] = [sFrom];
+
+          const fC = isCrimea(sFrom), tC = isCrimea(sTo);
+          const fZ = isZap(sFrom), tZ = isZap(sTo);
+          const fH = isKherson(sFrom), tH = isKherson(sTo);
+          const fD = isDnrLnr(sFrom), tD = isDnrLnr(sTo);
+          const fR = !fC && !fZ && !fH && !fD;
+          const tR = !tC && !tZ && !tH && !tD;
+
+          if (fC && tH) seg.push("Армянск");
+          else if (fH && tC) seg.push("Армянск");
+          else if (fC && tZ) seg.push("Чонгар");
+          else if (fZ && tC) seg.push("Чонгар");
+          else if ((fR || fC) && tD) seg.push("Весело-Вознесенка, Ростовская область");
+          else if (fD && (tR || tC)) seg.push("Весело-Вознесенка, Ростовская область");
+          else if (fR && tZ) seg.push("Весело-Вознесенка, Ростовская область");
+          else if (fZ && tR) seg.push("Весело-Вознесенка, Ростовская область");
+          else if (fR && tH) seg.push("Армянск");
+          else if (fH && tR) seg.push("Армянск");
+
+          seg.push(sTo);
+          segments.push(seg);
+        }
+
+        const segRoutes = await Promise.all(
+          segments.map(seg => window.ymaps.route(seg, { routingMode: "auto", mapStateAutoApply: false }).catch(() => null))
+        );
+        if (cancelled) return;
+        const validRoutes = segRoutes.filter(Boolean);
+        if (!validRoutes.length) return;
+
+        const newObjects: AnyRef[] = [];
+        validRoutes.forEach(r => { addRouteToMap(r); newObjects.push(r); });
+
         for (const addr of allPoints) {
           const coord = await geocodeAddress(addr);
+          if (cancelled) return;
           if (coord) newObjects.push(new window.ymaps.Placemark(coord, {}, { preset: "islands#dotIcon", iconColor: "#c8d44a" }));
         }
 
@@ -187,15 +213,14 @@ export default function HeroBackground({ from, to, stops = [], formHeight }: Pro
         routeObjectsRef.current = newObjects;
 
         const isMobile = window.innerWidth < 640;
-        const bottomMargin = isMobile ? (formHeightRef.current ?? Math.round(window.innerHeight * 0.55)) + 16 : 40;
-        const margin: [number, number, number, number] = isMobile ? [60, 16, bottomMargin, 16] : [76, 40, 40, 420];
-
-        const bounds = r.getBounds();
+        const bm = isMobile ? (formHeightRef.current ?? Math.round(window.innerHeight * 0.55)) + 16 : 40;
+        const margin: [number, number, number, number] = isMobile ? [60, 16, bm, 16] : [76, 40, 40, 420];
+        const bounds = validRoutes[0].getBounds();
         if (bounds) map.setBounds(bounds, { checkZoomRange: true, zoomMargin: margin });
         return;
       }
 
-      const allAddresses = [from, ...stops.filter(Boolean), to];
+      const allAddresses = [from, ...cleanStops, to];
 
       const fromArmiansk = from.toLowerCase().includes("армянск");
       const toArmiansk = to.toLowerCase().includes("армянск");

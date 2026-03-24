@@ -37,7 +37,7 @@ def handler(event: dict, context) -> dict:
                 'format': 'json',
                 'accept-language': 'ru',
                 'limit': '10',
-                'countrycodes': 'ru,by,kz,ua',
+                'countrycodes': 'ru,by,ua',
                 'addressdetails': '1',
                 'dedupe': '1',
             })
@@ -58,8 +58,21 @@ def handler(event: dict, context) -> dict:
             'запорізька область': 'Запорожская область',
         }
 
-        results = []
-        seen = set()
+        # Краткие названия регионов для пометки в подсказках
+        REGION_SHORT = {
+            'донецкая народная республика': 'ДНР',
+            'донецька область': 'ДНР',
+            'луганская народная республика': 'ЛНР',
+            'луганська область': 'ЛНР',
+            'херсонская область': 'Херсонская обл.',
+            'херсонська область': 'Херсонская обл.',
+            'запорожская область': 'Запорожская обл.',
+            'запорізька область': 'Запорожская обл.',
+        }
+
+        # Первый проход — собираем все города для дедупликации
+        candidates = []
+        city_counts = {}
         for item in data:
             addr = item.get('address', {})
             country = addr.get('country', '')
@@ -81,25 +94,45 @@ def handler(event: dict, context) -> dict:
                 country = 'Россия'
                 matched_region = next((v for k, v in RUSSIA_REGIONS.items() if k in state_lower), None)
                 region = 'Республика Крым' if is_crimea else (matched_region or state)
+                region_short = next((v for k, v in REGION_SHORT.items() if k in state_lower), None)
                 city_clean = city.replace('город ', '').replace('місто ', '').strip()
                 city_label = ('г. ' + city_clean) if city_clean else ''
                 street_parts = [p for p in [road, house] if p]
                 street = ' '.join(street_parts)
                 main_parts = [p for p in [region, city_label, street] if p.strip()]
             else:
-                city_part = city if city else state
+                region_short = None
+                city_clean = city.replace('город ', '').strip()
+                city_label = ('г. ' + city_clean) if city_clean else ''
                 street = (road + ', ' + house) if (road and house) else (road or house or '')
-                main_parts = [p for p in [city_part, street] if p.strip()]
+                main_parts = [p for p in [city_label or (city if city else state), street] if p.strip()]
 
             main = ', '.join(main_parts)
-            line = country + ('|' + main if main else '')
-
             if not main:
                 continue
+
+            city_key = city_clean.lower() if city_clean else main.lower()
+            city_counts[city_key] = city_counts.get(city_key, 0) + 1
+            candidates.append({
+                'country': country,
+                'main': main,
+                'city_key': city_key,
+                'region_short': region_short,
+            })
+
+        results = []
+        seen = set()
+        for c in candidates:
+            main = c['main']
+            # Если этот город встречается в нескольких регионах — добавляем пометку ДНР/ЛНР
+            if c['region_short'] and city_counts.get(c['city_key'], 0) > 1:
+                main = main + ' (' + c['region_short'] + ')'
+
+            line = c['country'] + '|' + main
             if line in seen:
                 continue
             seen.add(line)
-            results.append(country + ', ' + main)
+            results.append(c['country'] + ', ' + main)
 
             if len(results) >= 6:
                 break

@@ -178,13 +178,13 @@ def osrm_distance(lat1, lon1, lat2, lon2) -> float:
 
 
 def best_kpp_for(from_coord, to_coord, kpp_list: list) -> str:
-    """Выбирает КПП с минимальным суммарным прямым расстоянием."""
+    """Выбирает КПП с минимальным расстоянием от КПП до пункта назначения (не от старта!)."""
     best_key = kpp_list[0]
     best_dist = float("inf")
     for key in kpp_list:
         kc = KPP[key]["coord"]
-        d = haversine(from_coord[0], from_coord[1], kc[0], kc[1]) + \
-            haversine(kc[0], kc[1], to_coord[0], to_coord[1])
+        # Главный критерий — близость КПП к пункту назначения
+        d = haversine(kc[0], kc[1], to_coord[0], to_coord[1])
         if d < best_dist:
             best_dist = d
             best_key = key
@@ -449,6 +449,8 @@ def handler(event: dict, context) -> dict:
 
     if waypoints is None:
         return {"statusCode": 400, "headers": CORS, "body": json.dumps({"error": "Не удалось определить адрес"})}
+
+
 
     # Считаем расстояние по сегментам
     km_normal = 0.0

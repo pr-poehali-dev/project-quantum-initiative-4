@@ -74,11 +74,12 @@ def search_special(query: str) -> list:
     seen = set()
     for city, region, short in SPECIAL_CITIES:
         if q in city.lower():
-            label = f"Россия, {region}, г. {city}"
+            # ДНР/ЛНР: "Россия, г. Донецк ДНР"
+            # Остальные: "Россия, Республика Крым, г. Симферополь"
             if short:
-                label_display = f"Россия, {region}, г. {city} ({short})"
+                label_display = f"Россия, г. {city} {short}"
             else:
-                label_display = label
+                label_display = f"Россия, {region}, г. {city}"
             key = city.lower()
             if key not in seen:
                 seen.add(key)

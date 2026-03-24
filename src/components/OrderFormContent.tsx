@@ -62,8 +62,8 @@ export const CAR_CLASSES = [
 ];
 
 export interface FormProps {
-  from: string; setFrom: (v: string) => void;
-  to: string; setTo: (v: string) => void;
+  from: string; setFrom: (v: string) => void; setFromConfirmed: (v: boolean) => void;
+  to: string; setTo: (v: string) => void; setToConfirmed: (v: boolean) => void;
   date: string; setDate: (v: string) => void;
   time: string; setTime: (v: string) => void;
   name: string; setName: (v: string) => void;
@@ -88,11 +88,13 @@ function CityInput({
   placeholder,
   value,
   onChange,
+  onConfirm,
   showGeo,
 }: {
   placeholder: string;
   value: string;
   onChange: (v: string) => void;
+  onConfirm?: (confirmed: boolean) => void;
   showGeo?: boolean;
 }) {
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -105,6 +107,7 @@ function CityInput({
 
   const handleInput = (v: string) => {
     onChange(v);
+    onConfirm?.(false);
     setActiveIdx(-1);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (v.length >= 2) {
@@ -119,6 +122,7 @@ function CityInput({
 
   const selectSuggestion = (city: string) => {
     onChange(city);
+    onConfirm?.(true);
     setSuggestions([]);
     setActiveIdx(-1);
   };
@@ -142,7 +146,7 @@ function CityInput({
             `${SUGGEST_URL}?action=geocode&lon=${coords.longitude}&lat=${coords.latitude}`
           );
           const data = await res.json();
-          if (data.address) onChange(data.address);
+          if (data.address) { onChange(data.address); onConfirm?.(true); }
         } catch {
           // ignore
         } finally {
@@ -260,7 +264,7 @@ export function FormContent(p: FormProps) {
       <form onSubmit={p.handleSubmit} noValidate className="flex flex-col gap-1.5">
         {/* Откуда */}
         <div>
-          <CityInput placeholder="Откуда?" value={p.from} onChange={p.setFrom} showGeo />
+          <CityInput placeholder="Откуда?" value={p.from} onChange={p.setFrom} onConfirm={p.setFromConfirmed} showGeo />
           {p.errors.from && <p className="text-red-400 text-xs mt-0.5 pl-4">{p.errors.from}</p>}
         </div>
 
@@ -290,7 +294,7 @@ export function FormContent(p: FormProps) {
 
         {/* Куда */}
         <div>
-          <CityInput placeholder="Куда?" value={p.to} onChange={p.setTo} showGeo />
+          <CityInput placeholder="Куда?" value={p.to} onChange={p.setTo} onConfirm={p.setToConfirmed} showGeo />
           {p.errors.to && <p className="text-red-400 text-xs mt-0.5 pl-4">{p.errors.to}</p>}
         </div>
 

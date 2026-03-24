@@ -11,6 +11,8 @@ export default function Hero() {
 
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [fromConfirmed, setFromConfirmed] = useState(false);
+  const [toConfirmed, setToConfirmed] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("+7 ");
   const [date, setDate] = useState("");
@@ -46,7 +48,7 @@ export default function Hero() {
   const dismissHint = useCallback(() => setGeoHint(false), []);
 
   useEffect(() => {
-    if (!from.trim() || !to.trim()) {
+    if (!from.trim() || !to.trim() || !fromConfirmed || !toConfirmed) {
       setPrice(null);
       setDistanceKm(null);
       return;
@@ -74,7 +76,7 @@ export default function Hero() {
         setPriceLoading(false);
       }
     }, 800);
-  }, [from, to, carClass, extras, stops]);
+  }, [from, to, fromConfirmed, toConfirmed, carClass, extras, stops]);
 
   const today = new Date();
   const defaultDate = today.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric" });
@@ -115,7 +117,7 @@ export default function Hero() {
   };
 
   const formProps: FormProps = {
-    from, setFrom, to, setTo,
+    from, setFrom, setFromConfirmed, to, setTo, setToConfirmed,
     date, setDate, time, setTime,
     name, setName, phone, handlePhoneChange,
     carClass, setCarClass,
@@ -130,7 +132,7 @@ export default function Hero() {
 
   return (
     <div className="relative" style={{ height: "100dvh", overflow: "hidden" }}>
-      <HeroBackground from={from} to={to} stops={stops} />
+      <HeroBackground from={fromConfirmed ? from : ""} to={toConfirmed ? to : ""} stops={stops} />
 
       {/* Подсказка геолокации */}
       <div

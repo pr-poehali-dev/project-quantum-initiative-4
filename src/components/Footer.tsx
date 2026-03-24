@@ -17,9 +17,7 @@ export default function Footer() {
           {/* Brand */}
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 bg-brand-blue rounded-lg flex items-center justify-center">
-                <Icon name="Car" size={18} className="text-white" />
-              </div>
+              <img src="https://cdn.poehali.dev/projects/4e7661bb-56aa-4a32-b0f4-260fcdbc0e28/bucket/ada7ecb8-4358-4599-9ef2-20a722789a54.png" alt="Такси Сокол" className="w-10 h-10 object-contain" />
               <span className="font-bold text-lg">
                 Такси <span className="text-brand-yellow">Сокол</span>
               </span>

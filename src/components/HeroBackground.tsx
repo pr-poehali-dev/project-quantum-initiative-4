@@ -194,7 +194,7 @@ export default function HeroBackground({ from, to, stops = [] }: Props) {
 
       const isMobile = window.innerWidth < 640;
       const margin: [number, number, number, number] = isMobile
-        ? [70, 20, Math.round(window.innerHeight * 0.87), 20]
+        ? [60, 16, Math.round(window.innerHeight * 0.55), 16]
         : [76, 40, 40, 420];
 
       const boundsCoords = [coordFrom, coordTo].filter(Boolean) as [number, number][];

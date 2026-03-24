@@ -185,45 +185,26 @@ export default function HeroBackground({ from, to, stops = [] }: Props) {
         wps.get(i).options.set({ visible: false });
       }
 
-      // Начинаем с opacity 0 — плавное появление
       route.getPaths().options.set({
         strokeColor: "#c8d44a",
         strokeWidth: 4,
-        opacity: 0,
+        opacity: 0.9,
       });
 
-      // Маркеры старта и финиша (тоже невидимые сначала)
+      // Маркеры старта и финиша
       const newObjects: AnyRef[] = [route];
-      const placemarks: AnyRef[] = [];
       [coordFrom, coordTo].forEach(coord => {
         if (!coord) return;
         const pm = new window.ymaps.Placemark(coord, {}, {
           preset: "islands#dotIcon",
           iconColor: "#c8d44a",
-          visible: false,
         });
         newObjects.push(pm);
-        placemarks.push(pm);
       });
 
       // Добавляем всё на карту одновременно
       newObjects.forEach(obj => map.geoObjects.add(obj));
       routeObjectsRef.current = newObjects;
-
-      // Плавное появление линии маршрута
-      let op = 0;
-      const step = 0.06;
-      const timer = setInterval(() => {
-        op = Math.min(op + step, 0.9);
-        route.getPaths().options.set({ opacity: op });
-        if (op >= 0.9) clearInterval(timer);
-      }, 16);
-
-      // Маркеры появляются чуть позже
-      setTimeout(() => {
-        if (cancelled) return;
-        placemarks.forEach(pm => pm.options.set({ visible: true }));
-      }, 400);
 
       // Позиционирование — один вызов setBounds
       const isMobile = window.innerWidth < 640;

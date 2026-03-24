@@ -82,8 +82,15 @@ KPP_COORDS = {
     "rostov":       (47.222, 39.718),  # Ростов-на-Дону
 }
 
-# Все КПП ДНР/ЛНР для автовыбора
-KPP_DNR_LNR = ["matveev", "veselo", "novoshakht", "izvarino", "chertkovo", "bugaevka"]
+# КПП для ДНР (южные)
+KPP_DNR = ["matveev", "veselo", "novoshakht"]
+# КПП для ЛНР (северные)
+KPP_LNR = ["izvarino", "chertkovo", "bugaevka"]
+# Все КПП ДНР/ЛНР
+KPP_DNR_LNR = KPP_DNR + KPP_LNR
+
+DNR_KEYS = ["донецк", "мариуполь", "горловка", "макеевка", "краматорск", "днр", "донецкая народная", "дебальцево", "авдеевка", "ясиноватая", "енакиево", "харцызск", "шахтерск", "снежное", "торез", "иловайск", "волноваха", "угледар"]
+LNR_KEYS = ["луганск", "лисичанск", "северодонецк", "лнр", "луганская народная", "алчевск", "стаханов", "антрацит", "красный луч", "свердловск", "перевальск", "брянка", "кировск", "первомайск"]
 
 # КПП Запорожской/Херсонской
 KPP_VESELO = "veselo"
@@ -98,6 +105,14 @@ SPECIAL_CITY_COORDS = {
     "лисичанск":     (48.901, 38.432),
     "северодонецк":  (48.952, 38.491),
     "краматорск":    (48.723, 37.537),
+    "дебальцево":    (48.344, 38.404),
+    "авдеевка":      (48.143, 37.751),
+    "ясиноватая":    (48.125, 37.844),
+    "енакиево":      (48.222, 38.213),
+    "харцызск":      (47.998, 38.153),
+    "алчевск":       (48.466, 38.803),
+    "стаханов":      (48.558, 38.657),
+    "антрацит":      (48.121, 39.088),
     "мелитополь":    (46.847, 35.367),
     "бердянск":      (46.756, 36.800),
     "токмак":        (47.253, 35.706),
@@ -195,18 +210,37 @@ def osrm_distance(lat1, lon1, lat2, lon2) -> float:
     return R * 2 * math.asin(math.sqrt(a)) * 1.35
 
 
-def best_kpp_dnr(from_coord, to_coord) -> str:
-    """Выбирает КПП с минимальным суммарным расстоянием от старта до КПП и от КПП до финиша."""
-    best_key = "matveev"
+def haversine(lat1, lon1, lat2, lon2) -> float:
+    """Прямое расстояние между точками (км)."""
+    R = 6371
+    d_lat = math.radians(lat2 - lat1)
+    d_lon = math.radians(lon2 - lon1)
+    a = math.sin(d_lat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(d_lon/2)**2
+    return R * 2 * math.asin(math.sqrt(a))
+
+
+def best_kpp(from_coord, to_coord, kpp_list) -> str:
+    """Выбирает КПП с минимальным суммарным прямым расстоянием (быстро, без OSRM)."""
+    best_key = kpp_list[0]
     best_dist = float("inf")
-    for key in KPP_DNR_LNR:
+    for key in kpp_list:
         kc = KPP_COORDS[key]
-        d = osrm_distance(from_coord[0], from_coord[1], kc[0], kc[1]) + \
-            osrm_distance(kc[0], kc[1], to_coord[0], to_coord[1])
+        d = haversine(from_coord[0], from_coord[1], kc[0], kc[1]) + \
+            haversine(kc[0], kc[1], to_coord[0], to_coord[1])
         if d < best_dist:
             best_dist = d
             best_key = key
     return best_key
+
+
+def best_kpp_for_city(from_coord, to_coord, city: str) -> str:
+    """Выбирает список КПП в зависимости от города назначения (ДНР или ЛНР)."""
+    city_lower = city.lower()
+    if any(k in city_lower for k in LNR_KEYS):
+        return best_kpp(from_coord, to_coord, KPP_LNR)
+    if any(k in city_lower for k in DNR_KEYS):
+        return best_kpp(from_coord, to_coord, KPP_DNR)
+    return best_kpp(from_coord, to_coord, KPP_DNR_LNR)
 
 
 def calc_price(km_normal, km_special, tariff_key, extras_cost):
@@ -250,7 +284,7 @@ def handler(event: dict, context) -> dict:
         tc, _ = geocode(to_city)
         if not fc or not tc:
             return {"statusCode": 400, "headers": CORS, "body": json.dumps({"error": "Не удалось определить адрес"})}
-        kpp_key = best_kpp_dnr(KPP_COORDS["rostov"], tc)
+        kpp_key = best_kpp_for_city(KPP_COORDS["rostov"], tc, to_city)
         waypoints = [
             (fc[0], fc[1], False),
             (KPP_COORDS["kerch"][0], KPP_COORDS["kerch"][1], False),
@@ -264,7 +298,7 @@ def handler(event: dict, context) -> dict:
         tc, _ = geocode(to_city)
         if not fc or not tc:
             return {"statusCode": 400, "headers": CORS, "body": json.dumps({"error": "Не удалось определить адрес"})}
-        kpp_key = best_kpp_dnr(fc, KPP_COORDS["rostov"])
+        kpp_key = best_kpp_for_city(fc, KPP_COORDS["rostov"], from_city)
         waypoints = [
             (fc[0], fc[1], True),
             (KPP_COORDS[kpp_key][0], KPP_COORDS[kpp_key][1], False),
@@ -278,7 +312,7 @@ def handler(event: dict, context) -> dict:
         tc, _ = geocode(to_city)
         if not fc or not tc:
             return {"statusCode": 400, "headers": CORS, "body": json.dumps({"error": "Не удалось определить адрес"})}
-        kpp_key = best_kpp_dnr(fc, tc)
+        kpp_key = best_kpp_for_city(fc, tc, to_city)
         waypoints = [
             (fc[0], fc[1], False),
             (KPP_COORDS[kpp_key][0], KPP_COORDS[kpp_key][1], False),
@@ -290,7 +324,7 @@ def handler(event: dict, context) -> dict:
         tc, _ = geocode(to_city)
         if not fc or not tc:
             return {"statusCode": 400, "headers": CORS, "body": json.dumps({"error": "Не удалось определить адрес"})}
-        kpp_key = best_kpp_dnr(fc, tc)
+        kpp_key = best_kpp_for_city(fc, tc, from_city)
         waypoints = [
             (fc[0], fc[1], True),
             (KPP_COORDS[kpp_key][0], KPP_COORDS[kpp_key][1], False),

@@ -1,0 +1,26 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS CORS",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Все логи",
+      "method": "GET",
+      "path": "/?limit=10",
+      "expectedStatus": 200,
+      "expectedBody": {"reference_routes_count": 48},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Только ошибки",
+      "method": "GET",
+      "path": "/?errors=1&limit=10",
+      "expectedStatus": 200,
+      "expectedBody": {"errors_count": 0},
+      "bodyMatcher": "partial"
+    }
+  ]
+}

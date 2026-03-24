@@ -7,48 +7,48 @@
       "expectedStatus": 200
     },
     {
-      "name": "Москва → Ростов (обычный)",
+      "name": "Донецк → Мариуполь (эталон: 0нм+110спец, source=reference)",
       "method": "POST",
       "path": "/",
-      "body": {"from": "Москва", "to": "Ростов-на-Дону", "carClass": "standard", "extras": {}, "stops": []},
+      "body": {"from": "Донецк", "to": "Мариуполь", "carClass": "standard"},
       "expectedStatus": 200,
-      "expectedBody": {},
+      "expectedBody": {"km_normal": 0, "km_special": 110, "has_special_zone": true, "source": "reference"},
       "bodyMatcher": "partial"
     },
     {
-      "name": "Ростов → Донецк (ДНР)",
+      "name": "Донецк → Луганск (эталон: 0нм+95спец, source=reference)",
       "method": "POST",
       "path": "/",
-      "body": {"from": "Ростов-на-Дону", "to": "Донецк", "carClass": "standard", "extras": {}, "stops": []},
+      "body": {"from": "Донецк", "to": "Луганск", "carClass": "standard"},
       "expectedStatus": 200,
-      "expectedBody": {},
+      "expectedBody": {"km_normal": 0, "km_special": 95, "has_special_zone": true},
       "bodyMatcher": "partial"
     },
     {
-      "name": "Москва → Луганск (ЛНР)",
+      "name": "Москва → Ростов-на-Дону (эталон: 1070нм, обычный)",
       "method": "POST",
       "path": "/",
-      "body": {"from": "Москва", "to": "Луганск, Луганская Народная Республика", "carClass": "standard", "extras": {}, "stops": []},
+      "body": {"from": "Москва", "to": "Ростов-на-Дону", "carClass": "standard"},
       "expectedStatus": 200,
-      "expectedBody": {},
+      "expectedBody": {"has_special_zone": false, "km_special": 0, "km_normal": 1070},
       "bodyMatcher": "partial"
     },
     {
-      "name": "Москва → Симферополь (Крым)",
+      "name": "Москва → Донецк (эталон: 870нм+90спец)",
       "method": "POST",
       "path": "/",
-      "body": {"from": "Москва", "to": "Симферополь", "carClass": "standard", "extras": {}, "stops": []},
+      "body": {"from": "Москва", "to": "Донецк", "carClass": "standard"},
       "expectedStatus": 200,
-      "expectedBody": {},
+      "expectedBody": {"km_normal": 870, "km_special": 90, "has_special_zone": true},
       "bodyMatcher": "partial"
     },
     {
-      "name": "Москва → Мелитополь (Запорожская)",
+      "name": "Симферополь → Ялта (Крым, обычный тариф, эталон)",
       "method": "POST",
       "path": "/",
-      "body": {"from": "Москва", "to": "Мелитополь, Запорожская область", "carClass": "standard", "extras": {}, "stops": []},
+      "body": {"from": "Симферополь", "to": "Ялта", "carClass": "standard"},
       "expectedStatus": 200,
-      "expectedBody": {},
+      "expectedBody": {"km_special": 0, "has_special_zone": false},
       "bodyMatcher": "partial"
     }
   ]

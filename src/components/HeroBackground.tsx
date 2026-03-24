@@ -155,13 +155,27 @@ export default function HeroBackground({ from, to, stops = [], formHeight }: Pro
 
       if (isCrimea(from) && !isCrimea(to)) {
         if (isKhersonZap(to)) {
-          allAddresses.splice(1, 0, "Чонгар");
+          const getLen = (r: AnyRef) => { try { return r.getPaths().get(0).getLength(); } catch { return Infinity; } };
+          const [rc, ra] = await Promise.all([
+            window.ymaps.route([from, "Чонгар", to], { routingMode: "auto" }).catch(() => null),
+            window.ymaps.route([from, "Армянск", to], { routingMode: "auto" }).catch(() => null),
+          ]);
+          if (cancelled) return;
+          const kpp = getLen(ra) < getLen(rc) ? "Армянск" : "Чонгар";
+          allAddresses.splice(1, 0, kpp);
         } else {
           allAddresses.splice(1, 0, "Керчь", "Краснодар");
         }
       } else if (isCrimea(to) && !isCrimea(from)) {
         if (isKhersonZap(from)) {
-          allAddresses.splice(allAddresses.length - 1, 0, "Чонгар");
+          const getLen = (r: AnyRef) => { try { return r.getPaths().get(0).getLength(); } catch { return Infinity; } };
+          const [rc, ra] = await Promise.all([
+            window.ymaps.route([from, "Чонгар", to], { routingMode: "auto" }).catch(() => null),
+            window.ymaps.route([from, "Армянск", to], { routingMode: "auto" }).catch(() => null),
+          ]);
+          if (cancelled) return;
+          const kpp = getLen(ra) < getLen(rc) ? "Армянск" : "Чонгар";
+          allAddresses.splice(allAddresses.length - 1, 0, kpp);
         } else {
           allAddresses.splice(allAddresses.length - 1, 0, "Краснодар", "Керчь");
         }

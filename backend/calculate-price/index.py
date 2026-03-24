@@ -83,6 +83,7 @@ KPP = {
     # Крым
     "kerch":      {"coord": (45.360, 36.467), "name": "Керченский мост"},
     "chongar":    {"coord": (46.003, 34.394), "name": "Чонгар"},
+    "armiansk":   {"coord": (46.103, 33.691), "name": "Армянск"},
     # Транзит
     "rostov":     {"coord": (47.222, 39.718), "name": "Ростов-на-Дону"},
     "krasnodar":  {"coord": (45.044, 38.976), "name": "Краснодар"},
@@ -329,9 +330,10 @@ def build_waypoints(from_city, to_city):
             (tc[0], tc[1], False),
         ]
 
-    # ── Крым ↔ Запорожская/Херсонская (через Чонгар) ──────────────────────
+    # ── Крым ↔ Запорожская/Херсонская (Чонгар или Армянск — ближайший) ────
     if is_crimea(from_city) and is_kherson_zap(to_city):
-        kc = KPP["chongar"]["coord"]
+        kpp = best_kpp_for(fc, tc, ["chongar", "armiansk"])
+        kc = KPP[kpp]["coord"]
         return [
             (fc[0], fc[1], False),
             (kc[0], kc[1], False),
@@ -339,7 +341,8 @@ def build_waypoints(from_city, to_city):
         ]
 
     if is_kherson_zap(from_city) and is_crimea(to_city):
-        kc = KPP["chongar"]["coord"]
+        kpp = best_kpp_for(fc, tc, ["chongar", "armiansk"])
+        kc = KPP[kpp]["coord"]
         return [
             (fc[0], fc[1], True),
             (kc[0], kc[1], False),

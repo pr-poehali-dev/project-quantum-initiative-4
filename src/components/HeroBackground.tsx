@@ -188,7 +188,7 @@ export default function HeroBackground({ from, to, stops = [], formHeight }: Pro
       // Для Запорожской/Херсонской строим два сегмента через КПП Весело-Вознесенка
       const KPP_ZAP = "Весело-Вознесенка, Ростовская область";
       let routes: AnyRef[] = [];
-      if ((isKhersonZap(to) || isKhersonZap(from)) && !isCrimea(from) && !isCrimea(to)) {
+      if ((isKhersonZap(to) || isKhersonZap(from)) && !isCrimea(from) && !isCrimea(to) && !isDnrLnr(from) && !isDnrLnr(to)) {
         const [r1, r2] = await Promise.all([
           window.ymaps.route([from, KPP_ZAP], { routingMode: "auto", mapStateAutoApply: false }).catch(() => null),
           window.ymaps.route([KPP_ZAP, to], { routingMode: "auto", mapStateAutoApply: false }).catch(() => null),

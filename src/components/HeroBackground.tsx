@@ -153,6 +153,48 @@ export default function HeroBackground({ from, to, stops = [], formHeight }: Pro
       routeObjectsRef.current.forEach(obj => { try { map.geoObjects.remove(obj); } catch { /* ignore */ } });
       routeObjectsRef.current = [];
 
+      const allPoints = [from, ...stops.filter(Boolean), to];
+
+      // Если есть промежуточные остановки в спецзонах — строим посегментно
+      const hasSpecialStop = stops.filter(Boolean).some(s => isKhersonZap(s) || isDnrLnr(s) || isCrimea(s));
+
+      if (hasSpecialStop || stops.filter(Boolean).length > 0) {
+        // Строим маршрут по всем точкам сразу — Яндекс сам найдёт путь
+        const r = await window.ymaps.route(allPoints, { routingMode: "auto", mapStateAutoApply: false }).catch(() => null);
+        if (cancelled) return;
+
+        const routes: AnyRef[] = r ? [r] : [];
+        if (cancelled || routes.length === 0) return;
+
+        const [coordFrom, coordTo] = await Promise.all([geocodeAddress(from), geocodeAddress(to)]);
+        if (cancelled) return;
+
+        const newObjects: AnyRef[] = [];
+        routes.forEach(route => {
+          const wps = route.getWayPoints();
+          for (let i = 0; i < wps.getLength(); i++) wps.get(i).options.set({ visible: false });
+          route.getPaths().options.set({ strokeColor: "#c8d44a", strokeWidth: 4, opacity: 0.9 });
+          newObjects.push(route);
+        });
+
+        // Маркеры для всех точек маршрута
+        for (const addr of allPoints) {
+          const coord = await geocodeAddress(addr);
+          if (coord) newObjects.push(new window.ymaps.Placemark(coord, {}, { preset: "islands#dotIcon", iconColor: "#c8d44a" }));
+        }
+
+        newObjects.forEach(obj => map.geoObjects.add(obj));
+        routeObjectsRef.current = newObjects;
+
+        const isMobile = window.innerWidth < 640;
+        const bottomMargin = isMobile ? (formHeightRef.current ?? Math.round(window.innerHeight * 0.55)) + 16 : 40;
+        const margin: [number, number, number, number] = isMobile ? [60, 16, bottomMargin, 16] : [76, 40, 40, 420];
+
+        const bounds = r.getBounds();
+        if (bounds) map.setBounds(bounds, { checkZoomRange: true, zoomMargin: margin });
+        return;
+      }
+
       const allAddresses = [from, ...stops.filter(Boolean), to];
 
       const fromArmiansk = from.toLowerCase().includes("армянск");

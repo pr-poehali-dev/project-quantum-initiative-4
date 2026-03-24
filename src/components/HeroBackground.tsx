@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef } from "react";
 
 interface Props {
   from: string;
@@ -103,122 +103,10 @@ export default function HeroBackground({ from, to, stops = [], formHeight }: Pro
   const mapInstanceRef = useRef<AnyRef>(null);
   const routeObjectsRef = useRef<AnyRef[]>([]);
   const zonesAddedRef = useRef(false);
-  const fromRef = useRef(from);
-  const toRef = useRef(to);
-  const stopsRef = useRef(stops);
   const formHeightRef = useRef(formHeight);
-
-  fromRef.current = from;
-  toRef.current = to;
-  stopsRef.current = stops;
   formHeightRef.current = formHeight;
 
-  const drawRoute = useCallback(async (fromAddr: string, toAddr: string, stopsArr: string[]) => {
-    if (!mapInstanceRef.current) return;
-    const map = mapInstanceRef.current;
-
-    routeObjectsRef.current.forEach(obj => { try { map.geoObjects.remove(obj); } catch (e) { /* ignore */ } });
-    routeObjectsRef.current = [];
-
-    if (!fromAddr.trim() || !toAddr.trim()) return;
-
-    let cancelled = false;
-
-    (async () => {
-      const allAddresses = [fromAddr, ...stopsArr.filter(Boolean), toAddr];
-
-      if (isCrimea(fromAddr) && !isCrimea(toAddr)) {
-        if (isKhersonZap(toAddr)) {
-          allAddresses.splice(1, 0, "Чонгар");
-        } else {
-          allAddresses.splice(1, 0, "Керчь", "Краснодар");
-        }
-      } else if (isCrimea(toAddr) && !isCrimea(fromAddr)) {
-        if (isKhersonZap(fromAddr)) {
-          allAddresses.splice(allAddresses.length - 1, 0, "Чонгар");
-        } else {
-          allAddresses.splice(allAddresses.length - 1, 0, "Краснодар", "Керчь");
-        }
-      } else if (isDnrLnr(toAddr) && !isCrimea(fromAddr) && !isKhersonZap(fromAddr)) {
-        const getLen = (r: AnyRef) => { try { return r.getPaths().get(0).getLength(); } catch { return Infinity; } };
-        const [r1, r2] = await Promise.all([
-          window.ymaps.route([fromAddr, "Матвеев Курган, Ростовская область", toAddr], { routingMode: "auto" }).catch(() => null),
-          window.ymaps.route([fromAddr, "Весело-Вознесенка, Ростовская область", toAddr], { routingMode: "auto" }).catch(() => null),
-        ]);
-        if (cancelled) return;
-        const kppName = getLen(r2) < getLen(r1) ? "Весело-Вознесенка, Ростовская область" : "Матвеев Курган, Ростовская область";
-        allAddresses.splice(allAddresses.length - 1, 0, kppName);
-      } else if (isDnrLnr(fromAddr) && !isCrimea(toAddr) && !isKhersonZap(toAddr)) {
-        const getLen = (r: AnyRef) => { try { return r.getPaths().get(0).getLength(); } catch { return Infinity; } };
-        const [r1, r2] = await Promise.all([
-          window.ymaps.route([fromAddr, "Матвеев Курган, Ростовская область", toAddr], { routingMode: "auto" }).catch(() => null),
-          window.ymaps.route([fromAddr, "Весело-Вознесенка, Ростовская область", toAddr], { routingMode: "auto" }).catch(() => null),
-        ]);
-        if (cancelled) return;
-        const kppName = getLen(r2) < getLen(r1) ? "Весело-Вознесенка, Ростовская область" : "Матвеев Курган, Ростовская область";
-        allAddresses.splice(1, 0, kppName);
-      } else if (isKhersonZap(toAddr) && !isCrimea(fromAddr)) {
-        allAddresses.splice(allAddresses.length - 1, 0, "Васильевка");
-      } else if (isKhersonZap(fromAddr) && !isCrimea(toAddr)) {
-        allAddresses.splice(1, 0, "Васильевка");
-      }
-
-      const [route, coordFrom, coordTo] = await Promise.all([
-        window.ymaps.route(allAddresses, { routingMode: "auto", mapStateAutoApply: false }),
-        geocodeAddress(fromAddr),
-        geocodeAddress(toAddr),
-      ]);
-
-      if (cancelled) return;
-
-      const wps = route.getWayPoints();
-      for (let i = 0; i < wps.getLength(); i++) {
-        wps.get(i).options.set({ visible: false });
-      }
-
-      route.getPaths().options.set({
-        strokeColor: "#c8d44a",
-        strokeWidth: 4,
-        opacity: 0.9,
-      });
-
-      const newObjects: AnyRef[] = [route];
-      [coordFrom, coordTo].forEach(coord => {
-        if (!coord) return;
-        const pm = new window.ymaps.Placemark(coord, {}, {
-          preset: "islands#dotIcon",
-          iconColor: "#c8d44a",
-        });
-        newObjects.push(pm);
-      });
-
-      newObjects.forEach(obj => map.geoObjects.add(obj));
-      routeObjectsRef.current = newObjects;
-
-      const isMobile = window.innerWidth < 640;
-      const bottomMargin = isMobile
-        ? (formHeightRef.current ?? Math.round(window.innerHeight * 0.55)) + 16
-        : 40;
-      const margin: [number, number, number, number] = isMobile
-        ? [60, 16, bottomMargin, 16]
-        : [76, 40, 40, 420];
-
-      const boundsCoords = [coordFrom, coordTo].filter(Boolean) as [number, number][];
-      if (boundsCoords.length === 2) {
-        const latMin = Math.min(...boundsCoords.map(c => c[0]));
-        const latMax = Math.max(...boundsCoords.map(c => c[0]));
-        const lonMin = Math.min(...boundsCoords.map(c => c[1]));
-        const lonMax = Math.max(...boundsCoords.map(c => c[1]));
-        map.setBounds([[latMin, lonMin], [latMax, lonMax]], { checkZoomRange: true, zoomMargin: margin });
-      } else {
-        const bounds = route.getBounds();
-        if (bounds) map.setBounds(bounds, { checkZoomRange: true, zoomMargin: margin });
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, []);
-
+  // Инициализация карты — один раз
   useEffect(() => {
     let destroyed = false;
     loadYmaps().then(() => {
@@ -231,18 +119,122 @@ export default function HeroBackground({ from, to, stops = [], formHeight }: Pro
         });
         mapInstanceRef.current.behaviors.disable("scrollZoom");
         zonesAddedRef.current = true;
-        if (fromRef.current && toRef.current) {
-          drawRoute(fromRef.current, toRef.current, stopsRef.current);
-        }
       }
     });
     return () => { destroyed = true; };
-  }, [drawRoute]);
+  }, []);
 
+  // Построение маршрута при изменении адресов
   useEffect(() => {
-    if (!window._ymapsReady || !mapInstanceRef.current) return;
-    drawRoute(from, to, stops);
-  }, [from, to, stops, drawRoute]);
+    if (!from.trim() || !to.trim()) {
+      // Очистить маршрут если адреса сброшены
+      if (mapInstanceRef.current) {
+        routeObjectsRef.current.forEach(obj => { try { mapInstanceRef.current.geoObjects.remove(obj); } catch { /* ignore */ } });
+        routeObjectsRef.current = [];
+      }
+      return;
+    }
+
+    let cancelled = false;
+
+    const run = async () => {
+      // Ждём готовности карты (до 10 сек)
+      let attempts = 0;
+      while (!window._ymapsReady || !mapInstanceRef.current) {
+        if (cancelled || attempts > 100) return;
+        await new Promise(r => setTimeout(r, 100));
+        attempts++;
+      }
+      if (cancelled) return;
+
+      const map = mapInstanceRef.current;
+      routeObjectsRef.current.forEach(obj => { try { map.geoObjects.remove(obj); } catch { /* ignore */ } });
+      routeObjectsRef.current = [];
+
+      const allAddresses = [from, ...stops.filter(Boolean), to];
+
+      if (isCrimea(from) && !isCrimea(to)) {
+        if (isKhersonZap(to)) {
+          allAddresses.splice(1, 0, "Чонгар");
+        } else {
+          allAddresses.splice(1, 0, "Керчь", "Краснодар");
+        }
+      } else if (isCrimea(to) && !isCrimea(from)) {
+        if (isKhersonZap(from)) {
+          allAddresses.splice(allAddresses.length - 1, 0, "Чонгар");
+        } else {
+          allAddresses.splice(allAddresses.length - 1, 0, "Краснодар", "Керчь");
+        }
+      } else if (isDnrLnr(to) && !isCrimea(from) && !isKhersonZap(from)) {
+        const getLen = (r: AnyRef) => { try { return r.getPaths().get(0).getLength(); } catch { return Infinity; } };
+        const [r1, r2] = await Promise.all([
+          window.ymaps.route([from, "Матвеев Курган, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
+          window.ymaps.route([from, "Весело-Вознесенка, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
+        ]);
+        if (cancelled) return;
+        const kppName = getLen(r2) < getLen(r1) ? "Весело-Вознесенка, Ростовская область" : "Матвеев Курган, Ростовская область";
+        allAddresses.splice(allAddresses.length - 1, 0, kppName);
+      } else if (isDnrLnr(from) && !isCrimea(to) && !isKhersonZap(to)) {
+        const getLen = (r: AnyRef) => { try { return r.getPaths().get(0).getLength(); } catch { return Infinity; } };
+        const [r1, r2] = await Promise.all([
+          window.ymaps.route([from, "Матвеев Курган, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
+          window.ymaps.route([from, "Весело-Вознесенка, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
+        ]);
+        if (cancelled) return;
+        const kppName = getLen(r2) < getLen(r1) ? "Весело-Вознесенка, Ростовская область" : "Матвеев Курган, Ростовская область";
+        allAddresses.splice(1, 0, kppName);
+      } else if (isKhersonZap(to) && !isCrimea(from)) {
+        allAddresses.splice(allAddresses.length - 1, 0, "Васильевка");
+      } else if (isKhersonZap(from) && !isCrimea(to)) {
+        allAddresses.splice(1, 0, "Васильевка");
+      }
+
+      const [route, coordFrom, coordTo] = await Promise.all([
+        window.ymaps.route(allAddresses, { routingMode: "auto", mapStateAutoApply: false }),
+        geocodeAddress(from),
+        geocodeAddress(to),
+      ]);
+
+      if (cancelled) return;
+
+      const wps = route.getWayPoints();
+      for (let i = 0; i < wps.getLength(); i++) {
+        wps.get(i).options.set({ visible: false });
+      }
+
+      route.getPaths().options.set({ strokeColor: "#c8d44a", strokeWidth: 4, opacity: 0.9 });
+
+      const newObjects: AnyRef[] = [route];
+      [coordFrom, coordTo].forEach(coord => {
+        if (!coord) return;
+        newObjects.push(new window.ymaps.Placemark(coord, {}, { preset: "islands#dotIcon", iconColor: "#c8d44a" }));
+      });
+
+      newObjects.forEach(obj => map.geoObjects.add(obj));
+      routeObjectsRef.current = newObjects;
+
+      const isMobile = window.innerWidth < 640;
+      const bottomMargin = isMobile
+        ? (formHeightRef.current ?? Math.round(window.innerHeight * 0.55)) + 16
+        : 40;
+      const margin: [number, number, number, number] = isMobile ? [60, 16, bottomMargin, 16] : [76, 40, 40, 420];
+
+      const boundsCoords = [coordFrom, coordTo].filter(Boolean) as [number, number][];
+      if (boundsCoords.length === 2) {
+        const latMin = Math.min(...boundsCoords.map(c => c[0]));
+        const latMax = Math.max(...boundsCoords.map(c => c[0]));
+        const lonMin = Math.min(...boundsCoords.map(c => c[1]));
+        const lonMax = Math.max(...boundsCoords.map(c => c[1]));
+        map.setBounds([[latMin, lonMin], [latMax, lonMax]], { checkZoomRange: true, zoomMargin: margin });
+      } else {
+        const bounds = route.getBounds();
+        if (bounds) map.setBounds(bounds, { checkZoomRange: true, zoomMargin: margin });
+      }
+    };
+
+    run();
+    return () => { cancelled = true; };
+  }, [from, to, stops]);
 
   return (
     <div className="absolute inset-0 w-full h-full">

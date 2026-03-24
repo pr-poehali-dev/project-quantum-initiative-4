@@ -148,13 +148,13 @@ def osrm_route_with_geometry(coords: list) -> dict:
         return None
 
 
-def split_km_by_zone(waypoints: list) -> tuple:
+def split_km_by_zone(waypoints: list, total_km: float) -> tuple:
     """
-    Разбивает маршрут (список lat,lon) на нормальные и спецзонные км.
-    Считает haversine между соседними точками, определяет зону каждого сегмента.
+    Разбивает маршрут на нормальные и спецзонные км.
+    Считает haversine-доли по зонам, затем масштабирует на реальное расстояние OSRM.
     """
-    km_normal = 0.0
-    km_special = 0.0
+    h_normal = 0.0
+    h_special = 0.0
     for i in range(len(waypoints)-1):
         lat1,lon1 = waypoints[i]
         lat2,lon2 = waypoints[i+1]
@@ -162,9 +162,16 @@ def split_km_by_zone(waypoints: list) -> tuple:
         mid_lat = (lat1+lat2)/2
         mid_lon = (lon1+lon2)/2
         if is_in_special_zone(mid_lat, mid_lon):
-            km_special += seg
+            h_special += seg
         else:
-            km_normal += seg
+            h_normal += seg
+    h_total = h_normal + h_special
+    if h_total == 0:
+        return total_km, 0.0
+    # Масштабируем пропорционально на реальное расстояние OSRM
+    ratio_special = h_special / h_total
+    km_special = total_km * ratio_special
+    km_normal  = total_km * (1 - ratio_special)
     return km_normal, km_special
 
 
@@ -252,7 +259,7 @@ def handler(event: dict, context) -> dict:
     result = osrm_route_with_geometry(osrm_coords)
 
     if result:
-        km_normal, km_special = split_km_by_zone(result["waypoints"])
+        km_normal, km_special = split_km_by_zone(result["waypoints"], result["distance_km"])
     else:
         # Fallback: считаем посегментно через haversine
         km_normal, km_special = 0.0, 0.0

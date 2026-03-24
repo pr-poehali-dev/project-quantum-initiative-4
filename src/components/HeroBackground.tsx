@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 
 interface Props {
   from: string;
@@ -102,84 +102,72 @@ export default function HeroBackground({ from, to, stops = [] }: Props) {
   const mapInstanceRef = useRef<AnyRef>(null);
   const routeObjectsRef = useRef<AnyRef[]>([]);
   const zonesAddedRef = useRef(false);
+  const fromRef = useRef(from);
+  const toRef = useRef(to);
+  const stopsRef = useRef(stops);
 
-  useEffect(() => {
-    let destroyed = false;
-    loadYmaps().then(() => {
-      if (destroyed || !mapRef.current) return;
-      if (!mapInstanceRef.current) {
-        mapInstanceRef.current = new window.ymaps.Map(mapRef.current, {
-          center: [55.751574, 37.573856],
-          zoom: 5,
-          controls: [],
-        });
-        mapInstanceRef.current.behaviors.disable("scrollZoom");
+  fromRef.current = from;
+  toRef.current = to;
+  stopsRef.current = stops;
 
-        zonesAddedRef.current = true;
-      }
-    });
-    return () => { destroyed = true; };
-  }, []);
-
-  useEffect(() => {
-    if (!window._ymapsReady || !mapInstanceRef.current) return;
+  const drawRoute = useCallback(async (fromAddr: string, toAddr: string, stopsArr: string[]) => {
+    if (!mapInstanceRef.current) return;
     const map = mapInstanceRef.current;
-    let cancelled = false;
 
     routeObjectsRef.current.forEach(obj => { try { map.geoObjects.remove(obj); } catch (e) { /* ignore */ } });
     routeObjectsRef.current = [];
 
-    if (!from.trim() || !to.trim()) return;
+    if (!fromAddr.trim() || !toAddr.trim()) return;
+
+    let cancelled = false;
 
     (async () => {
-      const allAddresses = [from, ...stops.filter(Boolean), to];
+      const allAddresses = [fromAddr, ...stopsArr.filter(Boolean), toAddr];
 
-      if (isCrimea(from) && !isCrimea(to)) {
-        if (isKhersonZap(to)) {
+      if (isCrimea(fromAddr) && !isCrimea(toAddr)) {
+        if (isKhersonZap(toAddr)) {
           allAddresses.splice(1, 0, "Чонгар");
         } else {
           allAddresses.splice(1, 0, "Керчь", "Краснодар");
         }
-      } else if (isCrimea(to) && !isCrimea(from)) {
-        if (isKhersonZap(from)) {
+      } else if (isCrimea(toAddr) && !isCrimea(fromAddr)) {
+        if (isKhersonZap(fromAddr)) {
           allAddresses.splice(allAddresses.length - 1, 0, "Чонгар");
         } else {
           allAddresses.splice(allAddresses.length - 1, 0, "Краснодар", "Керчь");
         }
-      } else if (isDnrLnr(to) && !isCrimea(from) && !isKhersonZap(from)) {
+      } else if (isDnrLnr(toAddr) && !isCrimea(fromAddr) && !isKhersonZap(fromAddr)) {
         const getLen = (r: AnyRef) => { try { return r.getPaths().get(0).getLength(); } catch { return Infinity; } };
         const [r1, r2] = await Promise.all([
-          window.ymaps.route([from, "Матвеев Курган, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
-          window.ymaps.route([from, "Весело-Вознесенка, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
+          window.ymaps.route([fromAddr, "Матвеев Курган, Ростовская область", toAddr], { routingMode: "auto" }).catch(() => null),
+          window.ymaps.route([fromAddr, "Весело-Вознесенка, Ростовская область", toAddr], { routingMode: "auto" }).catch(() => null),
         ]);
         if (cancelled) return;
         const kppName = getLen(r2) < getLen(r1) ? "Весело-Вознесенка, Ростовская область" : "Матвеев Курган, Ростовская область";
         allAddresses.splice(allAddresses.length - 1, 0, kppName);
-      } else if (isDnrLnr(from) && !isCrimea(to) && !isKhersonZap(to)) {
+      } else if (isDnrLnr(fromAddr) && !isCrimea(toAddr) && !isKhersonZap(toAddr)) {
         const getLen = (r: AnyRef) => { try { return r.getPaths().get(0).getLength(); } catch { return Infinity; } };
         const [r1, r2] = await Promise.all([
-          window.ymaps.route([from, "Матвеев Курган, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
-          window.ymaps.route([from, "Весело-Вознесенка, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
+          window.ymaps.route([fromAddr, "Матвеев Курган, Ростовская область", toAddr], { routingMode: "auto" }).catch(() => null),
+          window.ymaps.route([fromAddr, "Весело-Вознесенка, Ростовская область", toAddr], { routingMode: "auto" }).catch(() => null),
         ]);
         if (cancelled) return;
         const kppName = getLen(r2) < getLen(r1) ? "Весело-Вознесенка, Ростовская область" : "Матвеев Курган, Ростовская область";
         allAddresses.splice(1, 0, kppName);
-      } else if (isKhersonZap(to) && !isCrimea(from)) {
+      } else if (isKhersonZap(toAddr) && !isCrimea(fromAddr)) {
         allAddresses.splice(allAddresses.length - 1, 0, "Васильевка");
-      } else if (isKhersonZap(from) && !isCrimea(to)) {
+      } else if (isKhersonZap(fromAddr) && !isCrimea(toAddr)) {
         allAddresses.splice(1, 0, "Васильевка");
       }
 
-      // Геокодируем старт и финиш параллельно с построением маршрута
       const [route, coordFrom, coordTo] = await Promise.all([
         window.ymaps.route(allAddresses, { routingMode: "auto", mapStateAutoApply: false }),
-        geocodeAddress(from),
-        geocodeAddress(to),
+        geocodeAddress(fromAddr),
+        geocodeAddress(toAddr),
       ]);
 
       if (cancelled) return;
 
-      // Скрываем путевые точки
       const wps = route.getWayPoints();
       for (let i = 0; i < wps.getLength(); i++) {
         wps.get(i).options.set({ visible: false });
@@ -191,7 +179,6 @@ export default function HeroBackground({ from, to, stops = [] }: Props) {
         opacity: 0.9,
       });
 
-      // Маркеры старта и финиша
       const newObjects: AnyRef[] = [route];
       [coordFrom, coordTo].forEach(coord => {
         if (!coord) return;
@@ -202,11 +189,9 @@ export default function HeroBackground({ from, to, stops = [] }: Props) {
         newObjects.push(pm);
       });
 
-      // Добавляем всё на карту одновременно
       newObjects.forEach(obj => map.geoObjects.add(obj));
       routeObjectsRef.current = newObjects;
 
-      // Позиционирование — один вызов setBounds
       const isMobile = window.innerWidth < 640;
       const margin: [number, number, number, number] = isMobile
         ? [70, 20, Math.round(window.innerHeight * 0.87), 20]
@@ -226,8 +211,32 @@ export default function HeroBackground({ from, to, stops = [] }: Props) {
     })();
 
     return () => { cancelled = true; };
-     
-  }, [from, to, stops]);
+  }, []);
+
+  useEffect(() => {
+    let destroyed = false;
+    loadYmaps().then(() => {
+      if (destroyed || !mapRef.current) return;
+      if (!mapInstanceRef.current) {
+        mapInstanceRef.current = new window.ymaps.Map(mapRef.current, {
+          center: [55.751574, 37.573856],
+          zoom: 5,
+          controls: [],
+        });
+        mapInstanceRef.current.behaviors.disable("scrollZoom");
+        zonesAddedRef.current = true;
+        if (fromRef.current && toRef.current) {
+          drawRoute(fromRef.current, toRef.current, stopsRef.current);
+        }
+      }
+    });
+    return () => { destroyed = true; };
+  }, [drawRoute]);
+
+  useEffect(() => {
+    if (!window._ymapsReady || !mapInstanceRef.current) return;
+    drawRoute(from, to, stops);
+  }, [from, to, stops, drawRoute]);
 
   return (
     <div className="absolute inset-0 w-full h-full">

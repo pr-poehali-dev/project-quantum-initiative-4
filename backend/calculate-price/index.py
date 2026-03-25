@@ -783,14 +783,10 @@ def handler(event: dict, context) -> dict:
         ref_km_total = reference["km_normal"] + reference["km_special"]
         is_error, deviation_pct, error_reason = validate_against_reference(km_calc_total, reference)
 
-        if all_special and ref_km_total > 0:
+        if any_special and ref_km_total > 0:
             km_normal = reference["km_normal"]
             km_special = reference["km_special"]
-            source = "reference"
-        elif any_special and is_error and ref_km_total > 0:
-            km_normal = reference["km_normal"]
-            km_special = reference["km_special"]
-            source = "reference_override"
+            source = "reference_override" if is_error else "reference"
         elif osrm_reliable and use_reference and km_calc_total >= 5:
             update_reference(from_city, to_city, km_normal, km_special)
             update_reference(to_city, from_city, km_normal, km_special)

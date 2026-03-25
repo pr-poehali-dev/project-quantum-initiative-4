@@ -17,9 +17,9 @@ export default function Footer() {
           {/* Brand */}
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <img src="https://cdn.poehali.dev/projects/4e7661bb-56aa-4a32-b0f4-260fcdbc0e28/bucket/ada7ecb8-4358-4599-9ef2-20a722789a54.png" alt="Такси Сокол" className="w-10 h-10 object-contain" />
+              <img src="https://cdn.poehali.dev/projects/4e7661bb-56aa-4a32-b0f4-260fcdbc0e28/bucket/a55da796-a8ad-4e30-ae68-8b988ba2ed36.jpg" alt="Наше такси" className="w-10 h-10 object-contain" />
               <span className="font-bold text-lg">
-                Такси <span className="text-brand-yellow">Сокол</span>
+                Наше <span className="text-brand-yellow">такси</span>
               </span>
             </div>
             <p className="text-white/60 text-sm leading-relaxed mb-4">
@@ -100,7 +100,7 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="border-t border-white/10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-white/40 text-xs">
-            © {year} Такси Сокол. Все права защищены.
+            © {year} Наше такси. Все права защищены.
           </p>
           <div className="flex gap-4">
             <a href="https://poehali.dev/help" target="_blank" rel="noopener noreferrer" className="text-white/40 hover:text-white/70 text-xs transition-colors">

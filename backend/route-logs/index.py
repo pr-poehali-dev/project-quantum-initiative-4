@@ -39,6 +39,41 @@ def get_routes(params):
     }
 
 
+def update_route(event):
+    """Обновляет km_normal и km_special для маршрута по id."""
+    body = json.loads(event.get("body", "{}"))
+    route_id = body.get("id")
+    km_normal = body.get("km_normal")
+    km_special = body.get("km_special")
+    if not route_id or km_normal is None or km_special is None:
+        return {"statusCode": 400, "headers": CORS, "body": json.dumps({"error": "id, km_normal, km_special required"})}
+    km_normal = int(km_normal)
+    km_special = int(km_special)
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT from_city, to_city, km_normal, km_special FROM routes_reference WHERE id = %s", (route_id,))
+    row = cur.fetchone()
+    if not row:
+        conn.close()
+        return {"statusCode": 404, "headers": CORS, "body": json.dumps({"error": "not found"})}
+    from_city, to_city, old_n, old_s = row
+    cur.execute(
+        "UPDATE routes_reference SET km_normal = %s, km_special = %s, notes = %s, updated_at = NOW() WHERE id = %s",
+        (km_normal, km_special, f"Ручная правка: {old_n}+{old_s}→{km_normal}+{km_special}", route_id)
+    )
+    cur.execute(
+        "UPDATE routes_reference SET km_normal = %s, km_special = %s, notes = %s, updated_at = NOW() "
+        "WHERE LOWER(from_city) = LOWER(%s) AND LOWER(to_city) = LOWER(%s)",
+        (km_normal, km_special, f"Ручная правка (обратный): {km_normal}+{km_special}", to_city, from_city)
+    )
+    conn.commit()
+    conn.close()
+    return {"statusCode": 200, "headers": CORS, "body": json.dumps({
+        "ok": True, "id": route_id, "from_city": from_city, "to_city": to_city,
+        "km_normal": km_normal, "km_special": km_special, "km_total": km_normal + km_special,
+    })}
+
+
 def handler(event: dict, context) -> dict:
     """
     Возвращает логи расчётов маршрутов.
@@ -49,6 +84,9 @@ def handler(event: dict, context) -> dict:
         return {"statusCode": 200, "headers": CORS, "body": ""}
 
     params = event.get("queryStringParameters") or {}
+
+    if event.get("httpMethod") == "POST" and params.get("action") == "update_route":
+        return update_route(event)
 
     if params.get("action") == "routes":
         return get_routes(params)

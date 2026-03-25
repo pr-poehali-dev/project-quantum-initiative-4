@@ -216,6 +216,7 @@ function RoutesTable() {
           loading={loading}
           search={search}
           onSearchChange={setSearch}
+          onRouteUpdated={loadRoutes}
         />
       </div>
     </div>

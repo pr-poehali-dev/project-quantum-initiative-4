@@ -1,0 +1,2 @@
+UPDATE routes_reference SET km_normal = 490, notes = 'Ялта→Краснодар через Крымский мост' WHERE id = 210;
+UPDATE routes_reference SET km_normal = 490, notes = 'Краснодар→Ялта через Крымский мост' WHERE id = 173;

@@ -1,0 +1,1 @@
+UPDATE t_p16381115_project_quantum_init.route_calculations_log SET is_error = true, error_reason = 'debug record' WHERE car_class = 'debug';

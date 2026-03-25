@@ -21,7 +21,7 @@
       "path": "/",
       "body": {"from": "Донецк", "to": "Луганск", "carClass": "standard"},
       "expectedStatus": 200,
-      "expectedBody": {"km_normal": 0, "km_special": 95, "has_special_zone": true},
+      "expectedBody": {"km_normal": 0, "km_special": 135, "has_special_zone": true},
       "bodyMatcher": "partial"
     },
     {

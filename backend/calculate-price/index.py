@@ -340,7 +340,7 @@ def normalize_city(name: str) -> str:
     # Берём только первое слово если осталось несколько (защита от "Симферополь центр")
     # Но сохраняем "Ростов-на-Дону" и подобные
     words = n.split()
-    if len(words) > 2 and '-' not in n:
+    if len(words) > 1 and '-' not in n:
         n = words[0]
 
     return n.strip().title()

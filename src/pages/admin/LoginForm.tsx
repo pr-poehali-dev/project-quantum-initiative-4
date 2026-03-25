@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 
 const CREDENTIALS = { login: "Yaltataran", password: "Taran220577" };
@@ -47,6 +48,10 @@ export default function LoginForm({ onLogin }: { onLogin: () => void }) {
         <button type="submit" className="w-full bg-brand-yellow text-gray-900 font-bold py-3 rounded-lg hover:bg-yellow-400 transition-colors">
           Войти
         </button>
+        <Link to="/" className="block text-center text-sm text-gray-400 hover:text-white mt-4 transition-colors">
+          <Icon name="ArrowLeft" size={14} className="inline mr-1" />
+          На главную
+        </Link>
       </form>
     </div>
   );

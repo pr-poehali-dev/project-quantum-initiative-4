@@ -221,7 +221,7 @@ function AdminPanel() {
             </h1>
           </div>
           <button
-            onClick={() => { sessionStorage.removeItem("admin_auth"); window.location.reload(); }}
+            onClick={() => { sessionStorage.removeItem("admin_auth"); window.location.href = "/"; }}
             className="text-sm text-gray-400 hover:text-white flex items-center gap-1"
           >
             <Icon name="LogOut" size={16} /> Выйти

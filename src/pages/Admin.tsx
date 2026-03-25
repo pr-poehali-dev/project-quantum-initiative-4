@@ -5,12 +5,14 @@ import LoginForm from "./admin/LoginForm";
 import RouteCheckSection from "./admin/RouteCheckSection";
 import RecalcSection from "./admin/RecalcSection";
 import RoutesListSection from "./admin/RoutesListSection";
+import CalcLogsSection from "./admin/CalcLogsSection";
 import type { Route, CheckResult, DailyReport, FixResult } from "./admin/types";
 
-type Section = "routes" | "check" | "recalc";
+type Section = "routes" | "check" | "recalc" | "logs";
 
 const MENU_ITEMS: { key: Section; icon: string; label: string; desc: string }[] = [
   { key: "routes", icon: "Route", label: "Маршруты", desc: "База эталонных маршрутов" },
+  { key: "logs", icon: "ScrollText", label: "Логи расчётов", desc: "История запросов клиентов" },
   { key: "check", icon: "ScanSearch", label: "Проверка", desc: "Проверка и исправление маршрутов" },
   { key: "recalc", icon: "RefreshCw", label: "Пересчёт", desc: "Пересчёт расстояний через OSRM" },
 ];
@@ -31,6 +33,7 @@ function AdminPanel() {
   const [recalcRunning, setRecalcRunning] = useState(false);
   const [recalcProgress, setRecalcProgress] = useState<string | null>(null);
   const [routeCount, setRouteCount] = useState(0);
+  const [logsCount, setLogsCount] = useState(0);
 
   const loadRoutes = useCallback(async () => {
     setLoading(true);
@@ -146,10 +149,21 @@ function AdminPanel() {
     setFixingAll(false);
   };
 
+  const loadLogsCount = useCallback(async () => {
+    try {
+      const res = await fetch(funcUrls["route-logs"] + "?limit=1");
+      const data = await res.json();
+      setLogsCount(data.total || 0);
+    } catch {
+      // ignore
+    }
+  }, []);
+
   useEffect(() => {
     loadRoutes();
     loadReport();
-  }, [loadRoutes, loadReport]);
+    loadLogsCount();
+  }, [loadRoutes, loadReport, loadLogsCount]);
 
   const runCheck = async () => {
     setCheckRunning(true);
@@ -224,6 +238,7 @@ function AdminPanel() {
               >
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
                   item.key === "routes" ? "bg-green-500/15 text-green-400" :
+                  item.key === "logs" ? "bg-cyan-500/15 text-cyan-400" :
                   item.key === "check" ? "bg-blue-500/15 text-blue-400" :
                   "bg-purple-500/15 text-purple-400"
                 }`}>
@@ -238,6 +253,9 @@ function AdminPanel() {
                 <div className="flex items-center gap-3 shrink-0">
                   {item.key === "routes" && routeCount > 0 && (
                     <span className="text-sm text-gray-500">{routeCount} шт.</span>
+                  )}
+                  {item.key === "logs" && logsCount > 0 && (
+                    <span className="text-sm text-gray-500">{logsCount} шт.</span>
                   )}
                   {item.key === "check" && problemsCount > 0 && (
                     <span className="bg-yellow-500/20 text-yellow-400 text-xs font-medium px-2.5 py-1 rounded-full">
@@ -264,6 +282,10 @@ function AdminPanel() {
             onSearchChange={setSearch}
             onRouteUpdated={loadRoutes}
           />
+        )}
+
+        {section === "logs" && (
+          <CalcLogsSection />
         )}
 
         {section === "check" && (

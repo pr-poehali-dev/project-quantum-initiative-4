@@ -175,6 +175,21 @@ def is_zap_addr(a):
     return any(k in a.lower() for k in ["мелитополь","запорожская","бердянск","токмак","энергодар","пологи"])
 
 
+def is_osrm_unreliable(from_city, to_city):
+    """OSRM не знает дорог в спецзонах — строит объезды через Россию."""
+    f_spec = is_special_addr(from_city)
+    t_spec = is_special_addr(to_city)
+    f_crim = is_crimea_addr(from_city)
+    t_crim = is_crimea_addr(to_city)
+    if f_spec and t_spec:
+        return True
+    if (f_spec or t_spec) and (f_crim or t_crim):
+        return True
+    if (f_spec and not t_spec and not t_crim) or (t_spec and not f_spec and not f_crim):
+        return True
+    return False
+
+
 def check_single_route(from_city, to_city):
     coord_from = geocode_city(from_city)
     coord_to = geocode_city(to_city)
@@ -236,6 +251,15 @@ def fix_route(event):
 
     _, from_city, to_city, old_normal, old_special = row
     old_total = old_normal + old_special
+
+    if is_osrm_unreliable(from_city, to_city):
+        conn.close()
+        return {"statusCode": 200, "headers": CORS, "body": json.dumps({
+            "status": "ok", "route_id": route_id,
+            "from": from_city, "to": to_city,
+            "message": "Маршрут в спецзоне — OSRM ненадёжен, эталон сохранён",
+            "old_km": old_total, "calc_km": old_total,
+        })}
 
     calc_normal, calc_special, err = check_single_route(from_city, to_city)
     if err:
@@ -309,6 +333,10 @@ def fix_all_problems(event):
         route_id, from_city, to_city, ref_normal, ref_special = row
         ref_total = ref_normal + ref_special
 
+        if is_osrm_unreliable(from_city, to_city):
+            skipped.append({"id": route_id, "from": from_city, "to": to_city, "deviation": 0, "reason": "speczone"})
+            continue
+
         calc_normal, calc_special, err = check_single_route(from_city, to_city)
         if err:
             errors.append({"id": route_id, "from": from_city, "to": to_city, "error": err})
@@ -379,6 +407,8 @@ def recalc_all(event):
     errors = []
     seen_pairs = set()
 
+    skipped = []
+
     for row in rows:
         route_id, from_city, to_city, old_normal, old_special = row
         old_total = old_normal + old_special
@@ -387,6 +417,10 @@ def recalc_all(event):
         if pair_key in seen_pairs:
             continue
         seen_pairs.add(pair_key)
+
+        if is_osrm_unreliable(from_city, to_city):
+            skipped.append({"id": route_id, "from": from_city, "to": to_city, "reason": "speczone"})
+            continue
 
         calc_normal, calc_special, err = check_single_route(from_city, to_city)
         if err:
@@ -439,10 +473,12 @@ def recalc_all(event):
         "processed": len(rows),
         "updated": len(updated),
         "unchanged": len(unchanged),
+        "skipped": len(skipped),
         "errors": len(errors),
         "has_more": has_more,
         "next_offset": offset + limit if has_more else None,
         "updated_details": updated,
+        "skipped_details": skipped,
         "error_details": errors,
     })}
 
@@ -488,6 +524,21 @@ def handler(event, context):
     for route in routes:
         route_id, from_city, to_city, ref_normal, ref_special = route
         ref_total = ref_normal + ref_special
+
+        if is_osrm_unreliable(from_city, to_city):
+            cur.execute(
+                "INSERT INTO route_check_logs (route_id, from_city, to_city, ref_km_normal, ref_km_special, "
+                "calc_km_normal, calc_km_special, deviation_pct, status, error_detail) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                (route_id, from_city, to_city, ref_normal, ref_special,
+                 ref_normal, ref_special, 0, "ok", "speczone: OSRM пропущен")
+            )
+            results.append({
+                "id": route_id, "from": from_city, "to": to_city,
+                "ref_km": ref_total, "calc_km": ref_total,
+                "deviation": 0, "status": "ok",
+            })
+            continue
 
         calc_normal, calc_special, err = check_single_route(from_city, to_city)
 

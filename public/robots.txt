@@ -1,4 +1,6 @@
 User-agent: *
 Allow: /
+Disallow: /thanks
 
+Host: https://ug-transfer.online
 Sitemap: https://ug-transfer.online/sitemap.xml

@@ -675,7 +675,7 @@ def handler(event: dict, context) -> dict:
     from_crimea = is_crimea_addr(from_city)
     to_crimea   = is_crimea_addr(to_city)
 
-    KERCH    = (36.467, 45.360)
+    KERCH_BRIDGE = (36.536, 45.308)
     ARMIANSK = (33.691, 46.103)
     CHONGAR  = (34.394, 46.003)
 
@@ -690,14 +690,14 @@ def handler(event: dict, context) -> dict:
         elif is_zap_addr(to_city):
             osrm_coords.insert(1, CHONGAR)
         else:
-            osrm_coords.insert(1, KERCH)
+            osrm_coords.insert(1, KERCH_BRIDGE)
     elif to_crimea and not from_crimea:
         if is_kherson_addr(from_city):
             osrm_coords.insert(len(osrm_coords)-1, ARMIANSK)
         elif is_zap_addr(from_city):
             osrm_coords.insert(len(osrm_coords)-1, CHONGAR)
         else:
-            osrm_coords.insert(len(osrm_coords)-1, KERCH)
+            osrm_coords.insert(len(osrm_coords)-1, KERCH_BRIDGE)
 
     # ── 3. Считаем расстояния ─────────────────────────────────────────────────
     source = "osrm"

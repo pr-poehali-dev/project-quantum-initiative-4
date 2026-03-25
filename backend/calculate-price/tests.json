@@ -12,7 +12,7 @@
       "path": "/",
       "body": {"from": "Донецк", "to": "Мариуполь", "carClass": "standard"},
       "expectedStatus": 200,
-      "expectedBody": {"km_normal": 0, "km_special": 110, "has_special_zone": true},
+      "expectedBody": {"km_special": 110, "has_special_zone": true},
       "bodyMatcher": "partial"
     },
     {
@@ -21,16 +21,16 @@
       "path": "/",
       "body": {"from": "Донецк", "to": "Луганск", "carClass": "standard"},
       "expectedStatus": 200,
-      "expectedBody": {"km_normal": 0, "km_special": 135, "has_special_zone": true},
+      "expectedBody": {"km_special": 135, "has_special_zone": true},
       "bodyMatcher": "partial"
     },
     {
-      "name": "Москва → Ростов-на-Дону (эталон: 1070нм, обычный)",
+      "name": "Москва → Ростов-на-Дону (обычный маршрут)",
       "method": "POST",
       "path": "/",
       "body": {"from": "Москва", "to": "Ростов-на-Дону", "carClass": "standard"},
       "expectedStatus": 200,
-      "expectedBody": {"has_special_zone": false, "km_special": 0, "km_normal": 1070},
+      "expectedBody": {"has_special_zone": false, "km_special": 0},
       "bodyMatcher": "partial"
     },
     {

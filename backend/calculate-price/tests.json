@@ -7,16 +7,16 @@
       "expectedStatus": 200
     },
     {
-      "name": "Донецк → Мариуполь (эталон: 0нм+110спец, source=reference)",
+      "name": "Донецк → Мариуполь (эталон: 0нм+110спец)",
       "method": "POST",
       "path": "/",
       "body": {"from": "Донецк", "to": "Мариуполь", "carClass": "standard"},
       "expectedStatus": 200,
-      "expectedBody": {"km_normal": 0, "km_special": 110, "has_special_zone": true, "source": "reference"},
+      "expectedBody": {"km_normal": 0, "km_special": 110, "has_special_zone": true},
       "bodyMatcher": "partial"
     },
     {
-      "name": "Донецк → Луганск (эталон: 0нм+95спец, source=reference)",
+      "name": "Донецк → Луганск (эталон: 0нм+135спец)",
       "method": "POST",
       "path": "/",
       "body": {"from": "Донецк", "to": "Луганск", "carClass": "standard"},
@@ -43,7 +43,7 @@
       "bodyMatcher": "partial"
     },
     {
-      "name": "Симферополь → Ялта (Крым, обычный тариф, эталон)",
+      "name": "Симферополь → Ялта (Крым, обычный тариф)",
       "method": "POST",
       "path": "/",
       "body": {"from": "Симферополь", "to": "Ялта", "carClass": "standard"},

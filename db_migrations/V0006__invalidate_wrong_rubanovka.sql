@@ -1,0 +1,2 @@
+UPDATE routes_reference SET km_normal = 0, km_special = 0, notes = 'auto-osrm-invalid' WHERE notes = 'auto-osrm' AND from_city = 'Рубановка' AND to_city = 'Ялта';
+UPDATE routes_reference SET km_normal = 0, km_special = 0, notes = 'auto-osrm-invalid' WHERE notes = 'auto-osrm' AND from_city = 'Ялта' AND to_city = 'Рубановка';

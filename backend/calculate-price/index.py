@@ -316,8 +316,7 @@ def normalize_city(name: str) -> str:
     city_part = None
     for i, part in enumerate(parts):
         pl = part.lower()
-        # Если часть содержит "г." или "город" — берём её
-        if re.match(r'^г\.?\s+', pl) or pl.startswith('город '):
+        if re.match(r'^(г|с|п|пгт)\.?\s+', pl) or pl.startswith('город ') or pl.startswith('село ') or pl.startswith('посёлок ') or pl.startswith('поселок '):
             city_part = part.strip()
             break
         # Если это последняя часть с адресом (улица, дом) — берём предыдущую
@@ -331,8 +330,7 @@ def normalize_city(name: str) -> str:
     if city_part:
         n = city_part
 
-    # Убираем префиксы "г.", "г ", "город "
-    for prefix in ['г. ', 'г.', 'г ', 'город ']:
+    for prefix in ['г. ', 'г.', 'город ', 'с. ', 'с.', 'село ', 'п. ', 'п.', 'пгт. ', 'пгт.', 'пгт ', 'посёлок ', 'поселок ', 'деревня ', 'д. ', 'д.']:
         if n.lower().startswith(prefix):
             n = n[len(prefix):].strip()
             break
@@ -450,6 +448,32 @@ def build_auto_alternatives(km_normal: int, km_special: int, car_class: str, ext
                 "notes": "Длиннее, но меньше км по спецтарифу",
             })
     return alts
+
+
+def save_to_reference(from_city: str, to_city: str, km_normal: int, km_special: int):
+    """Автоматически сохраняет новый маршрут в справочник для будущих запросов."""
+    try:
+        from_spec = is_special_addr(from_city)
+        to_spec = is_special_addr(to_city)
+        if (from_spec or to_spec) and km_special == 0:
+            return
+        from_norm = normalize_city(from_city)
+        to_norm = normalize_city(to_city)
+        km_total = km_normal + km_special
+        if km_total < 5:
+            return
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            """INSERT INTO routes_reference (from_city, to_city, km_normal, km_special, notes)
+               VALUES (%s, %s, %s, %s, %s)
+               ON CONFLICT (from_city, to_city) DO NOTHING""",
+            (from_norm, to_norm, km_normal, km_special, "auto-osrm")
+        )
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
 
 
 def save_log(data: dict):
@@ -718,6 +742,11 @@ def handler(event: dict, context) -> dict:
             km_normal  = reference["km_normal"]
             km_special = reference["km_special"]
             source = "reference"
+
+    # ── 4а. Авто-пополнение справочника ────────────────────────────────────────
+    if not reference and use_reference and source in ("osrm", "fallback"):
+        save_to_reference(from_city, to_city, km_normal, km_special)
+        save_to_reference(to_city, from_city, km_normal, km_special)
 
     distance_km = km_normal + km_special
 

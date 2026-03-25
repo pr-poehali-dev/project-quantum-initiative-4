@@ -26,6 +26,7 @@ interface CheckResult {
   next_offset: number | null;
   problems: Array<{
     id: number;
+    route_id?: number;
     from: string;
     to: string;
     ref_km?: number;
@@ -33,6 +34,7 @@ interface CheckResult {
     deviation?: number;
     status?: string;
     error?: string;
+    detail?: string;
   }>;
 }
 
@@ -93,6 +95,17 @@ function LoginForm({ onLogin }: { onLogin: () => void }) {
   );
 }
 
+interface FixResult {
+  route_id: number;
+  status: string;
+  from: string;
+  to: string;
+  old_total?: number;
+  new_total?: number;
+  message?: string;
+  error?: string;
+}
+
 function RoutesTable() {
   const [routes, setRoutes] = useState<Route[]>([]);
   const [loading, setLoading] = useState(true);
@@ -101,6 +114,10 @@ function RoutesTable() {
   const [checkProgress, setCheckProgress] = useState<string | null>(null);
   const [report, setReport] = useState<DailyReport[]>([]);
   const [problems, setProblems] = useState<CheckResult["problems"]>([]);
+  const [fixingIds, setFixingIds] = useState<Set<number>>(new Set());
+  const [fixResults, setFixResults] = useState<Record<number, FixResult>>({});
+  const [fixingAll, setFixingAll] = useState(false);
+  const [fixAllProgress, setFixAllProgress] = useState<string | null>(null);
 
   const loadRoutes = useCallback(async () => {
     setLoading(true);
@@ -126,6 +143,54 @@ function RoutesTable() {
       // ignore
     }
   }, []);
+
+  const fixRoute = async (routeId: number) => {
+    setFixingIds((prev) => new Set(prev).add(routeId));
+    try {
+      const res = await fetch(funcUrls["check-routes"] + "?action=fix", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ route_id: routeId }),
+      });
+      const data: FixResult = await res.json();
+      setFixResults((prev) => ({ ...prev, [routeId]: data }));
+      if (data.status === "fixed") {
+        loadRoutes();
+        loadReport();
+      }
+    } catch {
+      setFixResults((prev) => ({
+        ...prev,
+        [routeId]: { route_id: routeId, status: "error", from: "", to: "", error: "Сетевая ошибка" },
+      }));
+    }
+    setFixingIds((prev) => {
+      const next = new Set(prev);
+      next.delete(routeId);
+      return next;
+    });
+  };
+
+  const fixAllProblems = async () => {
+    setFixingAll(true);
+    setFixAllProgress("Исправление маршрутов...");
+    try {
+      const res = await fetch(funcUrls["check-routes"] + "?action=fix_all", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      });
+      const data = await res.json();
+      setFixAllProgress(
+        `Готово: исправлено ${data.fixed}, пропущено ${data.skipped}, ошибок ${data.errors}`
+      );
+      loadRoutes();
+      loadReport();
+    } catch {
+      setFixAllProgress("Ошибка при исправлении");
+    }
+    setFixingAll(false);
+  };
 
   useEffect(() => {
     loadRoutes();
@@ -246,26 +311,75 @@ function RoutesTable() {
 
           {problems.length > 0 && (
             <div className="mt-4">
-              <p className="text-sm text-gray-400 mb-2">Проблемные маршруты сегодня:</p>
-              <div className="overflow-x-auto max-h-60 overflow-y-auto">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm text-gray-400">Проблемные маршруты сегодня ({problems.length}):</p>
+                <button
+                  onClick={fixAllProblems}
+                  disabled={fixingAll || checkRunning}
+                  className="bg-orange-600 hover:bg-orange-500 disabled:bg-orange-800 disabled:opacity-50 text-white text-sm font-medium px-4 py-1.5 rounded-lg flex items-center gap-2 transition-colors"
+                >
+                  {fixingAll ? (
+                    <Icon name="Loader2" size={14} className="animate-spin" />
+                  ) : (
+                    <Icon name="Wrench" size={14} />
+                  )}
+                  {fixingAll ? "Исправляю..." : "Исправить все"}
+                </button>
+              </div>
+              {fixAllProgress && (
+                <div className={`text-sm px-4 py-2 rounded-lg mb-3 ${fixingAll ? "bg-orange-500/20 text-orange-300" : "bg-green-500/20 text-green-300"}`}>
+                  {fixAllProgress}
+                </div>
+              )}
+              <div className="overflow-x-auto max-h-80 overflow-y-auto">
                 <table className="w-full text-sm">
-                  <thead>
+                  <thead className="sticky top-0 bg-gray-800">
                     <tr className="text-gray-400 border-b border-gray-700">
                       <th className="text-left py-2 px-3">Маршрут</th>
                       <th className="text-right py-2 px-3">Эталон</th>
                       <th className="text-right py-2 px-3">Расчёт</th>
                       <th className="text-right py-2 px-3">Откл. %</th>
+                      <th className="text-right py-2 px-3">Действие</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {problems.map((p, i) => (
-                      <tr key={i} className="border-b border-gray-700/50">
-                        <td className="py-2 px-3">{p.from} → {p.to}</td>
-                        <td className="text-right py-2 px-3">{p.ref_km} км</td>
-                        <td className="text-right py-2 px-3">{p.calc_km ?? "—"} км</td>
-                        <td className="text-right py-2 px-3 text-yellow-400">{p.deviation ?? "err"}%</td>
-                      </tr>
-                    ))}
+                    {problems.map((p, i) => {
+                      const rid = p.route_id ?? p.id;
+                      const fixing = fixingIds.has(rid);
+                      const result = fixResults[rid];
+                      return (
+                        <tr key={i} className="border-b border-gray-700/50">
+                          <td className="py-2 px-3">{p.from} → {p.to}</td>
+                          <td className="text-right py-2 px-3">{p.ref_km} км</td>
+                          <td className="text-right py-2 px-3">{p.calc_km ?? "—"} км</td>
+                          <td className="text-right py-2 px-3 text-yellow-400">{p.deviation ?? "err"}%</td>
+                          <td className="text-right py-2 px-3">
+                            {result?.status === "fixed" ? (
+                              <span className="text-green-400 text-xs flex items-center justify-end gap-1">
+                                <Icon name="Check" size={12} /> {result.new_total} км
+                              </span>
+                            ) : result?.status === "ok" ? (
+                              <span className="text-gray-400 text-xs">В норме</span>
+                            ) : result?.status === "error" ? (
+                              <span className="text-red-400 text-xs">Ошибка</span>
+                            ) : (
+                              <button
+                                onClick={() => fixRoute(rid)}
+                                disabled={fixing || fixingAll}
+                                className="bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white text-xs px-3 py-1 rounded flex items-center gap-1 ml-auto transition-colors"
+                              >
+                                {fixing ? (
+                                  <Icon name="Loader2" size={12} className="animate-spin" />
+                                ) : (
+                                  <Icon name="Wrench" size={12} />
+                                )}
+                                {fixing ? "..." : "Исправить"}
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

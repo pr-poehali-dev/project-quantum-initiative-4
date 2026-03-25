@@ -219,12 +219,155 @@ def check_single_route(from_city, to_city):
     return round(km_normal), round(km_special), None
 
 
+def fix_route(event):
+    """Пересчитывает маршрут через OSRM и обновляет эталон в БД."""
+    body = json.loads(event.get("body", "{}"))
+    route_id = body.get("route_id")
+    if not route_id:
+        return {"statusCode": 400, "headers": CORS, "body": json.dumps({"error": "route_id required"})}
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT id, from_city, to_city, km_normal, km_special FROM routes_reference WHERE id = %s", (route_id,))
+    row = cur.fetchone()
+    if not row:
+        conn.close()
+        return {"statusCode": 404, "headers": CORS, "body": json.dumps({"error": "route not found"})}
+
+    _, from_city, to_city, old_normal, old_special = row
+    old_total = old_normal + old_special
+
+    calc_normal, calc_special, err = check_single_route(from_city, to_city)
+    if err:
+        conn.close()
+        return {"statusCode": 200, "headers": CORS, "body": json.dumps({
+            "status": "error", "error": err, "route_id": route_id,
+            "from": from_city, "to": to_city,
+        })}
+
+    calc_total = calc_normal + calc_special
+    deviation = abs(calc_total - old_total) / old_total * 100 if old_total > 0 else 0
+
+    if deviation <= DEVIATION_THRESHOLD:
+        conn.close()
+        return {"statusCode": 200, "headers": CORS, "body": json.dumps({
+            "status": "ok", "route_id": route_id,
+            "from": from_city, "to": to_city,
+            "message": f"Отклонение {round(deviation,1)}% в пределах нормы, исправление не требуется",
+            "old_km": old_total, "calc_km": calc_total,
+        })}
+
+    cur.execute(
+        "UPDATE routes_reference SET km_normal = %s, km_special = %s, "
+        "notes = %s, updated_at = NOW() WHERE id = %s",
+        (calc_normal, calc_special,
+         f"Автоисправлено: было {old_normal}+{old_special}={old_total}км, стало {calc_normal}+{calc_special}={calc_total}км",
+         route_id)
+    )
+
+    reverse_city_from = to_city
+    reverse_city_to = from_city
+    cur.execute(
+        "UPDATE routes_reference SET km_normal = %s, km_special = %s, "
+        "notes = %s, updated_at = NOW() "
+        "WHERE LOWER(from_city) = LOWER(%s) AND LOWER(to_city) = LOWER(%s)",
+        (calc_normal, calc_special,
+         f"Автоисправлено (обратный): было→стало {calc_normal}+{calc_special}={calc_total}км",
+         reverse_city_from, reverse_city_to)
+    )
+
+    conn.commit()
+    conn.close()
+
+    return {"statusCode": 200, "headers": CORS, "body": json.dumps({
+        "status": "fixed", "route_id": route_id,
+        "from": from_city, "to": to_city,
+        "old_normal": old_normal, "old_special": old_special, "old_total": old_total,
+        "new_normal": calc_normal, "new_special": calc_special, "new_total": calc_total,
+        "deviation": round(deviation, 1),
+    })}
+
+
+def fix_all_problems(event):
+    """Исправляет все проблемные маршруты за сегодня."""
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute(
+        "SELECT DISTINCT route_id, from_city, to_city, ref_km_normal, ref_km_special "
+        "FROM route_check_logs WHERE status = 'deviation' AND check_date = CURRENT_DATE "
+        "ORDER BY deviation_pct DESC"
+    )
+    rows = cur.fetchall()
+    conn.close()
+
+    fixed = []
+    skipped = []
+    errors = []
+
+    for row in rows:
+        route_id, from_city, to_city, ref_normal, ref_special = row
+        ref_total = ref_normal + ref_special
+
+        calc_normal, calc_special, err = check_single_route(from_city, to_city)
+        if err:
+            errors.append({"id": route_id, "from": from_city, "to": to_city, "error": err})
+            time.sleep(0.2)
+            continue
+
+        calc_total = calc_normal + calc_special
+        deviation = abs(calc_total - ref_total) / ref_total * 100 if ref_total > 0 else 0
+
+        if deviation <= DEVIATION_THRESHOLD:
+            skipped.append({"id": route_id, "from": from_city, "to": to_city, "deviation": round(deviation, 1)})
+            time.sleep(0.2)
+            continue
+
+        conn2 = get_db()
+        cur2 = conn2.cursor()
+        cur2.execute(
+            "UPDATE routes_reference SET km_normal = %s, km_special = %s, "
+            "notes = %s, updated_at = NOW() WHERE id = %s",
+            (calc_normal, calc_special,
+             f"Автоисправлено: {ref_normal}+{ref_special}→{calc_normal}+{calc_special}",
+             route_id)
+        )
+        cur2.execute(
+            "UPDATE routes_reference SET km_normal = %s, km_special = %s, "
+            "notes = %s, updated_at = NOW() "
+            "WHERE LOWER(from_city) = LOWER(%s) AND LOWER(to_city) = LOWER(%s)",
+            (calc_normal, calc_special,
+             f"Автоисправлено (обратный): {calc_normal}+{calc_special}={calc_total}км",
+             to_city, from_city)
+        )
+        conn2.commit()
+        conn2.close()
+
+        fixed.append({
+            "id": route_id, "from": from_city, "to": to_city,
+            "old_km": ref_total, "new_km": calc_total, "deviation": round(deviation, 1),
+        })
+        time.sleep(0.2)
+
+    return {"statusCode": 200, "headers": CORS, "body": json.dumps({
+        "fixed": len(fixed), "skipped": len(skipped), "errors": len(errors),
+        "details": fixed, "skipped_details": skipped, "error_details": errors,
+    })}
+
+
 def handler(event, context):
     """Проверка эталонных маршрутов порциями — ?offset=0&limit=20. Или ?report=1 для сводки."""
     if event.get('httpMethod') == 'OPTIONS':
         return {'statusCode': 200, 'headers': {**CORS, 'Access-Control-Max-Age': '86400'}, 'body': ''}
 
     params = event.get('queryStringParameters') or {}
+
+    if event.get('httpMethod') == 'POST':
+        action = params.get('action', '')
+        if action == 'fix':
+            return fix_route(event)
+        if action == 'fix_all':
+            return fix_all_problems(event)
 
     if params.get('report'):
         return get_report()

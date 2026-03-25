@@ -358,7 +358,7 @@ def extract_city_candidates(name: str) -> list:
 
 
 def lookup_reference(from_city: str, to_city: str):
-    """Ищет эталонный маршрут в БД (без учёта регистра, с нормализацией)."""
+    """Ищет эталонный маршрут в БД (без учёта регистра, с нормализацией). Проверяет оба направления."""
     try:
         conn = get_db()
         cur = conn.cursor()
@@ -370,6 +370,17 @@ def lookup_reference(from_city: str, to_city: str):
                     "SELECT id, km_normal, km_special FROM routes_reference "
                     "WHERE LOWER(from_city) = LOWER(%s) AND LOWER(to_city) = LOWER(%s) LIMIT 1",
                     (fc, tc)
+                )
+                row = cur.fetchone()
+                if row:
+                    conn.close()
+                    return {"id": row[0], "km_normal": row[1], "km_special": row[2]}
+        for fc in from_candidates:
+            for tc in to_candidates:
+                cur.execute(
+                    "SELECT id, km_normal, km_special FROM routes_reference "
+                    "WHERE LOWER(from_city) = LOWER(%s) AND LOWER(to_city) = LOWER(%s) LIMIT 1",
+                    (tc, fc)
                 )
                 row = cur.fetchone()
                 if row:
@@ -479,7 +490,7 @@ def save_to_reference(from_city: str, to_city: str, km_normal: int, km_special: 
 
 
 def update_reference(from_city: str, to_city: str, km_normal: int, km_special: int):
-    """Создаёт или обновляет эталонный маршрут по данным OSRM."""
+    """Создаёт или обновляет эталонный маршрут по данным OSRM. Не создаёт дубли."""
     try:
         from_spec = is_special_addr(from_city)
         to_spec = is_special_addr(to_city)
@@ -490,15 +501,24 @@ def update_reference(from_city: str, to_city: str, km_normal: int, km_special: i
         conn = get_db()
         cur = conn.cursor()
         cur.execute(
-            """INSERT INTO routes_reference (from_city, to_city, km_normal, km_special, notes)
-               VALUES (%s, %s, %s, %s, %s)
-               ON CONFLICT (from_city, to_city)
-               DO UPDATE SET km_normal = EXCLUDED.km_normal,
-                             km_special = EXCLUDED.km_special,
-                             notes = 'osrm-live',
-                             updated_at = NOW()""",
-            (from_norm, to_norm, km_normal, km_special, "osrm-live")
+            "SELECT id FROM routes_reference "
+            "WHERE (LOWER(from_city) = LOWER(%s) AND LOWER(to_city) = LOWER(%s)) "
+            "   OR (LOWER(from_city) = LOWER(%s) AND LOWER(to_city) = LOWER(%s)) LIMIT 1",
+            (from_norm, to_norm, to_norm, from_norm)
         )
+        existing = cur.fetchone()
+        if existing:
+            cur.execute(
+                "UPDATE routes_reference SET km_normal = %s, km_special = %s, "
+                "notes = 'osrm-live', updated_at = NOW() WHERE id = %s",
+                (km_normal, km_special, existing[0])
+            )
+        else:
+            cur.execute(
+                "INSERT INTO routes_reference (from_city, to_city, km_normal, km_special, notes) "
+                "VALUES (%s, %s, %s, %s, 'osrm-live')",
+                (from_norm, to_norm, km_normal, km_special)
+            )
         conn.commit()
         conn.close()
     except Exception:

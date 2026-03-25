@@ -749,20 +749,38 @@ def handler(event: dict, context) -> dict:
     km_normal  = round(km_normal)
     km_special = round(km_special)
 
-    # ── 4. OSRM — главный источник, эталон обновляется ─────────────────────────
+    # ── 4. Сверяем с эталоном, обновляем при необходимости ──────────────────────
     km_calc_total = km_normal + km_special
     is_error = False
     deviation_pct = None
     error_reason = None
     ref_km_total = None
 
+    any_special = is_special_addr(from_city) or is_special_addr(to_city) or any(is_special_addr(s) for s in stops)
+    osrm_reliable = source == "osrm" and not all_special
+
     if reference:
         ref_km_total = reference["km_normal"] + reference["km_special"]
         is_error, deviation_pct, error_reason = validate_against_reference(km_calc_total, reference)
 
-    if source == "osrm" and use_reference and km_calc_total >= 5:
-        update_reference(from_city, to_city, km_normal, km_special)
-        update_reference(to_city, from_city, km_normal, km_special)
+        if all_special and ref_km_total > 0:
+            km_normal = reference["km_normal"]
+            km_special = reference["km_special"]
+            source = "reference"
+        elif any_special and is_error and ref_km_total > 0:
+            km_normal = reference["km_normal"]
+            km_special = reference["km_special"]
+            source = "reference_override"
+        elif osrm_reliable and use_reference and km_calc_total >= 5:
+            update_reference(from_city, to_city, km_normal, km_special)
+            update_reference(to_city, from_city, km_normal, km_special)
+    elif use_reference and km_calc_total >= 5:
+        if osrm_reliable:
+            update_reference(from_city, to_city, km_normal, km_special)
+            update_reference(to_city, from_city, km_normal, km_special)
+        elif not osrm_reliable:
+            save_to_reference(from_city, to_city, km_normal, km_special)
+            save_to_reference(to_city, from_city, km_normal, km_special)
 
     distance_km = km_normal + km_special
 

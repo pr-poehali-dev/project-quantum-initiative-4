@@ -478,6 +478,33 @@ def save_to_reference(from_city: str, to_city: str, km_normal: int, km_special: 
         pass
 
 
+def update_reference(from_city: str, to_city: str, km_normal: int, km_special: int):
+    """Создаёт или обновляет эталонный маршрут по данным OSRM."""
+    try:
+        from_spec = is_special_addr(from_city)
+        to_spec = is_special_addr(to_city)
+        if (from_spec or to_spec) and km_special == 0:
+            return
+        from_norm = normalize_city(from_city)
+        to_norm = normalize_city(to_city)
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            """INSERT INTO routes_reference (from_city, to_city, km_normal, km_special, notes)
+               VALUES (%s, %s, %s, %s, %s)
+               ON CONFLICT (from_city, to_city)
+               DO UPDATE SET km_normal = EXCLUDED.km_normal,
+                             km_special = EXCLUDED.km_special,
+                             notes = 'osrm-live',
+                             updated_at = NOW()""",
+            (from_norm, to_norm, km_normal, km_special, "osrm-live")
+        )
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+
 def save_log(data: dict):
     """Сохраняет лог расчёта в БД."""
     try:
@@ -722,7 +749,7 @@ def handler(event: dict, context) -> dict:
     km_normal  = round(km_normal)
     km_special = round(km_special)
 
-    # ── 4. Если есть эталон — используем его km_normal / km_special ───────────
+    # ── 4. OSRM — главный источник, эталон обновляется ─────────────────────────
     km_calc_total = km_normal + km_special
     is_error = False
     deviation_pct = None
@@ -733,22 +760,9 @@ def handler(event: dict, context) -> dict:
         ref_km_total = reference["km_normal"] + reference["km_special"]
         is_error, deviation_pct, error_reason = validate_against_reference(km_calc_total, reference)
 
-        # При отклонении — доверяем эталону
-        if is_error:
-            km_normal  = reference["km_normal"]
-            km_special = reference["km_special"]
-            source = "reference_override"
-            is_error = True  # сохраняем флаг что было отклонение — но цену считаем по эталону
-        else:
-            # Незначительное отклонение — доверяем OSRM, но записываем эталонные км для точности тарификации
-            km_normal  = reference["km_normal"]
-            km_special = reference["km_special"]
-            source = "reference"
-
-    # ── 4а. Авто-пополнение справочника ────────────────────────────────────────
-    if not reference and use_reference and source in ("osrm", "fallback"):
-        save_to_reference(from_city, to_city, km_normal, km_special)
-        save_to_reference(to_city, from_city, km_normal, km_special)
+    if source == "osrm" and use_reference and km_calc_total >= 5:
+        update_reference(from_city, to_city, km_normal, km_special)
+        update_reference(to_city, from_city, km_normal, km_special)
 
     distance_km = km_normal + km_special
 

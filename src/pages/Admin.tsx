@@ -118,6 +118,8 @@ function RoutesTable() {
   const [fixResults, setFixResults] = useState<Record<number, FixResult>>({});
   const [fixingAll, setFixingAll] = useState(false);
   const [fixAllProgress, setFixAllProgress] = useState<string | null>(null);
+  const [recalcRunning, setRecalcRunning] = useState(false);
+  const [recalcProgress, setRecalcProgress] = useState<string | null>(null);
 
   const loadRoutes = useCallback(async () => {
     setLoading(true);
@@ -169,6 +171,46 @@ function RoutesTable() {
       next.delete(routeId);
       return next;
     });
+  };
+
+  const recalcAll = async () => {
+    setRecalcRunning(true);
+    setRecalcProgress("Пересчёт маршрутов...");
+    let offset = 0;
+    const limit = 30;
+    let totalUpdated = 0;
+    let totalUnchanged = 0;
+    let totalErrors = 0;
+    let totalProcessed = 0;
+    let totalRoutes = 0;
+
+    while (true) {
+      try {
+        setRecalcProgress(`Пересчёт маршрутов ${offset + 1}–${offset + limit}...`);
+        const res = await fetch(funcUrls["check-routes"] + "?action=recalc_all", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ offset, limit }),
+        });
+        const data = await res.json();
+        totalRoutes = data.total;
+        totalUpdated += data.updated;
+        totalUnchanged += data.unchanged;
+        totalErrors += data.errors;
+        totalProcessed += data.processed;
+        setRecalcProgress(`Обработано ${totalProcessed}/${totalRoutes}. Обновлено: ${totalUpdated}, без изменений: ${totalUnchanged}, ошибок: ${totalErrors}`);
+        if (!data.has_more) break;
+        offset = data.next_offset;
+      } catch {
+        setRecalcProgress(`Ошибка на смещении ${offset}. Обновлено: ${totalUpdated}, ошибок: ${totalErrors}`);
+        break;
+      }
+    }
+
+    setRecalcProgress(`Готово! Всего: ${totalProcessed}. Обновлено: ${totalUpdated}, без изменений: ${totalUnchanged}, ошибок: ${totalErrors}`);
+    setRecalcRunning(false);
+    loadRoutes();
+    loadReport();
   };
 
   const fixAllProblems = async () => {
@@ -383,6 +425,36 @@ function RoutesTable() {
                   </tbody>
                 </table>
               </div>
+            </div>
+          )}
+        </div>
+
+        {/* Recalc all section */}
+        <div className="bg-gray-800 rounded-xl p-5 mb-6">
+          <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+            <div>
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <Icon name="RefreshCw" size={20} className="text-purple-400" />
+                Пересчёт всех маршрутов
+              </h2>
+              <p className="text-sm text-gray-400 mt-1">Принудительно пересчитать все эталонные расстояния через OSRM</p>
+            </div>
+            <button
+              onClick={recalcAll}
+              disabled={recalcRunning || checkRunning}
+              className="bg-purple-600 hover:bg-purple-500 disabled:bg-purple-800 disabled:opacity-50 text-white font-medium px-5 py-2 rounded-lg flex items-center gap-2 transition-colors"
+            >
+              {recalcRunning ? (
+                <Icon name="Loader2" size={18} className="animate-spin" />
+              ) : (
+                <Icon name="RefreshCw" size={18} />
+              )}
+              {recalcRunning ? "Пересчёт..." : "Пересчитать все"}
+            </button>
+          </div>
+          {recalcProgress && (
+            <div className={`text-sm px-4 py-2 rounded-lg ${recalcRunning ? "bg-purple-500/20 text-purple-300" : "bg-green-500/20 text-green-300"}`}>
+              {recalcProgress}
             </div>
           )}
         </div>

@@ -355,6 +355,98 @@ def fix_all_problems(event):
     })}
 
 
+def recalc_all(event):
+    """Принудительно пересчитывает ВСЕ эталонные маршруты через OSRM и обновляет БД."""
+    body = json.loads(event.get("body", "{}"))
+    offset = int(body.get("offset", 0))
+    limit = int(body.get("limit", 30))
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT COUNT(*) FROM routes_reference WHERE km_normal + km_special > 1")
+    total = cur.fetchone()[0]
+
+    cur.execute(
+        "SELECT id, from_city, to_city, km_normal, km_special FROM routes_reference "
+        "WHERE km_normal + km_special > 1 ORDER BY id LIMIT %s OFFSET %s",
+        (limit, offset)
+    )
+    rows = cur.fetchall()
+    conn.close()
+
+    updated = []
+    unchanged = []
+    errors = []
+    seen_pairs = set()
+
+    for row in rows:
+        route_id, from_city, to_city, old_normal, old_special = row
+        old_total = old_normal + old_special
+
+        pair_key = tuple(sorted([from_city.lower(), to_city.lower()]))
+        if pair_key in seen_pairs:
+            continue
+        seen_pairs.add(pair_key)
+
+        calc_normal, calc_special, err = check_single_route(from_city, to_city)
+        if err:
+            errors.append({"id": route_id, "from": from_city, "to": to_city, "error": err})
+            time.sleep(0.3)
+            continue
+
+        calc_total = calc_normal + calc_special
+        deviation = abs(calc_total - old_total) / old_total * 100 if old_total > 0 else 0
+
+        conn2 = get_db()
+        cur2 = conn2.cursor()
+        cur2.execute(
+            "UPDATE routes_reference SET km_normal = %s, km_special = %s, "
+            "notes = %s, updated_at = NOW() WHERE id = %s",
+            (calc_normal, calc_special,
+             f"OSRM-пересчёт: было {old_normal}+{old_special}={old_total}км, стало {calc_normal}+{calc_special}={calc_total}км",
+             route_id)
+        )
+        cur2.execute(
+            "UPDATE routes_reference SET km_normal = %s, km_special = %s, "
+            "notes = %s, updated_at = NOW() "
+            "WHERE LOWER(from_city) = LOWER(%s) AND LOWER(to_city) = LOWER(%s)",
+            (calc_normal, calc_special,
+             f"OSRM-пересчёт (обратный): {calc_normal}+{calc_special}={calc_total}км",
+             to_city, from_city)
+        )
+        conn2.commit()
+        conn2.close()
+
+        entry = {
+            "id": route_id, "from": from_city, "to": to_city,
+            "old_normal": old_normal, "old_special": old_special, "old_total": old_total,
+            "new_normal": calc_normal, "new_special": calc_special, "new_total": calc_total,
+            "deviation": round(deviation, 1),
+        }
+        if deviation > 1:
+            updated.append(entry)
+        else:
+            unchanged.append(entry)
+
+        time.sleep(0.3)
+
+    has_more = (offset + limit) < total
+
+    return {"statusCode": 200, "headers": CORS, "body": json.dumps({
+        "total": total,
+        "offset": offset,
+        "limit": limit,
+        "processed": len(rows),
+        "updated": len(updated),
+        "unchanged": len(unchanged),
+        "errors": len(errors),
+        "has_more": has_more,
+        "next_offset": offset + limit if has_more else None,
+        "updated_details": updated,
+        "error_details": errors,
+    })}
+
+
 def handler(event, context):
     """Проверка эталонных маршрутов порциями — ?offset=0&limit=20. Или ?report=1 для сводки."""
     if event.get('httpMethod') == 'OPTIONS':
@@ -368,6 +460,8 @@ def handler(event, context):
             return fix_route(event)
         if action == 'fix_all':
             return fix_all_problems(event)
+        if action == 'recalc_all':
+            return recalc_all(event)
 
     if params.get('report'):
         return get_report()

@@ -5,15 +5,17 @@ import os
 import psycopg2
 
 
+DISPATCH_FEE = 700
+
 TARIFFS = {
     "urgent":   {"per_km": 30, "base": 1500},
-    "standard": {"per_km": 30, "base": 0},
-    "comfort":  {"per_km": 40, "base": 0},
-    "minivan":  {"per_km": 60, "base": 0},
-    "business": {"per_km": 80, "base": 0},
+    "standard": {"per_km": 30, "base": DISPATCH_FEE},
+    "comfort":  {"per_km": 40, "base": DISPATCH_FEE},
+    "minivan":  {"per_km": 60, "base": DISPATCH_FEE},
+    "business": {"per_km": 80, "base": DISPATCH_FEE},
 }
 TARIFFS_SPECIAL = {
-    "urgent":   {"per_km": 80, "base": 1500},
+    "urgent":   {"per_km": 80, "base": 0},
     "standard": {"per_km": 80, "base": 0},
     "comfort":  {"per_km": 90, "base": 0},
     "minivan":  {"per_km": 100, "base": 0},

@@ -32,12 +32,12 @@ export default function Header() {
       <header className="fixed top-0 left-0 right-0 z-50 hidden sm:block bg-[#1a1a1a] shadow-lg">
         <div className="container mx-auto px-6 h-14 flex items-center justify-between gap-4">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 shrink-0">
+          <a href="/" onClick={(e) => { e.preventDefault(); window.location.href = "/"; }} className="flex items-center gap-2 shrink-0 cursor-pointer">
             <img src="https://cdn.poehali.dev/projects/4e7661bb-56aa-4a32-b0f4-260fcdbc0e28/bucket/ada7ecb8-4358-4599-9ef2-20a722789a54.png" alt="Такси Сокол" className="w-10 h-10 object-cover rounded-full" />
             <span className="font-bold text-lg leading-tight text-white">
               Такси <span className="text-brand-yellow">Сокол</span>
             </span>
-          </Link>
+          </a>
 
           {/* Right: phone + messengers + burger */}
           <div className="flex items-center gap-4">
@@ -110,12 +110,12 @@ export default function Header() {
         <div className="sm:hidden fixed inset-0 z-40 bg-[#111111] flex flex-col">
           {/* Шапка панели */}
           <div className="flex items-center justify-between px-4 pt-3 pb-2">
-            <Link to="/" className="flex items-center gap-2" onClick={() => setMobileOpen(false)}>
+            <a href="/" onClick={(e) => { e.preventDefault(); window.location.href = "/"; }} className="flex items-center gap-2 cursor-pointer">
               <img src="https://cdn.poehali.dev/projects/4e7661bb-56aa-4a32-b0f4-260fcdbc0e28/bucket/ada7ecb8-4358-4599-9ef2-20a722789a54.png" alt="Такси Сокол" className="w-10 h-10 object-cover rounded-full" />
               <span className="font-bold text-lg text-white">
                 Такси <span className="text-brand-yellow">Сокол</span>
               </span>
-            </Link>
+            </a>
             <button
               onClick={() => setMobileOpen(false)}
               className="w-10 h-10 flex items-center justify-center bg-white/10 rounded-full text-white"

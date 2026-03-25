@@ -13,6 +13,32 @@ def get_db():
     return psycopg2.connect(os.environ["DATABASE_URL"])
 
 
+def get_routes(params):
+    limit = min(int(params.get("limit", 500)), 1000)
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT id, from_city, to_city, km_normal, km_special, "
+        "km_normal + km_special as km_total, notes "
+        "FROM routes_reference ORDER BY id LIMIT %s",
+        (limit,)
+    )
+    rows = cur.fetchall()
+    conn.close()
+    routes = []
+    for r in rows:
+        routes.append({
+            "id": r[0], "from_city": r[1], "to_city": r[2],
+            "km_normal": r[3], "km_special": r[4], "km_total": r[5],
+            "notes": r[6],
+        })
+    return {
+        "statusCode": 200,
+        "headers": CORS,
+        "body": json.dumps({"routes": routes}),
+    }
+
+
 def handler(event: dict, context) -> dict:
     """
     Возвращает логи расчётов маршрутов.
@@ -23,6 +49,10 @@ def handler(event: dict, context) -> dict:
         return {"statusCode": 200, "headers": CORS, "body": ""}
 
     params = event.get("queryStringParameters") or {}
+
+    if params.get("action") == "routes":
+        return get_routes(params)
+
     errors_only = params.get("errors", "0") == "1"
     limit = min(int(params.get("limit", 50)), 200)
 

@@ -4,6 +4,7 @@ import Icon from "@/components/ui/icon";
 
 const NAV_LINKS = [
   { label: "Главная", href: "/" },
+  { label: "Admin", href: "/admin" },
 ];
 
 const PHONE = "+7 (995) 614-14-14";

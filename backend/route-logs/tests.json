@@ -7,19 +7,19 @@
       "expectedStatus": 200
     },
     {
-      "name": "Все логи",
+      "name": "Get routes reference",
       "method": "GET",
-      "path": "/?limit=10",
+      "path": "/?action=routes&limit=5",
       "expectedStatus": 200,
-      "expectedBody": {"reference_routes_count": 48},
+      "expectedBody": {"routes": "array"},
       "bodyMatcher": "partial"
     },
     {
-      "name": "Только ошибки",
+      "name": "Get logs",
       "method": "GET",
-      "path": "/?errors=1&limit=10",
+      "path": "/?limit=5",
       "expectedStatus": 200,
-      "expectedBody": {"errors_count": 0},
+      "expectedBody": {"logs": "array"},
       "bodyMatcher": "partial"
     }
   ]

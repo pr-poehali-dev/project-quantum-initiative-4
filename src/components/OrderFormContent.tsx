@@ -391,58 +391,7 @@ export function FormContent(p: FormProps) {
           </div>
         </div>
 
-        {/* Альтернативные маршруты */}
-        {p.alternatives && p.alternatives.filter((a) => {
-          const ap = a.all_prices?.[p.carClass] ?? a.price;
-          const mp = p.allPrices?.[p.carClass] ?? p.price ?? 0;
-          return ap < mp;
-        }).length > 0 && (
-          <div className="flex flex-col gap-1.5 mt-1">
-            <p className="text-gray-500 text-[10px] pl-1 uppercase tracking-wider">Альтернативные маршруты</p>
-            <div className="flex gap-2">
-              {p.alternatives.filter((a) => {
-                const ap = a.all_prices?.[p.carClass] ?? a.price;
-                const mp = p.allPrices?.[p.carClass] ?? p.price ?? 0;
-                return ap < mp;
-              }).map((alt) => {
-                const isFaster = alt.variant === "faster";
-                const isCheaper = alt.variant === "cheaper";
-                const altPrice = alt.all_prices?.[p.carClass] ?? alt.price;
-                const mainPrice = p.allPrices?.[p.carClass] ?? p.price ?? 0;
-                const diff = altPrice - mainPrice;
-                return (
-                  <button
-                    key={alt.variant}
-                    type="button"
-                    onClick={() => p.onSelectAlternative?.(alt)}
-                    className="flex-1 bg-[#222] border border-white/10 hover:border-[#9aab2a]/60 rounded-xl px-3 py-2 text-left transition-all group"
-                  >
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <Icon
-                        name={isFaster ? "Zap" : "Wallet"}
-                        size={13}
-                        className={isFaster ? "text-yellow-400" : "text-green-400"}
-                      />
-                      <span className={`text-[10px] font-bold uppercase tracking-wide ${isFaster ? "text-yellow-400" : "text-green-400"}`}>
-                        {isFaster ? "Быстрее" : "Дешевле"}
-                      </span>
-                    </div>
-                    <div className="text-white text-xs font-bold leading-tight">
-                      {altPrice.toLocaleString("ru-RU")} ₽
-                    </div>
-                    <div className={`text-[9px] mt-0.5 ${diff < 0 ? "text-green-400" : diff > 0 ? "text-red-400" : "text-gray-500"}`}>
-                      {diff === 0 ? "= тот же" : diff > 0 ? `+${diff.toLocaleString("ru-RU")} ₽` : `${diff.toLocaleString("ru-RU")} ₽`}
-                    </div>
-                    <div className="text-gray-500 text-[9px] mt-0.5 leading-tight truncate">
-                      {alt.km_total} км
-                      {alt.via ? ` · ${alt.via}` : ""}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
+
 
         {/* Submit */}
         <div className="flex items-center gap-2 mt-1">

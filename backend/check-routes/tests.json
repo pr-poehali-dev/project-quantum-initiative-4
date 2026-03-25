@@ -1,0 +1,26 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS CORS",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Check batch of routes",
+      "method": "GET",
+      "path": "/?offset=0&limit=3",
+      "expectedStatus": 200,
+      "expectedBody": {"total_routes": "number", "checked": "number"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Get report",
+      "method": "GET",
+      "path": "/?report=1",
+      "expectedStatus": 200,
+      "expectedBody": {"daily_summary": "array"},
+      "bodyMatcher": "partial"
+    }
+  ]
+}

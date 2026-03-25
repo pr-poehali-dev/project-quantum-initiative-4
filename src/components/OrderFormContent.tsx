@@ -392,11 +392,19 @@ export function FormContent(p: FormProps) {
         </div>
 
         {/* Альтернативные маршруты */}
-        {p.alternatives && p.alternatives.length > 0 && (
+        {p.alternatives && p.alternatives.filter((a) => {
+          const ap = a.all_prices?.[p.carClass] ?? a.price;
+          const mp = p.allPrices?.[p.carClass] ?? p.price ?? 0;
+          return ap < mp;
+        }).length > 0 && (
           <div className="flex flex-col gap-1.5 mt-1">
             <p className="text-gray-500 text-[10px] pl-1 uppercase tracking-wider">Альтернативные маршруты</p>
             <div className="flex gap-2">
-              {p.alternatives.map((alt) => {
+              {p.alternatives.filter((a) => {
+                const ap = a.all_prices?.[p.carClass] ?? a.price;
+                const mp = p.allPrices?.[p.carClass] ?? p.price ?? 0;
+                return ap < mp;
+              }).map((alt) => {
                 const isFaster = alt.variant === "faster";
                 const isCheaper = alt.variant === "cheaper";
                 const altPrice = alt.all_prices?.[p.carClass] ?? alt.price;

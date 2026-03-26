@@ -344,24 +344,31 @@ export default function HeroBackground({ from, to, stops = [], formHeight }: Pro
       const KPP_ZAP = "Весело-Вознесенка, Ростовская область";
       let routes: AnyRef[] = [];
       const fallbackLines: AnyRef[] = [];
-      if ((isKhersonZap(to) || isKhersonZap(from)) && !isCrimea(from) && !isCrimea(to) && !isDnrLnr(from) && !isDnrLnr(to)) {
-        const [r1, r2] = await Promise.all([
-          window.ymaps.route([from, KPP_ZAP], { routingMode: "auto", mapStateAutoApply: false }).catch(() => null),
-          window.ymaps.route([KPP_ZAP, to], { routingMode: "auto", mapStateAutoApply: false }).catch(() => null),
-        ]);
-        if (cancelled) return;
-        if (r1) routes.push(r1);
-        else { const fb = await makeFallbackPolyline(from, KPP_ZAP); if (fb) fallbackLines.push(fb); }
-        if (r2) routes.push(r2);
-        else { const fb = await makeFallbackPolyline(KPP_ZAP, to); if (fb) fallbackLines.push(fb); }
-      } else if (isSpecialZone(from) || isSpecialZone(to)) {
-        for (let ai = 0; ai < allAddresses.length - 1; ai++) {
-          const segFrom = allAddresses[ai];
-          const segTo = allAddresses[ai + 1];
-          const r = await window.ymaps.route([segFrom, segTo], { routingMode: "auto", mapStateAutoApply: false }).catch(() => null);
+      const needsKppSplit = (isKhersonZap(to) || isKhersonZap(from)) && !isCrimea(from) && !isCrimea(to) && !isDnrLnr(from) && !isDnrLnr(to);
+      const needsSegmented = isSpecialZone(from) || isSpecialZone(to);
+
+      if (needsKppSplit || needsSegmented) {
+        const segAddresses: string[][] = [];
+        if (needsKppSplit && allAddresses.length === 2) {
+          segAddresses.push([from, KPP_ZAP]);
+          segAddresses.push([KPP_ZAP, to]);
+        } else {
+          for (let ai = 0; ai < allAddresses.length - 1; ai++) {
+            segAddresses.push([allAddresses[ai], allAddresses[ai + 1]]);
+          }
+        }
+
+        console.log("[route] segments:", segAddresses.map(s => s.join(" → ")));
+        for (const seg of segAddresses) {
+          const r = await window.ymaps.route(seg, { routingMode: "auto", mapStateAutoApply: false }).catch(() => null);
           if (cancelled) return;
-          if (r) routes.push(r);
-          else { const fb = await makeFallbackPolyline(segFrom, segTo); if (fb) fallbackLines.push(fb); }
+          if (r) { routes.push(r); console.log("[route] ymaps OK:", seg.join(" → ")); }
+          else {
+            console.log("[route] ymaps FAIL, fallback:", seg.join(" → "));
+            const fb = await makeFallbackPolyline(seg[0], seg[seg.length - 1]);
+            if (fb) { fallbackLines.push(fb); console.log("[route] fallback OK"); }
+            else console.log("[route] fallback FAIL (geocode failed)");
+          }
         }
       } else {
         const r = await window.ymaps.route(allAddresses, { routingMode: "auto", mapStateAutoApply: false }).catch(() => null);

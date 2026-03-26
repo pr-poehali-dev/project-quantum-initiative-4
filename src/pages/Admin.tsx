@@ -6,15 +6,17 @@ import RouteCheckSection from "./admin/RouteCheckSection";
 import RecalcSection from "./admin/RecalcSection";
 import RoutesListSection from "./admin/RoutesListSection";
 import CalcLogsSection from "./admin/CalcLogsSection";
+import MapSection from "./admin/MapSection";
 import type { Route, CheckResult, DailyReport, FixResult } from "./admin/types";
 
-type Section = "routes" | "check" | "recalc" | "logs";
+type Section = "routes" | "check" | "recalc" | "logs" | "map";
 
 const MENU_ITEMS: { key: Section; icon: string; label: string; desc: string }[] = [
+  { key: "map", icon: "Map", label: "Карта зон", desc: "Визуализация зон и построение маршрутов" },
   { key: "routes", icon: "Route", label: "Маршруты", desc: "База эталонных маршрутов" },
   { key: "logs", icon: "ScrollText", label: "Логи расчётов", desc: "История запросов клиентов" },
   { key: "check", icon: "ScanSearch", label: "Проверка", desc: "Проверка и исправление маршрутов" },
-  { key: "recalc", icon: "RefreshCw", label: "Пересчёт", desc: "Пересчёт расстояний через OSRM" },
+  { key: "recalc", icon: "RefreshCw", label: "Пересчёт", desc: "Пересчёт расстояний через Яндекс API" },
 ];
 
 function AdminPanel() {
@@ -237,6 +239,7 @@ function AdminPanel() {
                 className="bg-gray-800 hover:bg-gray-750 border border-gray-700 hover:border-gray-600 rounded-xl p-5 flex items-center gap-4 transition-all text-left group"
               >
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                  item.key === "map" ? "bg-indigo-500/15 text-indigo-400" :
                   item.key === "routes" ? "bg-green-500/15 text-green-400" :
                   item.key === "logs" ? "bg-cyan-500/15 text-cyan-400" :
                   item.key === "check" ? "bg-blue-500/15 text-blue-400" :
@@ -273,6 +276,8 @@ function AdminPanel() {
             ))}
           </div>
         )}
+
+        {section === "map" && <MapSection />}
 
         {section === "routes" && (
           <RoutesListSection

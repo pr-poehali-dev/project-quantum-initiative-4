@@ -145,6 +145,35 @@ def osrm_route(coords):
         return None
 
 
+def yandex_route(coords):
+    api_key = os.environ.get('YANDEX_ROUTES_API_KEY', '')
+    if not api_key:
+        return None
+    try:
+        waypoints_str = "~".join(f"{lon},{lat}" for lon, lat in coords)
+        url = f"https://api.routing.yandex.net/v2/route?apikey={api_key}&waypoints={waypoints_str}&mode=driving"
+        req = urllib.request.Request(url, headers={"User-Agent": "ug-transfer-app/1.0"})
+        with urllib.request.urlopen(req, timeout=15) as r:
+            data = json.loads(r.read())
+        route = data.get("route")
+        if not route or not route.get("legs"):
+            return None
+        total_distance = 0.0
+        all_points = []
+        for leg in route["legs"]:
+            if leg.get("status") != "OK":
+                return None
+            for step in leg.get("steps", []):
+                total_distance += step.get("length", 0)
+                pts = step.get("polyline", {}).get("points", [])
+                for pt in pts:
+                    all_points.append((pt[1], pt[0]))
+        dist_km = total_distance / 1000.0
+        return {"distance_km": dist_km, "waypoints": all_points}
+    except Exception:
+        return None
+
+
 def split_km_by_zone(waypoints, total_km):
     h_normal = 0.0
     h_special = 0.0
@@ -175,7 +204,7 @@ def is_zap_addr(a):
     return any(k in a.lower() for k in ["мелитополь","запорожская","бердянск","токмак","энергодар","пологи"])
 
 
-def is_osrm_unreliable(from_city, to_city):
+def is_route_unreliable(from_city, to_city):
     """OSRM не знает дорог в спецзонах — строит объезды через Россию."""
     f_spec = is_special_addr(from_city)
     t_spec = is_special_addr(to_city)
@@ -201,26 +230,28 @@ def check_single_route(from_city, to_city):
     all_special = is_special_addr(from_city) and is_special_addr(to_city)
     all_crimea = from_crimea and to_crimea
 
-    osrm_coords = [(coord_from[1], coord_from[0]), (coord_to[1], coord_to[0])]
+    route_coords = [(coord_from[1], coord_from[0]), (coord_to[1], coord_to[0])]
 
     if from_crimea and not to_crimea:
         if is_kherson_addr(to_city):
-            osrm_coords.insert(1, ARMIANSK)
+            route_coords.insert(1, ARMIANSK)
         elif is_zap_addr(to_city):
-            osrm_coords.insert(1, CHONGAR)
+            route_coords.insert(1, CHONGAR)
         else:
-            osrm_coords.insert(1, KERCH_BRIDGE)
+            route_coords.insert(1, KERCH_BRIDGE)
     elif to_crimea and not from_crimea:
         if is_kherson_addr(from_city):
-            osrm_coords.insert(len(osrm_coords)-1, ARMIANSK)
+            route_coords.insert(len(route_coords)-1, ARMIANSK)
         elif is_zap_addr(from_city):
-            osrm_coords.insert(len(osrm_coords)-1, CHONGAR)
+            route_coords.insert(len(route_coords)-1, CHONGAR)
         else:
-            osrm_coords.insert(len(osrm_coords)-1, KERCH_BRIDGE)
+            route_coords.insert(len(route_coords)-1, KERCH_BRIDGE)
 
-    result = osrm_route(osrm_coords)
+    result = yandex_route(route_coords)
     if not result:
-        return None, None, "osrm_failed"
+        result = osrm_route(route_coords)
+    if not result:
+        return None, None, "route_api_failed"
 
     total_km = result["distance_km"]
 
@@ -252,7 +283,7 @@ def fix_route(event):
     _, from_city, to_city, old_normal, old_special = row
     old_total = old_normal + old_special
 
-    if is_osrm_unreliable(from_city, to_city):
+    if is_route_unreliable(from_city, to_city):
         conn.close()
         return {"statusCode": 200, "headers": CORS, "body": json.dumps({
             "status": "ok", "route_id": route_id,
@@ -333,7 +364,7 @@ def fix_all_problems(event):
         route_id, from_city, to_city, ref_normal, ref_special = row
         ref_total = ref_normal + ref_special
 
-        if is_osrm_unreliable(from_city, to_city):
+        if is_route_unreliable(from_city, to_city):
             skipped.append({"id": route_id, "from": from_city, "to": to_city, "deviation": 0, "reason": "speczone"})
             continue
 
@@ -418,7 +449,7 @@ def recalc_all(event):
             continue
         seen_pairs.add(pair_key)
 
-        if is_osrm_unreliable(from_city, to_city):
+        if is_route_unreliable(from_city, to_city):
             skipped.append({"id": route_id, "from": from_city, "to": to_city, "reason": "speczone"})
             continue
 
@@ -525,7 +556,7 @@ def handler(event, context):
         route_id, from_city, to_city, ref_normal, ref_special = route
         ref_total = ref_normal + ref_special
 
-        if is_osrm_unreliable(from_city, to_city):
+        if is_route_unreliable(from_city, to_city):
             cur.execute(
                 "INSERT INTO route_check_logs (route_id, from_city, to_city, ref_km_normal, ref_km_special, "
                 "calc_km_normal, calc_km_special, deviation_pct, status, error_detail) "

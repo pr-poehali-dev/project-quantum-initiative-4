@@ -1,0 +1,4 @@
+{"tests": [
+  {"name": "Get zones", "method": "GET", "path": "/?action=zones", "expectedStatus": 200, "expectedBody": {"zones": "array"}, "bodyMatcher": "partial"},
+  {"name": "Build route", "method": "GET", "path": "/?action=build_route&from=Москва&to=Ростов-на-Дону", "expectedStatus": 200, "expectedBody": {"km_total": "number"}, "bodyMatcher": "partial"}
+]}

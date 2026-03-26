@@ -481,7 +481,7 @@ def save_to_reference(from_city: str, to_city: str, km_normal: int, km_special: 
             """INSERT INTO routes_reference (from_city, to_city, km_normal, km_special, notes)
                VALUES (%s, %s, %s, %s, %s)
                ON CONFLICT (from_city, to_city) DO NOTHING""",
-            (from_norm, to_norm, km_normal, km_special, "auto-osrm")
+            (from_norm, to_norm, km_normal, km_special, "auto-yandex")
         )
         conn.commit()
         conn.close()
@@ -510,13 +510,13 @@ def update_reference(from_city: str, to_city: str, km_normal: int, km_special: i
         if existing:
             cur.execute(
                 "UPDATE routes_reference SET km_normal = %s, km_special = %s, "
-                "notes = 'osrm-live', updated_at = NOW() WHERE id = %s",
+                "notes = 'yandex-live', updated_at = NOW() WHERE id = %s",
                 (km_normal, km_special, existing[0])
             )
         else:
             cur.execute(
                 "INSERT INTO routes_reference (from_city, to_city, km_normal, km_special, notes) "
-                "VALUES (%s, %s, %s, %s, 'osrm-live')",
+                "VALUES (%s, %s, %s, %s, 'yandex-live')",
                 (from_norm, to_norm, km_normal, km_special)
             )
         conn.commit()
@@ -603,10 +603,41 @@ def is_special_addr(addr: str) -> bool:
     return any(k in addr.lower() for k in SPECIAL_KEYS)
 
 
-def osrm_route_with_geometry(coords: list) -> dict:
-    """Запрашивает маршрут через OSRM с геометрией."""
+def yandex_route_with_geometry(coords: list) -> dict:
+    api_key = os.environ.get('YANDEX_ROUTES_API_KEY', '')
+    if not api_key:
+        return None
     try:
-        coord_str = ";".join(f"{lon},{lat}" for lon,lat in coords)
+        waypoints_str = "~".join(f"{lon},{lat}" for lon, lat in coords)
+        url = f"https://api.routing.yandex.net/v2/route?apikey={api_key}&waypoints={waypoints_str}&mode=driving"
+        req = urllib.request.Request(url, headers={"User-Agent": "ug-transfer-app/1.0"})
+        with urllib.request.urlopen(req, timeout=15) as r:
+            data = json.loads(r.read())
+        route = data.get("route")
+        if not route or not route.get("legs"):
+            return None
+        total_distance = 0.0
+        total_duration = 0.0
+        all_points = []
+        for leg in route["legs"]:
+            if leg.get("status") != "OK":
+                return None
+            for step in leg.get("steps", []):
+                total_distance += step.get("length", 0)
+                total_duration += step.get("duration", 0)
+                pts = step.get("polyline", {}).get("points", [])
+                for pt in pts:
+                    all_points.append((pt[1], pt[0]))
+        dist_km = total_distance / 1000.0
+        waypoints = all_points
+        return {"distance_km": dist_km, "waypoints": waypoints, "duration_sec": total_duration}
+    except Exception:
+        return None
+
+
+def osrm_route_with_geometry(coords: list) -> dict:
+    try:
+        coord_str = ";".join(f"{lon},{lat}" for lon, lat in coords)
         url = (f"http://router.project-osrm.org/route/v1/driving/{coord_str}"
                f"?overview=full&geometries=geojson&alternatives=false")
         req = urllib.request.Request(url, headers={"User-Agent": "ug-transfer-app/1.0"})
@@ -729,26 +760,30 @@ def handler(event: dict, context) -> dict:
     def is_kherson_addr(a): return any(k in a.lower() for k in ["херсон","херсонская","геническ","каховка"])
     def is_zap_addr(a):     return any(k in a.lower() for k in ["мелитополь","запорожская","бердянск","токмак","энергодар","пологи"])
 
-    osrm_coords = [(lon, lat) for lat, lon in all_coords]
+    route_coords = [(lon, lat) for lat, lon in all_coords]
 
     if from_crimea and not to_crimea:
         if is_kherson_addr(to_city):
-            osrm_coords.insert(1, ARMIANSK)
+            route_coords.insert(1, ARMIANSK)
         elif is_zap_addr(to_city):
-            osrm_coords.insert(1, CHONGAR)
+            route_coords.insert(1, CHONGAR)
         else:
-            osrm_coords.insert(1, KERCH_BRIDGE)
+            route_coords.insert(1, KERCH_BRIDGE)
     elif to_crimea and not from_crimea:
         if is_kherson_addr(from_city):
-            osrm_coords.insert(len(osrm_coords)-1, ARMIANSK)
+            route_coords.insert(len(route_coords)-1, ARMIANSK)
         elif is_zap_addr(from_city):
-            osrm_coords.insert(len(osrm_coords)-1, CHONGAR)
+            route_coords.insert(len(route_coords)-1, CHONGAR)
         else:
-            osrm_coords.insert(len(osrm_coords)-1, KERCH_BRIDGE)
+            route_coords.insert(len(route_coords)-1, KERCH_BRIDGE)
 
     # ── 3. Считаем расстояния ─────────────────────────────────────────────────
-    source = "osrm"
-    result = osrm_route_with_geometry(osrm_coords)
+    source = "yandex"
+    result = yandex_route_with_geometry(route_coords)
+
+    if not result:
+        source = "osrm"
+        result = osrm_route_with_geometry(route_coords)
 
     if result:
         total_km = result["distance_km"]
@@ -777,7 +812,7 @@ def handler(event: dict, context) -> dict:
     ref_km_total = None
 
     any_special = is_special_addr(from_city) or is_special_addr(to_city) or any(is_special_addr(s) for s in stops)
-    osrm_reliable = source == "osrm" and not all_special
+    route_reliable = source in ("yandex", "osrm") and not all_special
 
     if reference:
         ref_km_total = reference["km_normal"] + reference["km_special"]
@@ -787,14 +822,14 @@ def handler(event: dict, context) -> dict:
             km_normal = reference["km_normal"]
             km_special = reference["km_special"]
             source = "reference_override" if is_error else "reference"
-        elif osrm_reliable and use_reference and km_calc_total >= 5:
+        elif route_reliable and use_reference and km_calc_total >= 5:
             update_reference(from_city, to_city, km_normal, km_special)
             update_reference(to_city, from_city, km_normal, km_special)
     elif use_reference and km_calc_total >= 5:
-        if osrm_reliable:
+        if route_reliable:
             update_reference(from_city, to_city, km_normal, km_special)
             update_reference(to_city, from_city, km_normal, km_special)
-        elif not osrm_reliable:
+        elif not route_reliable:
             save_to_reference(from_city, to_city, km_normal, km_special)
             save_to_reference(to_city, from_city, km_normal, km_special)
 

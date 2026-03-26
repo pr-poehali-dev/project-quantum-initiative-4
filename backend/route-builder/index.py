@@ -479,8 +479,184 @@ def geocode_city(address):
     return None
 
 
-def osrm_route(lat1, lon1, lat2, lon2):
-    """OSRM — бесплатный роутинг, возвращает (waypoints, km, hours) или None."""
+BRIDGE_KRASNODAR_SIDE = (45.2530, 36.5370)
+BRIDGE_KERCH_SIDE = (45.3100, 36.5100)
+
+ROAD_NODES = {
+    "kerch": (45.3563, 36.4735),
+    "feodosia": (45.0317, 35.3827),
+    "simferopol": (44.9521, 34.1024),
+    "dzhankoy": (45.7086, 34.3946),
+    "armyansk": (46.1054, 33.6907),
+    "kherson_south": (46.636, 32.617),
+    "kakhovka": (46.818, 33.479),
+    "novaya_kakhovka": (46.754, 33.383),
+    "melitopol": (46.847, 35.367),
+    "berdyansk": (46.756, 36.800),
+    "mariupol": (47.095, 37.541),
+    "donetsk": (48.015, 37.802),
+    "lugansk": (48.574, 39.307),
+    "energodar": (47.503, 34.653),
+    "vasilyevka_zap": (47.427, 35.278),
+    "tokmak": (47.253, 35.706),
+    "genichesk": (46.167, 34.817),
+    "skadovsk": (46.112, 32.912),
+    "sevastopol": (44.6167, 33.5254),
+    "yalta": (44.4952, 34.1663),
+    "evpatoria": (45.1906, 33.3669),
+    "alushta": (44.6764, 34.4101),
+}
+
+ROAD_GRAPH = {
+    "kerch": ["feodosia", "berdyansk"],
+    "feodosia": ["kerch", "simferopol", "dzhankoy"],
+    "simferopol": ["feodosia", "dzhankoy", "sevastopol", "yalta", "alushta", "evpatoria"],
+    "dzhankoy": ["simferopol", "feodosia", "armyansk", "melitopol", "genichesk"],
+    "armyansk": ["dzhankoy", "kherson_south", "genichesk", "skadovsk"],
+    "kherson_south": ["armyansk", "kakhovka", "novaya_kakhovka", "skadovsk"],
+    "kakhovka": ["kherson_south", "novaya_kakhovka"],
+    "novaya_kakhovka": ["kakhovka", "kherson_south", "energodar", "melitopol"],
+    "melitopol": ["dzhankoy", "novaya_kakhovka", "berdyansk", "tokmak", "vasilyevka_zap"],
+    "berdyansk": ["melitopol", "mariupol", "kerch"],
+    "mariupol": ["berdyansk", "donetsk"],
+    "donetsk": ["mariupol", "lugansk"],
+    "lugansk": ["donetsk"],
+    "energodar": ["novaya_kakhovka", "vasilyevka_zap"],
+    "vasilyevka_zap": ["melitopol", "energodar", "tokmak"],
+    "tokmak": ["melitopol", "vasilyevka_zap"],
+    "genichesk": ["dzhankoy", "armyansk", "melitopol"],
+    "skadovsk": ["armyansk", "kherson_south"],
+    "sevastopol": ["simferopol"],
+    "yalta": ["simferopol", "alushta"],
+    "alushta": ["simferopol", "yalta"],
+    "evpatoria": ["simferopol"],
+}
+
+ROAD_DISTANCES = {
+    ("kerch", "feodosia"): 100,
+    ("feodosia", "simferopol"): 120,
+    ("feodosia", "dzhankoy"): 100,
+    ("simferopol", "dzhankoy"): 93,
+    ("simferopol", "sevastopol"): 80,
+    ("simferopol", "yalta"): 80,
+    ("simferopol", "alushta"): 47,
+    ("simferopol", "evpatoria"): 65,
+    ("dzhankoy", "armyansk"): 60,
+    ("dzhankoy", "melitopol"): 180,
+    ("dzhankoy", "genichesk"): 110,
+    ("armyansk", "kherson_south"): 155,
+    ("armyansk", "genichesk"): 130,
+    ("armyansk", "skadovsk"): 130,
+    ("kherson_south", "kakhovka"): 80,
+    ("kherson_south", "novaya_kakhovka"): 70,
+    ("kherson_south", "skadovsk"): 65,
+    ("kakhovka", "novaya_kakhovka"): 12,
+    ("novaya_kakhovka", "energodar"): 90,
+    ("novaya_kakhovka", "melitopol"): 120,
+    ("melitopol", "berdyansk"): 110,
+    ("melitopol", "tokmak"): 50,
+    ("melitopol", "vasilyevka_zap"): 30,
+    ("berdyansk", "mariupol"): 110,
+    ("berdyansk", "kerch"): 220,
+    ("mariupol", "donetsk"): 115,
+    ("donetsk", "lugansk"): 150,
+    ("energodar", "vasilyevka_zap"): 50,
+    ("vasilyevka_zap", "tokmak"): 50,
+    ("genichesk", "melitopol"): 120,
+}
+
+
+def get_road_distance(a, b):
+    return ROAD_DISTANCES.get((a, b)) or ROAD_DISTANCES.get((b, a)) or None
+
+
+def find_road_path(start_node, end_node):
+    import heapq
+    if start_node == end_node:
+        return [start_node], 0
+    dist = {start_node: 0}
+    prev = {start_node: None}
+    heap = [(0, start_node)]
+    while heap:
+        d, node = heapq.heappop(heap)
+        if node == end_node:
+            path = []
+            while node:
+                path.append(node)
+                node = prev[node]
+            return list(reversed(path)), d
+        if d > dist.get(node, float('inf')):
+            continue
+        for neighbor in ROAD_GRAPH.get(node, []):
+            edge_d = get_road_distance(node, neighbor)
+            if edge_d is None:
+                edge_d = haversine(*ROAD_NODES[node], *ROAD_NODES[neighbor])
+            new_d = d + edge_d
+            if new_d < dist.get(neighbor, float('inf')):
+                dist[neighbor] = new_d
+                prev[neighbor] = node
+                heapq.heappush(heap, (new_d, neighbor))
+    return None, float('inf')
+
+
+def find_nearest_road_node(lat, lon):
+    best = None
+    best_dist = float('inf')
+    for name, (nlat, nlon) in ROAD_NODES.items():
+        d = haversine(lat, lon, nlat, nlon)
+        if d < best_dist:
+            best_dist = d
+            best = name
+    return best, best_dist
+
+
+def build_zone_polyline(lat1, lon1, lat2, lon2):
+    start_node, start_d = find_nearest_road_node(lat1, lon1)
+    end_node, end_d = find_nearest_road_node(lat2, lon2)
+
+    path, road_km = find_road_path(start_node, end_node)
+    if not path:
+        total_km = haversine(lat1, lon1, lat2, lon2) * 1.3
+        steps = max(20, int(total_km / 5))
+        pts = []
+        for s in range(steps + 1):
+            t = s / steps
+            pts.append((lat1 + (lat2 - lat1) * t, lon1 + (lon2 - lon1) * t))
+        return pts, total_km, total_km / 60.0
+
+    total_km = start_d + road_km + end_d
+    pts = [(lat1, lon1)]
+
+    for i in range(len(path) - 1):
+        n1 = ROAD_NODES[path[i]]
+        n2 = ROAD_NODES[path[i + 1]]
+        seg_km = get_road_distance(path[i], path[i + 1]) or haversine(*n1, *n2)
+        num_pts = max(5, int(seg_km / 3))
+        for s in range(1, num_pts + 1):
+            t = s / num_pts
+            pts.append((n1[0] + (n2[0] - n1[0]) * t, n1[1] + (n2[1] - n1[1]) * t))
+
+    pts.append((lat2, lon2))
+    hours = total_km / 60.0
+    print(f"[zone-route] {' -> '.join(path)}, {total_km:.0f} km, {len(pts)} pts")
+    return pts, total_km, hours
+
+
+def is_in_crimea(lat, lon):
+    return point_in_polygon(lat, lon, CRIMEA_POLYGON)
+
+
+def is_in_new_region_or_crimea(lat, lon):
+    if is_in_crimea(lat, lon):
+        return True
+    polys, names = get_special_polygons()
+    for idx, poly in enumerate(polys):
+        if point_in_polygon(lat, lon, poly):
+            return True
+    return False
+
+
+def osrm_segment(lat1, lon1, lat2, lon2):
     url = (f"https://router.project-osrm.org/route/v1/driving/"
            f"{lon1},{lat1};{lon2},{lat2}?overview=full&geometries=geojson")
     req = urllib.request.Request(url, headers={"User-Agent": "route-builder/1.0"})
@@ -488,18 +664,81 @@ def osrm_route(lat1, lon1, lat2, lon2):
         with urllib.request.urlopen(req, timeout=15) as r:
             data = json.loads(r.read())
         if data.get("code") != "Ok" or not data.get("routes"):
-            print(f"[osrm] no route: {data.get('code')}")
             return None
         route = data["routes"][0]
         coords = route["geometry"]["coordinates"]
         waypoints = [(c[1], c[0]) for c in coords]
         km = route["distance"] / 1000.0
         hours = route["duration"] / 3600.0
-        print(f"[osrm] OK: {len(waypoints)} pts, {km:.0f} km, {hours:.1f} h")
         return waypoints, km, hours
     except Exception as e:
         print(f"[osrm] ERROR: {e}")
         return None
+
+
+def osrm_route(lat1, lon1, lat2, lon2):
+    """Маршрутизация с учётом Крымского моста."""
+    from_in_zone = is_in_new_region_or_crimea(lat1, lon1)
+    to_in_zone = is_in_new_region_or_crimea(lat2, lon2)
+
+    if not from_in_zone and not to_in_zone:
+        result = osrm_segment(lat1, lon1, lat2, lon2)
+        if result:
+            wps, km, hrs = result
+            print(f"[osrm] direct OK: {len(wps)} pts, {km:.0f} km, {hrs:.1f} h")
+            return wps, km, hrs
+        return None
+
+    if from_in_zone and to_in_zone:
+        pts, km, hrs = build_zone_polyline(lat1, lon1, lat2, lon2)
+        return pts, km, hrs
+
+    blat, blon = BRIDGE_KRASNODAR_SIDE
+    klat, klon = BRIDGE_KERCH_SIDE
+
+    if to_in_zone:
+        seg_russia = osrm_segment(lat1, lon1, blat, blon)
+        if not seg_russia:
+            return None
+        zone_pts, zone_km, zone_hrs = build_zone_polyline(klat, klon, lat2, lon2)
+        wps_r, km_r, hrs_r = seg_russia
+
+        bridge_km = 19.0
+        bridge_hrs = 0.3
+        bridge_pts = [
+            (45.2600, 36.5350),
+            (45.2700, 36.5300),
+            (45.2800, 36.5250),
+            (45.2933, 36.5180),
+            (klat, klon),
+        ]
+
+        all_wps = wps_r + bridge_pts + zone_pts
+        total_km = km_r + bridge_km + zone_km
+        total_hrs = hrs_r + bridge_hrs + zone_hrs
+    else:
+        zone_pts, zone_km, zone_hrs = build_zone_polyline(lat1, lon1, klat, klon)
+        seg_russia = osrm_segment(blat, blon, lat2, lon2)
+        if not seg_russia:
+            return None
+        wps_r, km_r, hrs_r = seg_russia
+
+        bridge_km = 19.0
+        bridge_hrs = 0.3
+        bridge_pts = [
+            (klat, klon),
+            (45.2933, 36.5180),
+            (45.2800, 36.5250),
+            (45.2700, 36.5300),
+            (blat, blon),
+        ]
+
+        all_wps = zone_pts + bridge_pts + wps_r
+        total_km = zone_km + bridge_km + km_r
+        total_hrs = zone_hrs + bridge_hrs + hrs_r
+
+    print(f"[osrm] bridge route: {len(all_wps)} pts, {total_km:.0f} km, {total_hrs:.1f} h")
+    return all_wps, total_km, total_hrs
 
 
 def yandex_route(lat1, lon1, lat2, lon2):

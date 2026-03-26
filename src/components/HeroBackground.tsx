@@ -101,14 +101,24 @@ const isZap = (addr: string) => ZAP_KEYWORDS.some(k => addr.toLowerCase().includ
 const isKhersonZap = (addr: string) => KHERSON_ZAP_KEYWORDS.some(k => addr.toLowerCase().includes(k));
 const isSpecialZone = (addr: string) => isKhersonZap(addr) || isDnrLnr(addr) || isCrimea(addr);
 
-async function makeFallbackPolyline(addrFrom: string, addrTo: string): Promise<AnyRef | null> {
+const ROUTE_BUILDER_URL = "https://functions.poehali.dev/c0181108-9a28-416b-a122-5a0668abfaff";
+
+async function fetchBackendPolyline(addrFrom: string, addrTo: string): Promise<AnyRef | null> {
+  try {
+    const url = `${ROUTE_BUILDER_URL}?action=build_route&from=${encodeURIComponent(addrFrom)}&to=${encodeURIComponent(addrTo)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.polyline && data.polyline.length >= 2) {
+      return new window.ymaps.Polyline(
+        data.polyline,
+        {},
+        { strokeColor: "#c8d44a", strokeWidth: 4, opacity: 0.9 }
+      );
+    }
+  } catch { /* ignore */ }
   const [c1, c2] = await Promise.all([geocodeAddress(addrFrom), geocodeAddress(addrTo)]);
   if (!c1 || !c2) return null;
-  return new window.ymaps.Polyline(
-    [c1, c2],
-    {},
-    { strokeColor: "#c8d44a", strokeWidth: 3, strokeStyle: "dash", opacity: 0.7 }
-  );
+  return new window.ymaps.Polyline([c1, c2], {}, { strokeColor: "#c8d44a", strokeWidth: 4, opacity: 0.9 });
 }
 
 export default function HeroBackground({ from, to, stops = [], formHeight }: Props) {
@@ -216,7 +226,7 @@ export default function HeroBackground({ from, to, stops = [], formHeight }: Pro
             newObjects.push(segRoutes[si]);
           } else {
             const seg = segments[si];
-            const fb = await makeFallbackPolyline(seg[0], seg[seg.length - 1]);
+            const fb = await fetchBackendPolyline(seg[0], seg[seg.length - 1]);
             if (fb) newObjects.push(fb);
           }
         }
@@ -342,41 +352,19 @@ export default function HeroBackground({ from, to, stops = [], formHeight }: Pro
       }
 
       let routes: AnyRef[] = [];
-      const fallbackLines: AnyRef[] = [];
-      const needsKppSplit = (isKhersonZap(to) || isKhersonZap(from)) && !isCrimea(from) && !isCrimea(to) && !isDnrLnr(from) && !isDnrLnr(to);
-      const needsSegmented = isSpecialZone(from) || isSpecialZone(to);
+      const backendLines: AnyRef[] = [];
+      const hasSpecialAddr = isSpecialZone(from) || isSpecialZone(to);
 
-      if (needsKppSplit || needsSegmented) {
-        const segAddresses: string[][] = [];
-        if (needsKppSplit && allAddresses.length === 2) {
-          const toIsSpecial = isKhersonZap(to);
-          const transitPoints = toIsSpecial
-            ? [from, "Краснодар", "Керчь", "Джанкой", to]
-            : [from, "Джанкой", "Керчь", "Краснодар", to];
-          for (let ti = 0; ti < transitPoints.length - 1; ti++) {
-            segAddresses.push([transitPoints[ti], transitPoints[ti + 1]]);
-          }
-        } else {
-          for (let ai = 0; ai < allAddresses.length - 1; ai++) {
-            segAddresses.push([allAddresses[ai], allAddresses[ai + 1]]);
-          }
-        }
-
-        for (const seg of segAddresses) {
-          const r = await window.ymaps.route(seg, { routingMode: "auto", mapStateAutoApply: false }).catch(() => null);
-          if (cancelled) return;
-          if (r) routes.push(r);
-          else {
-            const fb = await makeFallbackPolyline(seg[0], seg[seg.length - 1]);
-            if (fb) fallbackLines.push(fb);
-          }
-        }
+      if (hasSpecialAddr) {
+        const backendRoute = await fetchBackendPolyline(from, to);
+        if (cancelled) return;
+        if (backendRoute) backendLines.push(backendRoute);
       } else {
         const r = await window.ymaps.route(allAddresses, { routingMode: "auto", mapStateAutoApply: false }).catch(() => null);
         if (r) routes = [r];
       }
 
-      if (cancelled || (routes.length === 0 && fallbackLines.length === 0)) return;
+      if (cancelled || (routes.length === 0 && backendLines.length === 0)) return;
 
       const [coordFrom, coordTo] = await Promise.all([geocodeAddress(from), geocodeAddress(to)]);
       if (cancelled) return;
@@ -392,7 +380,7 @@ export default function HeroBackground({ from, to, stops = [], formHeight }: Pro
         newObjects.push(route);
       });
 
-      fallbackLines.forEach(line => newObjects.push(line));
+      backendLines.forEach(line => newObjects.push(line));
 
       [coordFrom, coordTo].forEach(coord => {
         if (!coord) return;

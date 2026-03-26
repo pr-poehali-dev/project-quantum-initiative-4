@@ -341,7 +341,6 @@ export default function HeroBackground({ from, to, stops = [], formHeight }: Pro
         allAddresses.splice(1, 0, best.name);
       }
 
-      const KPP_ZAP = "Весело-Вознесенка, Ростовская область";
       let routes: AnyRef[] = [];
       const fallbackLines: AnyRef[] = [];
       const needsKppSplit = (isKhersonZap(to) || isKhersonZap(from)) && !isCrimea(from) && !isCrimea(to) && !isDnrLnr(from) && !isDnrLnr(to);
@@ -350,24 +349,26 @@ export default function HeroBackground({ from, to, stops = [], formHeight }: Pro
       if (needsKppSplit || needsSegmented) {
         const segAddresses: string[][] = [];
         if (needsKppSplit && allAddresses.length === 2) {
-          segAddresses.push([from, KPP_ZAP]);
-          segAddresses.push([KPP_ZAP, to]);
+          const toIsSpecial = isKhersonZap(to);
+          const transitPoints = toIsSpecial
+            ? [from, "Краснодар", "Керчь", "Джанкой", to]
+            : [from, "Джанкой", "Керчь", "Краснодар", to];
+          for (let ti = 0; ti < transitPoints.length - 1; ti++) {
+            segAddresses.push([transitPoints[ti], transitPoints[ti + 1]]);
+          }
         } else {
           for (let ai = 0; ai < allAddresses.length - 1; ai++) {
             segAddresses.push([allAddresses[ai], allAddresses[ai + 1]]);
           }
         }
 
-        console.log("[route] segments:", segAddresses.map(s => s.join(" → ")));
         for (const seg of segAddresses) {
           const r = await window.ymaps.route(seg, { routingMode: "auto", mapStateAutoApply: false }).catch(() => null);
           if (cancelled) return;
-          if (r) { routes.push(r); console.log("[route] ymaps OK:", seg.join(" → ")); }
+          if (r) routes.push(r);
           else {
-            console.log("[route] ymaps FAIL, fallback:", seg.join(" → "));
             const fb = await makeFallbackPolyline(seg[0], seg[seg.length - 1]);
-            if (fb) { fallbackLines.push(fb); console.log("[route] fallback OK"); }
-            else console.log("[route] fallback FAIL (geocode failed)");
+            if (fb) fallbackLines.push(fb);
           }
         }
       } else {

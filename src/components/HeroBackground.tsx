@@ -99,6 +99,17 @@ const isDnrLnr = (addr: string) => DNR_LNR_KEYWORDS.some(k => addr.toLowerCase()
 const isKherson = (addr: string) => KHERSON_KEYWORDS.some(k => addr.toLowerCase().includes(k));
 const isZap = (addr: string) => ZAP_KEYWORDS.some(k => addr.toLowerCase().includes(k));
 const isKhersonZap = (addr: string) => KHERSON_ZAP_KEYWORDS.some(k => addr.toLowerCase().includes(k));
+const isSpecialZone = (addr: string) => isKhersonZap(addr) || isDnrLnr(addr) || isCrimea(addr);
+
+async function makeFallbackPolyline(addrFrom: string, addrTo: string): Promise<AnyRef | null> {
+  const [c1, c2] = await Promise.all([geocodeAddress(addrFrom), geocodeAddress(addrTo)]);
+  if (!c1 || !c2) return null;
+  return new window.ymaps.Polyline(
+    [c1, c2],
+    {},
+    { strokeColor: "#c8d44a", strokeWidth: 3, strokeStyle: "dash", opacity: 0.7 }
+  );
+}
 
 export default function HeroBackground({ from, to, stops = [], formHeight }: Props) {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -197,11 +208,19 @@ export default function HeroBackground({ from, to, stops = [], formHeight }: Pro
           segments.map(seg => window.ymaps.route(seg, { routingMode: "auto", mapStateAutoApply: false }).catch(() => null))
         );
         if (cancelled) return;
-        const validRoutes = segRoutes.filter(Boolean);
-        if (!validRoutes.length) return;
 
         const newObjects: AnyRef[] = [];
-        validRoutes.forEach(r => { addRouteToMap(r); newObjects.push(r); });
+        for (let si = 0; si < segRoutes.length; si++) {
+          if (segRoutes[si]) {
+            addRouteToMap(segRoutes[si]);
+            newObjects.push(segRoutes[si]);
+          } else {
+            const seg = segments[si];
+            const fb = await makeFallbackPolyline(seg[0], seg[seg.length - 1]);
+            if (fb) newObjects.push(fb);
+          }
+        }
+        if (!newObjects.length) return;
 
         for (const addr of allPoints) {
           const coord = await geocodeAddress(addr);
@@ -215,8 +234,17 @@ export default function HeroBackground({ from, to, stops = [], formHeight }: Pro
         const isMobile = window.innerWidth < 640;
         const bm = isMobile ? (formHeightRef.current ?? Math.round(window.innerHeight * 0.55)) + 16 : 40;
         const margin: [number, number, number, number] = isMobile ? [60, 16, bm, 16] : [76, 40, 40, 420];
-        const bounds = validRoutes[0].getBounds();
-        if (bounds) map.setBounds(bounds, { checkZoomRange: true, zoomMargin: margin });
+        const placemarksCoords = newObjects
+          .filter((o: AnyRef) => o.geometry?.getType?.() === "Point")
+          .map((o: AnyRef) => o.geometry.getCoordinates() as [number, number]);
+        if (placemarksCoords.length >= 2) {
+          const lats = placemarksCoords.map((c: [number, number]) => c[0]);
+          const lons = placemarksCoords.map((c: [number, number]) => c[1]);
+          map.setBounds([[Math.min(...lats), Math.min(...lons)], [Math.max(...lats), Math.max(...lons)]], { checkZoomRange: true, zoomMargin: margin });
+        } else {
+          const firstRoute = newObjects.find((o: AnyRef) => o.getBounds);
+          if (firstRoute) { const b = firstRoute.getBounds(); if (b) map.setBounds(b, { checkZoomRange: true, zoomMargin: margin }); }
+        }
         return;
       }
 
@@ -313,21 +341,34 @@ export default function HeroBackground({ from, to, stops = [], formHeight }: Pro
         allAddresses.splice(1, 0, best.name);
       }
 
-      // Для Запорожской/Херсонской строим два сегмента через КПП Весело-Вознесенка
       const KPP_ZAP = "Весело-Вознесенка, Ростовская область";
       let routes: AnyRef[] = [];
+      const fallbackLines: AnyRef[] = [];
       if ((isKhersonZap(to) || isKhersonZap(from)) && !isCrimea(from) && !isCrimea(to) && !isDnrLnr(from) && !isDnrLnr(to)) {
         const [r1, r2] = await Promise.all([
           window.ymaps.route([from, KPP_ZAP], { routingMode: "auto", mapStateAutoApply: false }).catch(() => null),
           window.ymaps.route([KPP_ZAP, to], { routingMode: "auto", mapStateAutoApply: false }).catch(() => null),
         ]);
-        if (!cancelled) routes = [r1, r2].filter(Boolean);
+        if (cancelled) return;
+        if (r1) routes.push(r1);
+        else { const fb = await makeFallbackPolyline(from, KPP_ZAP); if (fb) fallbackLines.push(fb); }
+        if (r2) routes.push(r2);
+        else { const fb = await makeFallbackPolyline(KPP_ZAP, to); if (fb) fallbackLines.push(fb); }
+      } else if (isSpecialZone(from) || isSpecialZone(to)) {
+        for (let ai = 0; ai < allAddresses.length - 1; ai++) {
+          const segFrom = allAddresses[ai];
+          const segTo = allAddresses[ai + 1];
+          const r = await window.ymaps.route([segFrom, segTo], { routingMode: "auto", mapStateAutoApply: false }).catch(() => null);
+          if (cancelled) return;
+          if (r) routes.push(r);
+          else { const fb = await makeFallbackPolyline(segFrom, segTo); if (fb) fallbackLines.push(fb); }
+        }
       } else {
         const r = await window.ymaps.route(allAddresses, { routingMode: "auto", mapStateAutoApply: false }).catch(() => null);
         if (r) routes = [r];
       }
 
-      if (cancelled || routes.length === 0) return;
+      if (cancelled || (routes.length === 0 && fallbackLines.length === 0)) return;
 
       const [coordFrom, coordTo] = await Promise.all([geocodeAddress(from), geocodeAddress(to)]);
       if (cancelled) return;
@@ -342,6 +383,8 @@ export default function HeroBackground({ from, to, stops = [], formHeight }: Pro
         route.getPaths().options.set({ strokeColor: "#c8d44a", strokeWidth: 4, opacity: 0.9 });
         newObjects.push(route);
       });
+
+      fallbackLines.forEach(line => newObjects.push(line));
 
       [coordFrom, coordTo].forEach(coord => {
         if (!coord) return;
@@ -367,7 +410,7 @@ export default function HeroBackground({ from, to, stops = [], formHeight }: Pro
         const lonMin = Math.min(...boundsCoords.map(c => c[1]));
         const lonMax = Math.max(...boundsCoords.map(c => c[1]));
         map.setBounds([[latMin, lonMin], [latMax, lonMax]], { checkZoomRange: true, zoomMargin: margin });
-      } else {
+      } else if (route) {
         const bounds = route.getBounds();
         if (bounds) map.setBounds(bounds, { checkZoomRange: true, zoomMargin: margin });
       }

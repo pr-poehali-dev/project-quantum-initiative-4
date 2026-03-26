@@ -2,6 +2,7 @@ import json
 import urllib.request
 import math
 import os
+import time
 import psycopg2
 
 
@@ -405,6 +406,45 @@ def get_db():
     return psycopg2.connect(os.environ["DATABASE_URL"])
 
 
+_zones_cache = {"data": None, "ts": 0}
+
+def load_zones_from_db():
+    now = time.time()
+    if _zones_cache["data"] and now - _zones_cache["ts"] < 300:
+        return _zones_cache["data"]
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT name, zone_type, polygon FROM special_zones WHERE is_active = true ORDER BY id")
+        rows = cur.fetchall()
+        conn.close()
+        zones = []
+        for name, zone_type, polygon_json in rows:
+            poly = polygon_json if isinstance(polygon_json, list) else json.loads(polygon_json)
+            zones.append({"name": name, "type": zone_type, "polygon": poly})
+        _zones_cache["data"] = zones
+        _zones_cache["ts"] = now
+        return zones
+    except Exception:
+        # Fallback to hardcoded
+        zones = []
+        zone_names = ["ДНР", "ЛНР", "Запорожская обл.", "Херсонская обл."]
+        for idx, poly in enumerate(SPECIAL_POLYGONS):
+            zones.append({"name": zone_names[idx], "type": "special", "polygon": [[lat, lon] for lat, lon in poly]})
+        return zones
+
+
+def get_special_polygons():
+    zones = load_zones_from_db()
+    polys = []
+    names = []
+    for z in zones:
+        if z["type"] == "special":
+            polys.append([(pt[0], pt[1]) for pt in z["polygon"]])
+            names.append(z["name"])
+    return polys, names
+
+
 def normalize_city(name: str) -> str:
     """
     Нормализует название города для поиска в БД.
@@ -678,7 +718,8 @@ def point_in_polygon(lat, lon, poly) -> bool:
 
 
 def is_in_special_zone(lat, lon) -> bool:
-    return any(point_in_polygon(lat, lon, p) for p in SPECIAL_POLYGONS)
+    polys, _ = get_special_polygons()
+    return any(point_in_polygon(lat, lon, p) for p in polys)
 
 
 def geocode_city(address: str):

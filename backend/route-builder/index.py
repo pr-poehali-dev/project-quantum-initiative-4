@@ -479,6 +479,29 @@ def geocode_city(address):
     return None
 
 
+def osrm_route(lat1, lon1, lat2, lon2):
+    """OSRM — бесплатный роутинг, возвращает (waypoints, km, hours) или None."""
+    url = (f"https://router.project-osrm.org/route/v1/driving/"
+           f"{lon1},{lat1};{lon2},{lat2}?overview=full&geometries=geojson")
+    req = urllib.request.Request(url, headers={"User-Agent": "route-builder/1.0"})
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            data = json.loads(r.read())
+        if data.get("code") != "Ok" or not data.get("routes"):
+            print(f"[osrm] no route: {data.get('code')}")
+            return None
+        route = data["routes"][0]
+        coords = route["geometry"]["coordinates"]
+        waypoints = [(c[1], c[0]) for c in coords]
+        km = route["distance"] / 1000.0
+        hours = route["duration"] / 3600.0
+        print(f"[osrm] OK: {len(waypoints)} pts, {km:.0f} km, {hours:.1f} h")
+        return waypoints, km, hours
+    except Exception as e:
+        print(f"[osrm] ERROR: {e}")
+        return None
+
+
 def yandex_route(lat1, lon1, lat2, lon2):
     api_key = os.environ.get("YANDEX_ROUTES_API_KEY", "")
     if not api_key:
@@ -486,8 +509,12 @@ def yandex_route(lat1, lon1, lat2, lon2):
     url = (f"https://api.routing.yandex.net/v2/route"
            f"?waypoints={lon1},{lat1}|{lon2},{lat2}&mode=driving&apikey={api_key}")
     req = urllib.request.Request(url, headers={"User-Agent": "route-builder/1.0"})
-    with urllib.request.urlopen(req, timeout=30) as r:
-        return json.loads(r.read())
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            data = json.loads(r.read())
+            return data
+    except Exception:
+        return None
 
 
 def extract_polyline(route_data):
@@ -609,18 +636,25 @@ def handle_build_route(from_city, to_city):
     lat1, lon1 = coord_from
     lat2, lon2 = coord_to
 
-    route_data = None
-    source = "yandex"
-    try:
-        route_data = yandex_route(lat1, lon1, lat2, lon2)
-    except Exception:
-        pass
+    waypoints = None
+    km_total = 0
+    duration_hours = 0
+    source = "osrm"
 
-    if route_data:
-        waypoints, km_total, duration_hours = extract_polyline(route_data)
-        if not waypoints:
-            return {"statusCode": 500, "headers": CORS, "body": json.dumps({"error": "Яндекс вернул пустой маршрут"}, ensure_ascii=False)}
+    osrm = osrm_route(lat1, lon1, lat2, lon2)
+    if osrm:
+        waypoints, km_total, duration_hours = osrm
     else:
+        route_data = None
+        try:
+            route_data = yandex_route(lat1, lon1, lat2, lon2)
+        except Exception:
+            pass
+        if route_data:
+            source = "yandex"
+            waypoints, km_total, duration_hours = extract_polyline(route_data)
+
+    if not waypoints:
         source = "haversine"
         km_total = haversine(lat1, lon1, lat2, lon2) * 1.3
         duration_hours = km_total / 80.0
@@ -681,15 +715,21 @@ def handle_update_route(body):
     lat1, lon1 = coord_from
     lat2, lon2 = coord_to
 
-    route_data = yandex_route(lat1, lon1, lat2, lon2)
-    if not route_data:
-        conn.close()
-        return {"statusCode": 500, "headers": CORS, "body": json.dumps({"error": "Яндекс Routes API недоступен"}, ensure_ascii=False)}
+    waypoints = None
+    km_total = 0
+    duration_hours = 0
 
-    waypoints, km_total, duration_hours = extract_polyline(route_data)
+    osrm = osrm_route(lat1, lon1, lat2, lon2)
+    if osrm:
+        waypoints, km_total, duration_hours = osrm
+    else:
+        route_data = yandex_route(lat1, lon1, lat2, lon2)
+        if route_data:
+            waypoints, km_total, duration_hours = extract_polyline(route_data)
+
     if not waypoints:
         conn.close()
-        return {"statusCode": 500, "headers": CORS, "body": json.dumps({"error": "Яндекс вернул пустой маршрут"}, ensure_ascii=False)}
+        return {"statusCode": 500, "headers": CORS, "body": json.dumps({"error": "Не удалось построить маршрут"}, ensure_ascii=False)}
 
     km_normal, km_special = split_km_by_zone(waypoints, km_total)
 

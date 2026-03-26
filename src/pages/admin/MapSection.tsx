@@ -1,31 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import Icon from "@/components/ui/icon";
 import funcUrls from "../../../backend/func2url.json";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-
-interface Zone {
-  name: string;
-  polygon: [number, number][];
-  type: string;
-}
-
-interface RouteResult {
-  from: string;
-  to: string;
-  km_normal: number;
-  km_special: number;
-  km_total: number;
-  duration_hours: number;
-  source: string;
-  polyline: [number, number][];
-  zone_segments: { start_idx: number; end_idx: number; zone: string }[];
-}
-
-const ZONE_COLORS: Record<string, { fill: string; stroke: string; vertex: string }> = {
-  special: { fill: "rgba(255, 100, 50, 0.25)", stroke: "rgba(255, 100, 50, 0.7)", vertex: "#ff6432" },
-  crimea: { fill: "rgba(255, 200, 50, 0.2)", stroke: "rgba(255, 200, 50, 0.6)", vertex: "#ffc832" },
-};
+import { Zone, RouteResult, ZONE_COLORS } from "./map/mapTypes";
+import ZoneEditorToolbar from "./map/ZoneEditorToolbar";
+import RouteBuilder from "./map/RouteBuilder";
 
 export default function MapSection() {
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -391,170 +370,41 @@ export default function MapSection() {
     mapRef.current.fitBounds(L.polyline(latLngs).getBounds().pad(0.1));
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && fromCity && toCity && !loading) {
-      buildRoute();
-    }
-  };
-
   return (
     <div className="space-y-4">
       <div className="bg-gray-800 rounded-xl p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Icon name="Map" size={20} className="text-blue-400" />
-            Карта зон повышенного тарифа
-          </h2>
-          <div className="flex items-center gap-2">
-            {editMode ? (
-              <>
-                {saveMsg && (
-                  <span className={`text-sm ${saveMsg.includes("Ошибка") ? "text-red-400" : "text-green-400"}`}>
-                    {saveMsg}
-                  </span>
-                )}
-                <button
-                  onClick={saveZones}
-                  disabled={saving || !hasChanges}
-                  className="bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white px-4 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors"
-                >
-                  {saving ? (
-                    <Icon name="Loader2" size={14} className="animate-spin" />
-                  ) : (
-                    <Icon name="Save" size={14} />
-                  )}
-                  Сохранить
-                </button>
-                <button
-                  onClick={cancelEdit}
-                  className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors"
-                >
-                  <Icon name="X" size={14} />
-                  Отмена
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={() => {
-                  setEditMode(true);
-                  setEditingZoneIdx(null);
-                }}
-                className="bg-orange-600 hover:bg-orange-500 text-white px-4 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors"
-              >
-                <Icon name="PenTool" size={14} />
-                Редактировать зоны
-              </button>
-            )}
-          </div>
-        </div>
-
-        {editMode && (
-          <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3 mb-4">
-            <div className="flex items-start gap-2">
-              <Icon name="Info" size={16} className="text-orange-400 mt-0.5 shrink-0" />
-              <div className="text-sm text-orange-200">
-                {editingZoneIdx !== null ? (
-                  <>
-                    <strong>{zones[editingZoneIdx]?.name}</strong> — перетаскивайте точки для изменения границ.
-                    Клик на середину ребра добавит новую точку. ПКМ на точку — удалить.
-                  </>
-                ) : (
-                  <>Кликните на зону для редактирования.</>
-                )}
-              </div>
-            </div>
-            {editMode && (
-              <div className="flex flex-wrap gap-2 mt-3">
-                {zones.map((z, idx) => (
-                  <button
-                    key={z.name}
-                    onClick={() => setEditingZoneIdx(idx)}
-                    className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                      editingZoneIdx === idx
-                        ? "bg-white text-gray-900"
-                        : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                    }`}
-                  >
-                    {z.name} ({z.polygon.length} точек)
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        <ZoneEditorToolbar
+          editMode={editMode}
+          editingZoneIdx={editingZoneIdx}
+          zones={zones}
+          saving={saving}
+          hasChanges={hasChanges}
+          saveMsg={saveMsg}
+          onSave={saveZones}
+          onCancel={cancelEdit}
+          onStartEdit={() => {
+            setEditMode(true);
+            setEditingZoneIdx(null);
+          }}
+          onSelectZone={setEditingZoneIdx}
+        />
 
         {!editMode && (
-          <div className="flex flex-wrap gap-3 mb-4">
-            <input
-              type="text"
-              placeholder="Откуда (город)"
-              value={fromCity}
-              onChange={(e) => setFromCity(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="bg-gray-700 text-white px-4 py-2 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-yellow flex-1 min-w-[200px]"
-            />
-            <input
-              type="text"
-              placeholder="Куда (город)"
-              value={toCity}
-              onChange={(e) => setToCity(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="bg-gray-700 text-white px-4 py-2 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-yellow flex-1 min-w-[200px]"
-            />
-            <button
-              onClick={buildRoute}
-              disabled={loading || !fromCity || !toCity}
-              className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white px-6 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
-            >
-              {loading ? (
-                <Icon name="Loader2" size={16} className="animate-spin" />
-              ) : (
-                <Icon name="Route" size={16} />
-              )}
-              Построить
-            </button>
-          </div>
+          <RouteBuilder
+            fromCity={fromCity}
+            toCity={toCity}
+            loading={loading}
+            error={error}
+            routeResult={routeResult}
+            onFromChange={setFromCity}
+            onToChange={setToCity}
+            onBuild={buildRoute}
+          />
         )}
 
-        {error && (
+        {editMode && error && (
           <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-3 mb-4 text-sm text-red-300">
             {error}
-          </div>
-        )}
-
-        {!editMode && routeResult && (
-          <div className="bg-gray-700/50 rounded-lg p-4 mb-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div>
-              <div className="text-gray-400 text-xs mb-1">Всего</div>
-              <div className="text-xl font-bold">{routeResult.km_total} км</div>
-            </div>
-            <div>
-              <div className="text-gray-400 text-xs mb-1">Обычный тариф</div>
-              <div className="text-xl font-bold text-green-400">{routeResult.km_normal} км</div>
-            </div>
-            <div>
-              <div className="text-gray-400 text-xs mb-1">Повышенный тариф</div>
-              <div className="text-xl font-bold text-orange-400">{routeResult.km_special} км</div>
-            </div>
-            <div>
-              <div className="text-gray-400 text-xs mb-1">Время в пути</div>
-              <div className="text-xl font-bold">
-                {routeResult.duration_hours ? `${routeResult.duration_hours} ч` : "\u2014"}
-              </div>
-            </div>
-            <div className="col-span-2 md:col-span-4 flex flex-wrap gap-4 text-xs text-gray-500">
-              <span>
-                Источник: <span className="text-gray-300">{routeResult.source}</span>
-              </span>
-              {routeResult.zone_segments && routeResult.zone_segments.length > 0 && (
-                <span>
-                  Зоны:{" "}
-                  <span className="text-orange-400">
-                    {routeResult.zone_segments.map((s) => s.zone).join(", ")}
-                  </span>
-                </span>
-              )}
-            </div>
           </div>
         )}
 

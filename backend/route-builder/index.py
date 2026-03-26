@@ -479,15 +479,22 @@ def geocode_city(address):
     return None
 
 
-BRIDGE_KRASNODAR_SIDE = (45.2530, 36.5370)
-BRIDGE_KERCH_SIDE = (45.3100, 36.5100)
+WAYPOINTS_CRIMEA_BRIDGE = [
+    (45.039, 38.987),
+    (45.253, 36.537),
+]
+BRIDGE_KERCH = (45.356, 36.474)
+
+WAYPOINTS_DNR_LNR = [
+    (47.403, 39.677),
+]
 
 ROAD_NODES = {
-    "kerch": (45.3563, 36.4735),
-    "feodosia": (45.0317, 35.3827),
-    "simferopol": (44.9521, 34.1024),
-    "dzhankoy": (45.7086, 34.3946),
-    "armyansk": (46.1054, 33.6907),
+    "kerch": (45.356, 36.474),
+    "feodosia": (45.032, 35.383),
+    "simferopol": (44.952, 34.102),
+    "dzhankoy": (45.709, 34.395),
+    "armyansk": (46.105, 33.691),
     "kherson_south": (46.636, 32.617),
     "kakhovka": (46.818, 33.479),
     "novaya_kakhovka": (46.754, 33.383),
@@ -501,10 +508,10 @@ ROAD_NODES = {
     "tokmak": (47.253, 35.706),
     "genichesk": (46.167, 34.817),
     "skadovsk": (46.112, 32.912),
-    "sevastopol": (44.6167, 33.5254),
-    "yalta": (44.4952, 34.1663),
-    "evpatoria": (45.1906, 33.3669),
-    "alushta": (44.6764, 34.4101),
+    "sevastopol": (44.617, 33.525),
+    "yalta": (44.495, 34.166),
+    "evpatoria": (45.191, 33.367),
+    "alushta": (44.676, 34.410),
 }
 
 ROAD_GRAPH = {
@@ -636,7 +643,8 @@ def build_zone_polyline(lat1, lon1, lat2, lon2):
             t = s / num_pts
             pts.append((n1[0] + (n2[0] - n1[0]) * t, n1[1] + (n2[1] - n1[1]) * t))
 
-    pts.append((lat2, lon2))
+    if haversine(pts[-1][0], pts[-1][1], lat2, lon2) > 0.5:
+        pts.append((lat2, lon2))
     hours = total_km / 60.0
     print(f"[zone-route] {' -> '.join(path)}, {total_km:.0f} km, {len(pts)} pts")
     return pts, total_km, hours
@@ -646,98 +654,133 @@ def is_in_crimea(lat, lon):
     return point_in_polygon(lat, lon, CRIMEA_POLYGON)
 
 
-def is_in_new_region_or_crimea(lat, lon):
+def get_zone_type(lat, lon):
     if is_in_crimea(lat, lon):
-        return True
-    polys, names = get_special_polygons()
-    for idx, poly in enumerate(polys):
+        return "crimea"
+    for idx, poly in enumerate(SPECIAL_POLYGONS):
         if point_in_polygon(lat, lon, poly):
-            return True
-    return False
+            name = ZONE_NAMES[idx].lower()
+            if "днр" in name:
+                return "dnr"
+            if "лнр" in name:
+                return "lnr"
+            if "херсон" in name:
+                return "kherson"
+            if "запорож" in name:
+                return "zaporozhye"
+            return "special"
+    return None
 
 
-def osrm_segment(lat1, lon1, lat2, lon2):
+def is_in_new_region_or_crimea(lat, lon):
+    return get_zone_type(lat, lon) is not None
+
+
+def osrm_multi(coords_list):
+    coords_str = ";".join(f"{lon},{lat}" for lat, lon in coords_list)
     url = (f"https://router.project-osrm.org/route/v1/driving/"
-           f"{lon1},{lat1};{lon2},{lat2}?overview=full&geometries=geojson")
+           f"{coords_str}?overview=full&geometries=geojson")
+    print(f"[osrm] request: {len(coords_list)} pts, coords={[(round(lat,3),round(lon,3)) for lat,lon in coords_list]}")
     req = urllib.request.Request(url, headers={"User-Agent": "route-builder/1.0"})
     try:
-        with urllib.request.urlopen(req, timeout=15) as r:
+        with urllib.request.urlopen(req, timeout=20) as r:
             data = json.loads(r.read())
         if data.get("code") != "Ok" or not data.get("routes"):
+            print(f"[osrm] no route: {data.get('code')}")
             return None
         route = data["routes"][0]
         coords = route["geometry"]["coordinates"]
         waypoints = [(c[1], c[0]) for c in coords]
         km = route["distance"] / 1000.0
         hours = route["duration"] / 3600.0
+        print(f"[osrm] result: {len(waypoints)} pts, {km:.0f} km, {hours:.1f} h")
         return waypoints, km, hours
     except Exception as e:
         print(f"[osrm] ERROR: {e}")
         return None
 
 
-def osrm_route(lat1, lon1, lat2, lon2):
-    """Маршрутизация с учётом Крымского моста."""
-    from_in_zone = is_in_new_region_or_crimea(lat1, lon1)
-    to_in_zone = is_in_new_region_or_crimea(lat2, lon2)
+ENTRY_POINTS_BRIDGE = {
+    "krasnodar": (45.039, 38.987),
+    "port_kavkaz": (45.253, 36.537),
+}
+ENTRY_POINTS_DNR_LNR = {
+    "veselo": (47.403, 39.677),
+    "matveev_kurgan": (47.608, 38.851),
+    "novoshakhtinsk": (47.756, 39.930),
+}
 
-    if not from_in_zone and not to_in_zone:
-        result = osrm_segment(lat1, lon1, lat2, lon2)
+
+def osrm_route(lat1, lon1, lat2, lon2):
+    """Маршрутизация: Россия напрямую, зоны — через КПП + дорожный граф."""
+    from_zone = get_zone_type(lat1, lon1)
+    to_zone = get_zone_type(lat2, lon2)
+    print(f"[route] from=({lat1},{lon1}) zone={from_zone}, to=({lat2},{lon2}) zone={to_zone}")
+
+    if not from_zone and not to_zone:
+        result = osrm_multi([(lat1, lon1), (lat2, lon2)])
         if result:
-            wps, km, hrs = result
-            print(f"[osrm] direct OK: {len(wps)} pts, {km:.0f} km, {hrs:.1f} h")
-            return wps, km, hrs
+            print(f"[osrm] direct: {len(result[0])} pts, {result[1]:.0f} km")
+            return result
         return None
 
-    if from_in_zone and to_in_zone:
+    if from_zone and to_zone:
         pts, km, hrs = build_zone_polyline(lat1, lon1, lat2, lon2)
+        print(f"[osrm] zone-to-zone: {km:.0f} km, {len(pts)} pts")
         return pts, km, hrs
 
-    blat, blon = BRIDGE_KRASNODAR_SIDE
-    klat, klon = BRIDGE_KERCH_SIDE
+    zone = from_zone or to_zone
+    is_dnr_lnr = zone in ("dnr", "lnr")
 
-    if to_in_zone:
-        seg_russia = osrm_segment(lat1, lon1, blat, blon)
-        if not seg_russia:
-            return None
-        zone_pts, zone_km, zone_hrs = build_zone_polyline(klat, klon, lat2, lon2)
-        wps_r, km_r, hrs_r = seg_russia
-
-        bridge_km = 19.0
-        bridge_hrs = 0.3
-        bridge_pts = [
-            (45.2600, 36.5350),
-            (45.2700, 36.5300),
-            (45.2800, 36.5250),
-            (45.2933, 36.5180),
-            (klat, klon),
-        ]
-
-        all_wps = wps_r + bridge_pts + zone_pts
-        total_km = km_r + bridge_km + zone_km
-        total_hrs = hrs_r + bridge_hrs + zone_hrs
+    if is_dnr_lnr:
+        entry = ENTRY_POINTS_DNR_LNR["veselo"]
+        if to_zone:
+            osrm_coords = [(lat1, lon1), entry]
+            osrm_result = osrm_multi(osrm_coords)
+            if not osrm_result:
+                return None
+            wps_r, km_r, hrs_r = osrm_result
+            zone_pts, zone_km, zone_hrs = build_zone_polyline(entry[0], entry[1], lat2, lon2)
+            all_wps = wps_r + zone_pts
+            total_km = km_r + zone_km
+            total_hrs = hrs_r + zone_hrs
+        else:
+            zone_pts, zone_km, zone_hrs = build_zone_polyline(lat1, lon1, entry[0], entry[1])
+            osrm_coords = [entry, (lat2, lon2)]
+            osrm_result = osrm_multi(osrm_coords)
+            if not osrm_result:
+                return None
+            wps_r, km_r, hrs_r = osrm_result
+            all_wps = zone_pts + wps_r
+            total_km = zone_km + km_r
+            total_hrs = zone_hrs + hrs_r
     else:
-        zone_pts, zone_km, zone_hrs = build_zone_polyline(lat1, lon1, klat, klon)
-        seg_russia = osrm_segment(blat, blon, lat2, lon2)
-        if not seg_russia:
-            return None
-        wps_r, km_r, hrs_r = seg_russia
+        bridge_krasnodar = ENTRY_POINTS_BRIDGE["krasnodar"]
+        bridge_port = ENTRY_POINTS_BRIDGE["port_kavkaz"]
+        bridge_kerch = BRIDGE_KERCH
 
-        bridge_km = 19.0
-        bridge_hrs = 0.3
-        bridge_pts = [
-            (klat, klon),
-            (45.2933, 36.5180),
-            (45.2800, 36.5250),
-            (45.2700, 36.5300),
-            (blat, blon),
-        ]
+        if to_zone:
+            osrm_coords = [(lat1, lon1), bridge_krasnodar, bridge_port]
+            osrm_result = osrm_multi(osrm_coords)
+            if not osrm_result:
+                return None
+            wps_r, km_r, hrs_r = osrm_result
+            zone_pts, zone_km, zone_hrs = build_zone_polyline(bridge_kerch[0], bridge_kerch[1], lat2, lon2)
+            all_wps = wps_r + zone_pts
+            total_km = km_r + 19.0 + zone_km
+            total_hrs = hrs_r + 0.3 + zone_hrs
+        else:
+            zone_pts, zone_km, zone_hrs = build_zone_polyline(lat1, lon1, bridge_kerch[0], bridge_kerch[1])
+            osrm_coords = [bridge_port, bridge_krasnodar, (lat2, lon2)]
+            osrm_result = osrm_multi(osrm_coords)
+            if not osrm_result:
+                return None
+            wps_r, km_r, hrs_r = osrm_result
+            all_wps = zone_pts + wps_r
+            total_km = zone_km + 19.0 + km_r
+            total_hrs = zone_hrs + 0.3 + hrs_r
 
-        all_wps = zone_pts + bridge_pts + wps_r
-        total_km = zone_km + bridge_km + km_r
-        total_hrs = zone_hrs + bridge_hrs + hrs_r
-
-    print(f"[osrm] bridge route: {len(all_wps)} pts, {total_km:.0f} km, {total_hrs:.1f} h")
+    print(f"[osrm] route: {len(all_wps)} pts, {total_km:.0f} km, {total_hrs:.1f} h")
     return all_wps, total_km, total_hrs
 
 

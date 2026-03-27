@@ -512,6 +512,11 @@ ROAD_NODES = {
     "yalta": (44.495, 34.166),
     "evpatoria": (45.191, 33.367),
     "alushta": (44.676, 34.410),
+    "uspenka": (47.887, 38.370),
+    "kuibyshevo": (47.617, 38.442),
+    "veselo": (47.403, 39.677),
+    "matveev_kurgan": (47.608, 38.851),
+    "novoshakhtinsk": (47.756, 39.930),
 }
 
 ROAD_GRAPH = {
@@ -525,9 +530,14 @@ ROAD_GRAPH = {
     "novaya_kakhovka": ["kakhovka", "kherson_south", "energodar", "melitopol"],
     "melitopol": ["dzhankoy", "novaya_kakhovka", "berdyansk", "tokmak", "vasilyevka_zap"],
     "berdyansk": ["melitopol", "mariupol", "kerch"],
-    "mariupol": ["berdyansk", "donetsk"],
-    "donetsk": ["mariupol", "lugansk"],
-    "lugansk": ["donetsk"],
+    "mariupol": ["berdyansk", "donetsk", "kuibyshevo"],
+    "donetsk": ["mariupol", "lugansk", "uspenka", "kuibyshevo"],
+    "lugansk": ["donetsk", "novoshakhtinsk"],
+    "uspenka": ["donetsk", "matveev_kurgan"],
+    "kuibyshevo": ["donetsk", "matveev_kurgan", "mariupol"],
+    "matveev_kurgan": ["uspenka", "kuibyshevo", "veselo"],
+    "veselo": ["matveev_kurgan", "novoshakhtinsk"],
+    "novoshakhtinsk": ["lugansk", "veselo"],
     "energodar": ["novaya_kakhovka", "vasilyevka_zap"],
     "vasilyevka_zap": ["melitopol", "energodar", "tokmak"],
     "tokmak": ["melitopol", "vasilyevka_zap"],
@@ -570,6 +580,14 @@ ROAD_DISTANCES = {
     ("energodar", "vasilyevka_zap"): 50,
     ("vasilyevka_zap", "tokmak"): 50,
     ("genichesk", "melitopol"): 120,
+    ("donetsk", "uspenka"): 65,
+    ("donetsk", "kuibyshevo"): 90,
+    ("uspenka", "matveev_kurgan"): 45,
+    ("kuibyshevo", "matveev_kurgan"): 30,
+    ("kuibyshevo", "mariupol"): 90,
+    ("matveev_kurgan", "veselo"): 80,
+    ("veselo", "novoshakhtinsk"): 70,
+    ("lugansk", "novoshakhtinsk"): 120,
 }
 
 
@@ -715,6 +733,8 @@ ENTRY_POINTS_DNR_LNR = {
     "veselo": (47.403, 39.677),
     "matveev_kurgan": (47.608, 38.851),
     "novoshakhtinsk": (47.756, 39.930),
+    "uspenka": (47.887, 38.370),
+    "kuibyshevo": (47.617, 38.442),
 }
 
 
@@ -766,7 +786,21 @@ def osrm_route(lat1, lon1, lat2, lon2):
             total_km = zone_km + 19.0 + km_r
             total_hrs = zone_hrs + 0.3 + hrs_r
     else:
-        entry = ENTRY_POINTS_DNR_LNR["veselo"]
+        if to_zone:
+            ref_lat, ref_lon = lat1, lon1
+        else:
+            ref_lat, ref_lon = lat2, lon2
+        best_entry = None
+        best_dist = float('inf')
+        for name, (elat, elon) in ENTRY_POINTS_DNR_LNR.items():
+            d = haversine(ref_lat, ref_lon, elat, elon)
+            if d < best_dist:
+                best_dist = d
+                best_entry = (elat, elon)
+                best_name = name
+        entry = best_entry or ENTRY_POINTS_DNR_LNR["veselo"]
+        print(f"[route] entry point: {best_name} ({entry[0]},{entry[1]}), dist={best_dist:.0f}km")
+
         if to_zone:
             osrm_coords = [(lat1, lon1), entry]
             osrm_result = osrm_multi(osrm_coords)

@@ -310,7 +310,6 @@ export default function HeroBackground({ from, to, stops = [], formHeight }: Pro
           allAddresses.splice(allAddresses.length - 1, 0, "Краснодар", "Керчь");
         }
       } else if (isDnrLnr(to) && !isCrimea(from) && !isKhersonZap(from)) {
-        const getLen = (r: AnyRef) => { try { return r.getPaths().get(0).getLength(); } catch { return Infinity; } };
         const [r1, r2, r3, r4, r5, r6] = await Promise.all([
           window.ymaps.route([from, "Матвеев Курган, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
           window.ymaps.route([from, "Весело-Вознесенка, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
@@ -330,7 +329,6 @@ export default function HeroBackground({ from, to, stops = [], formHeight }: Pro
         ].reduce((a, b) => a.len <= b.len ? a : b);
         allAddresses.splice(allAddresses.length - 1, 0, best.name);
       } else if (isDnrLnr(from) && !isCrimea(to) && !isKhersonZap(to)) {
-        const getLen = (r: AnyRef) => { try { return r.getPaths().get(0).getLength(); } catch { return Infinity; } };
         const [r1, r2, r3, r4, r5, r6] = await Promise.all([
           window.ymaps.route([from, "Матвеев Курган, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
           window.ymaps.route([from, "Весело-Вознесенка, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
@@ -349,13 +347,58 @@ export default function HeroBackground({ from, to, stops = [], formHeight }: Pro
           { name: "Бугаевка, Ростовская область", len: getLen(r6) },
         ].reduce((a, b) => a.len <= b.len ? a : b);
         allAddresses.splice(1, 0, best.name);
+      } else if (isZap(to) && !isCrimea(from) && !isDnrLnr(from) && !isKhersonZap(from)) {
+        const [r1, r2] = await Promise.all([
+          window.ymaps.route([from, "Весело-Вознесенка, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
+          window.ymaps.route([from, "Матвеев Курган, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
+        ]);
+        if (cancelled) return;
+        const best = [
+          { name: "Весело-Вознесенка, Ростовская область", len: getLen(r1) },
+          { name: "Матвеев Курган, Ростовская область", len: getLen(r2) },
+        ].reduce((a, b) => a.len <= b.len ? a : b);
+        allAddresses.splice(allAddresses.length - 1, 0, best.name);
+      } else if (isZap(from) && !isCrimea(to) && !isDnrLnr(to) && !isKhersonZap(to)) {
+        const [r1, r2] = await Promise.all([
+          window.ymaps.route([from, "Весело-Вознесенка, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
+          window.ymaps.route([from, "Матвеев Курган, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
+        ]);
+        if (cancelled) return;
+        const best = [
+          { name: "Весело-Вознесенка, Ростовская область", len: getLen(r1) },
+          { name: "Матвеев Курган, Ростовская область", len: getLen(r2) },
+        ].reduce((a, b) => a.len <= b.len ? a : b);
+        allAddresses.splice(1, 0, best.name);
+      } else if (isKherson(to) && !isCrimea(from) && !isDnrLnr(from) && !isZap(from)) {
+        const [r1, r2] = await Promise.all([
+          window.ymaps.route([from, "Весело-Вознесенка, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
+          window.ymaps.route([from, "Армянск", to], { routingMode: "auto" }).catch(() => null),
+        ]);
+        if (cancelled) return;
+        const best = [
+          { name: "Весело-Вознесенка, Ростовская область", len: getLen(r1) },
+          { name: "Армянск", len: getLen(r2) },
+        ].reduce((a, b) => a.len <= b.len ? a : b);
+        allAddresses.splice(allAddresses.length - 1, 0, best.name);
+      } else if (isKherson(from) && !isCrimea(to) && !isDnrLnr(to) && !isZap(to)) {
+        const [r1, r2] = await Promise.all([
+          window.ymaps.route([from, "Весело-Вознесенка, Ростовская область", to], { routingMode: "auto" }).catch(() => null),
+          window.ymaps.route([from, "Армянск", to], { routingMode: "auto" }).catch(() => null),
+        ]);
+        if (cancelled) return;
+        const best = [
+          { name: "Весело-Вознесенка, Ростовская область", len: getLen(r1) },
+          { name: "Армянск", len: getLen(r2) },
+        ].reduce((a, b) => a.len <= b.len ? a : b);
+        allAddresses.splice(1, 0, best.name);
       }
 
+      const hasViaPoint = allAddresses.length > 2;
       let routes: AnyRef[] = [];
       const backendLines: AnyRef[] = [];
       const hasSpecialAddr = isSpecialZone(from) || isSpecialZone(to);
 
-      if (hasSpecialAddr) {
+      if (hasSpecialAddr && !hasViaPoint) {
         const backendRoute = await fetchBackendPolyline(from, to);
         if (cancelled) return;
         if (backendRoute) backendLines.push(backendRoute);

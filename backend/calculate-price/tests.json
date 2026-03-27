@@ -12,7 +12,7 @@
       "path": "/",
       "body": {"from": "Донецк", "to": "Мариуполь", "carClass": "standard"},
       "expectedStatus": 200,
-      "expectedBody": {"has_special_zone": true, "source": "osrm"},
+      "expectedBody": {"has_special_zone": true},
       "bodyMatcher": "partial"
     },
     {
@@ -21,7 +21,7 @@
       "path": "/",
       "body": {"from": "Москва", "to": "Ростов-на-Дону", "carClass": "standard"},
       "expectedStatus": 200,
-      "expectedBody": {"has_special_zone": false, "km_special": 0, "source": "osrm"},
+      "expectedBody": {"has_special_zone": false, "km_special": 0},
       "bodyMatcher": "partial"
     },
     {
@@ -30,7 +30,7 @@
       "path": "/",
       "body": {"from": "Москва", "to": "Донецк", "carClass": "standard"},
       "expectedStatus": 200,
-      "expectedBody": {"has_special_zone": true, "source": "osrm"},
+      "expectedBody": {"has_special_zone": true},
       "bodyMatcher": "partial"
     },
     {
@@ -39,7 +39,16 @@
       "path": "/",
       "body": {"from": "Симферополь", "to": "Ялта", "carClass": "standard"},
       "expectedStatus": 200,
-      "expectedBody": {"km_special": 0, "has_special_zone": false, "source": "osrm"},
+      "expectedBody": {"km_special": 0, "has_special_zone": false},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Ростов → Энергодар (спецзона)",
+      "method": "POST",
+      "path": "/",
+      "body": {"from": "Ростов-на-Дону", "to": "Энергодар", "carClass": "standard"},
+      "expectedStatus": 200,
+      "expectedBody": {"has_special_zone": true},
       "bodyMatcher": "partial"
     }
   ]

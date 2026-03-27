@@ -900,9 +900,12 @@ def handler(event: dict, context) -> dict:
     KERCH_BRIDGE = (36.536, 45.308)
     ARMIANSK = (33.691, 46.103)
     CHONGAR  = (34.394, 46.003)
+    VESELO_VOZNESENSKA = (38.246, 47.547)
 
-    def is_kherson_addr(a): return any(k in a.lower() for k in ["херсон","херсонская","геническ","каховка"])
-    def is_zap_addr(a):     return any(k in a.lower() for k in ["мелитополь","запорожская","бердянск","токмак","энергодар","пологи"])
+    def is_kherson_addr(a): return any(k in a.lower() for k in ["херсон","херсонская","геническ","каховка","скадовск"])
+    def is_zap_addr(a):     return any(k in a.lower() for k in ["мелитополь","запорожская","бердянск","токмак","энергодар","пологи","приморск","васильевка"])
+    def is_dnr_lnr_addr(a): return any(k in a.lower() for k in ["донецк","днр","мариуполь","горловка","макеевка","краматорск","луганск","лнр","лисичанск","северодонецк","алчевск","дебальцево","волноваха","угледар","докучаевск","харцызск","енакиево","ясиноватая","торез","снежное","шахтёрск","шахтерск","иловайск","новоазовск","стаханов","антрацит","первомайск","ровеньки","свердловск","перевальск","брянка","кировск","молодогвардейск","красный луч","авдеевка"])
+    def is_normal_addr(a): return not is_crimea_addr(a) and not is_special_addr(a)
 
     route_coords = [(lon, lat) for lat, lon in all_coords]
 
@@ -920,6 +923,14 @@ def handler(event: dict, context) -> dict:
             route_coords.insert(len(route_coords)-1, CHONGAR)
         else:
             route_coords.insert(len(route_coords)-1, KERCH_BRIDGE)
+    elif is_normal_addr(from_city) and (is_zap_addr(to_city) or is_dnr_lnr_addr(to_city)):
+        route_coords.insert(len(route_coords)-1, VESELO_VOZNESENSKA)
+    elif (is_zap_addr(from_city) or is_dnr_lnr_addr(from_city)) and is_normal_addr(to_city):
+        route_coords.insert(1, VESELO_VOZNESENSKA)
+    elif is_normal_addr(from_city) and is_kherson_addr(to_city):
+        route_coords.insert(len(route_coords)-1, VESELO_VOZNESENSKA)
+    elif is_kherson_addr(from_city) and is_normal_addr(to_city):
+        route_coords.insert(1, VESELO_VOZNESENSKA)
 
     # ── 3. Считаем расстояния ─────────────────────────────────────────────────
     source = "yandex"

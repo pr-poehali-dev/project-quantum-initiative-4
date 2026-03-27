@@ -730,7 +730,7 @@ ENTRY_POINTS_BRIDGE = {
     "port_kavkaz": (45.253, 36.537),
 }
 ENTRY_POINTS_DNR_LNR = {
-    "veselo": (47.403, 39.677),
+    "veselo": (47.547, 38.246),
     "matveev_kurgan": (47.608, 38.851),
     "novoshakhtinsk": (47.756, 39.930),
     "uspenka": (47.887, 38.370),
@@ -758,7 +758,9 @@ def osrm_route(lat1, lon1, lat2, lon2):
 
     zone_lat = lat2 if to_zone else lat1
     zone_lon = lon2 if to_zone else lon1
-    use_bridge = zone_lon < 37.5
+    zone_name = get_zone_name(zone_lat, zone_lon)
+    use_bridge = is_in_crimea(zone_lat, zone_lon)
+    print(f"[route] zone_name={zone_name}, use_bridge={use_bridge}")
 
     if use_bridge:
         bridge_krasnodar = ENTRY_POINTS_BRIDGE["krasnodar"]

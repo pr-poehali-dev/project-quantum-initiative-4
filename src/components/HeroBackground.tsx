@@ -397,8 +397,9 @@ export default function HeroBackground({ from, to, stops = [], formHeight }: Pro
       let routes: AnyRef[] = [];
       const backendLines: AnyRef[] = [];
       const hasSpecialAddr = isSpecialZone(from) || isSpecialZone(to);
+      const bothSpecial = isSpecialZone(from) && isSpecialZone(to);
 
-      if (hasSpecialAddr && !hasViaPoint) {
+      if (hasSpecialAddr && !hasViaPoint && !bothSpecial) {
         const backendRoute = await fetchBackendPolyline(from, to);
         if (cancelled) return;
         if (backendRoute) backendLines.push(backendRoute);

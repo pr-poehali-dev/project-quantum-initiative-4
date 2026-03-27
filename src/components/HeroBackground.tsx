@@ -405,7 +405,13 @@ export default function HeroBackground({ from, to, stops = [], formHeight }: Pro
         if (backendRoute) backendLines.push(backendRoute);
       } else {
         const r = await window.ymaps.route(allAddresses, { routingMode: "auto", mapStateAutoApply: false }).catch(() => null);
-        if (r) routes = [r];
+        if (r) {
+          routes = [r];
+        } else if (hasSpecialAddr) {
+          const backendRoute = await fetchBackendPolyline(from, to);
+          if (cancelled) return;
+          if (backendRoute) backendLines.push(backendRoute);
+        }
       }
 
       if (cancelled || (routes.length === 0 && backendLines.length === 0)) return;

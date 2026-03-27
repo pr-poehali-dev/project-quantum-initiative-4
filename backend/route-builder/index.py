@@ -935,18 +935,10 @@ def handle_build_route(from_city, to_city):
     duration_hours = 0
     source = "osrm"
 
-    route_data = yandex_route(lat1, lon1, lat2, lon2)
-    if route_data:
-        source = "yandex"
-        waypoints, km_total, duration_hours = extract_polyline(route_data)
-        print(f"[route] yandex: {len(waypoints)} pts, {km_total:.0f} km, {duration_hours:.1f} h")
-
-    if not waypoints:
-        osrm = osrm_route(lat1, lon1, lat2, lon2)
-        if osrm:
-            source = "osrm"
-            waypoints, km_total, duration_hours = osrm
-            print(f"[route] osrm fallback: {len(waypoints)} pts, {km_total:.0f} km")
+    osrm = osrm_route(lat1, lon1, lat2, lon2)
+    if osrm:
+        waypoints, km_total, duration_hours = osrm
+        print(f"[route] osrm: {len(waypoints)} pts, {km_total:.0f} km")
 
     if not waypoints:
         source = "haversine"

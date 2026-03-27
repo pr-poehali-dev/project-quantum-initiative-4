@@ -7,6 +7,42 @@ import time
 
 """Ежедневная проверка эталонных маршрутов — сравнивает расстояния из БД с расчётом OSRM."""
 
+DISPATCH_FEE = 700
+TARIFFS = {
+    "urgent":   {"per_km": 30, "base": 1500},
+    "standard": {"per_km": 30, "base": DISPATCH_FEE},
+    "comfort":  {"per_km": 40, "base": DISPATCH_FEE},
+    "minivan":  {"per_km": 60, "base": DISPATCH_FEE},
+    "business": {"per_km": 80, "base": DISPATCH_FEE},
+}
+TARIFFS_SPECIAL = {
+    "urgent":   {"per_km": 80, "base": 0},
+    "standard": {"per_km": 80, "base": 0},
+    "comfort":  {"per_km": 90, "base": 0},
+    "minivan":  {"per_km": 100, "base": 0},
+    "business": {"per_km": 180, "base": 0},
+}
+
+def calc_all_prices(km_normal, km_special):
+    result = {}
+    for key in TARIFFS:
+        t = TARIFFS[key]
+        ts = TARIFFS_SPECIAL[key]
+        result[key] = round(t["per_km"]*km_normal + ts["per_km"]*km_special + t["base"])
+    return result
+
+
+def update_route_with_prices(cur, route_id, km_normal, km_special, notes):
+    prices = calc_all_prices(km_normal, km_special)
+    cur.execute(
+        "UPDATE routes_reference SET km_normal = %s, km_special = %s, "
+        "price_urgent = %s, price_standard = %s, price_comfort = %s, price_minivan = %s, price_business = %s, "
+        "notes = %s, updated_at = NOW() WHERE id = %s",
+        (km_normal, km_special,
+         prices["urgent"], prices["standard"], prices["comfort"], prices["minivan"], prices["business"],
+         notes, route_id)
+    )
+
 CORS = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
@@ -368,7 +404,7 @@ def is_zap_addr(a):
 
 
 def is_route_unreliable(from_city, to_city):
-    """OSRM не знает дорог в спецзонах — строит объезды через Россию."""
+    """OSRM ненадёжен только когда ОБА конца в спецзонах или спецзона+Крым."""
     f_spec = is_special_addr(from_city)
     t_spec = is_special_addr(to_city)
     f_crim = is_crimea_addr(from_city)
@@ -376,8 +412,6 @@ def is_route_unreliable(from_city, to_city):
     if f_spec and t_spec:
         return True
     if (f_spec or t_spec) and (f_crim or t_crim):
-        return True
-    if (f_spec and not t_spec and not t_crim) or (t_spec and not f_spec and not f_crim):
         return True
     return False
 
@@ -475,24 +509,17 @@ def fix_route(event):
             "old_km": old_total, "calc_km": calc_total,
         })}
 
-    cur.execute(
-        "UPDATE routes_reference SET km_normal = %s, km_special = %s, "
-        "notes = %s, updated_at = NOW() WHERE id = %s",
-        (calc_normal, calc_special,
-         f"Автоисправлено: было {old_normal}+{old_special}={old_total}км, стало {calc_normal}+{calc_special}={calc_total}км",
-         route_id)
-    )
+    update_route_with_prices(cur, route_id, calc_normal, calc_special,
+        f"Автоисправлено: было {old_normal}+{old_special}={old_total}км, стало {calc_normal}+{calc_special}={calc_total}км")
 
-    reverse_city_from = to_city
-    reverse_city_to = from_city
     cur.execute(
-        "UPDATE routes_reference SET km_normal = %s, km_special = %s, "
-        "notes = %s, updated_at = NOW() "
-        "WHERE LOWER(from_city) = LOWER(%s) AND LOWER(to_city) = LOWER(%s)",
-        (calc_normal, calc_special,
-         f"Автоисправлено (обратный): было→стало {calc_normal}+{calc_special}={calc_total}км",
-         reverse_city_from, reverse_city_to)
+        "SELECT id FROM routes_reference WHERE LOWER(from_city) = LOWER(%s) AND LOWER(to_city) = LOWER(%s) LIMIT 1",
+        (to_city, from_city)
     )
+    rev = cur.fetchone()
+    if rev:
+        update_route_with_prices(cur, rev[0], calc_normal, calc_special,
+            f"Автоисправлено (обратный): {calc_normal}+{calc_special}={calc_total}км")
 
     conn.commit()
     conn.close()
@@ -547,21 +574,16 @@ def fix_all_problems(event):
 
         conn2 = get_db()
         cur2 = conn2.cursor()
+        update_route_with_prices(cur2, route_id, calc_normal, calc_special,
+            f"Автоисправлено: {ref_normal}+{ref_special}→{calc_normal}+{calc_special}")
         cur2.execute(
-            "UPDATE routes_reference SET km_normal = %s, km_special = %s, "
-            "notes = %s, updated_at = NOW() WHERE id = %s",
-            (calc_normal, calc_special,
-             f"Автоисправлено: {ref_normal}+{ref_special}→{calc_normal}+{calc_special}",
-             route_id)
+            "SELECT id FROM routes_reference WHERE LOWER(from_city) = LOWER(%s) AND LOWER(to_city) = LOWER(%s) LIMIT 1",
+            (to_city, from_city)
         )
-        cur2.execute(
-            "UPDATE routes_reference SET km_normal = %s, km_special = %s, "
-            "notes = %s, updated_at = NOW() "
-            "WHERE LOWER(from_city) = LOWER(%s) AND LOWER(to_city) = LOWER(%s)",
-            (calc_normal, calc_special,
-             f"Автоисправлено (обратный): {calc_normal}+{calc_special}={calc_total}км",
-             to_city, from_city)
-        )
+        rev = cur2.fetchone()
+        if rev:
+            update_route_with_prices(cur2, rev[0], calc_normal, calc_special,
+                f"Автоисправлено (обратный): {calc_normal}+{calc_special}={calc_total}км")
         conn2.commit()
         conn2.close()
 
@@ -627,21 +649,16 @@ def recalc_all(event):
 
         conn2 = get_db()
         cur2 = conn2.cursor()
+        update_route_with_prices(cur2, route_id, calc_normal, calc_special,
+            f"OSRM-пересчёт: было {old_normal}+{old_special}={old_total}км, стало {calc_normal}+{calc_special}={calc_total}км")
         cur2.execute(
-            "UPDATE routes_reference SET km_normal = %s, km_special = %s, "
-            "notes = %s, updated_at = NOW() WHERE id = %s",
-            (calc_normal, calc_special,
-             f"OSRM-пересчёт: было {old_normal}+{old_special}={old_total}км, стало {calc_normal}+{calc_special}={calc_total}км",
-             route_id)
+            "SELECT id FROM routes_reference WHERE LOWER(from_city) = LOWER(%s) AND LOWER(to_city) = LOWER(%s) LIMIT 1",
+            (to_city, from_city)
         )
-        cur2.execute(
-            "UPDATE routes_reference SET km_normal = %s, km_special = %s, "
-            "notes = %s, updated_at = NOW() "
-            "WHERE LOWER(from_city) = LOWER(%s) AND LOWER(to_city) = LOWER(%s)",
-            (calc_normal, calc_special,
-             f"OSRM-пересчёт (обратный): {calc_normal}+{calc_special}={calc_total}км",
-             to_city, from_city)
-        )
+        rev = cur2.fetchone()
+        if rev:
+            update_route_with_prices(cur2, rev[0], calc_normal, calc_special,
+                f"OSRM-пересчёт (обратный): {calc_normal}+{calc_special}={calc_total}км")
         conn2.commit()
         conn2.close()
 

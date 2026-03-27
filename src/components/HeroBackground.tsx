@@ -147,15 +147,68 @@ export default function HeroBackground({ from, to, stops = [], formHeight }: Pro
     return () => { destroyed = true; };
   }, []);
 
+  // Показать маркер при вводе одного адреса
+  const singleMarkerRef = useRef<AnyRef>(null);
+
+  useEffect(() => {
+    if ((from.trim() && to.trim()) || (!from.trim() && !to.trim())) {
+      if (singleMarkerRef.current && mapInstanceRef.current) {
+        try { mapInstanceRef.current.geoObjects.remove(singleMarkerRef.current); } catch { /* */ }
+        singleMarkerRef.current = null;
+      }
+      return;
+    }
+
+    let cancelled = false;
+    const addr = from.trim() || to.trim();
+
+    const show = async () => {
+      let attempts = 0;
+      while (!window._ymapsReady || !mapInstanceRef.current) {
+        if (cancelled || attempts > 50) return;
+        await new Promise(r => setTimeout(r, 100));
+        attempts++;
+      }
+      if (cancelled) return;
+
+      const coord = await geocodeAddress(addr);
+      if (cancelled || !coord) return;
+
+      const map = mapInstanceRef.current;
+      if (singleMarkerRef.current) {
+        try { map.geoObjects.remove(singleMarkerRef.current); } catch { /* */ }
+      }
+      singleMarkerRef.current = new window.ymaps.Placemark(coord, {
+        balloonContent: addr,
+      }, {
+        preset: "islands#dotIcon",
+        iconColor: "#c8d44a",
+      });
+      map.geoObjects.add(singleMarkerRef.current);
+
+      const isMobile = window.innerWidth < 640;
+      const bm = isMobile ? (formHeightRef.current ?? Math.round(window.innerHeight * 0.55)) + 16 : 40;
+      const margin: [number, number, number, number] = isMobile ? [60, 16, bm, 16] : [76, 40, 40, 420];
+      map.setCenter(coord, 10, { duration: 300, checkZoomRange: true }).then(() => {
+        map.margin.setDefaultMargin(margin);
+      });
+    };
+    show();
+    return () => { cancelled = true; };
+  }, [from, to]);
+
   // Построение маршрута при изменении адресов
   useEffect(() => {
     if (!from.trim() || !to.trim()) {
-      // Очистить маршрут если адреса сброшены
       if (mapInstanceRef.current) {
         routeObjectsRef.current.forEach(obj => { try { mapInstanceRef.current.geoObjects.remove(obj); } catch { /* ignore */ } });
         routeObjectsRef.current = [];
       }
       return;
+    }
+    if (singleMarkerRef.current && mapInstanceRef.current) {
+      try { mapInstanceRef.current.geoObjects.remove(singleMarkerRef.current); } catch { /* */ }
+      singleMarkerRef.current = null;
     }
 
     let cancelled = false;

@@ -776,17 +776,21 @@ def osrm_route(lat1, lon1, lat2, lon2):
 
 
 def yandex_route(lat1, lon1, lat2, lon2):
+    """Маршрут через Яндекс Routes API v2."""
     api_key = os.environ.get("YANDEX_ROUTES_API_KEY", "")
     if not api_key:
+        print("[yandex] no API key")
         return None
     url = (f"https://api.routing.yandex.net/v2/route"
-           f"?waypoints={lon1},{lat1}|{lon2},{lat2}&mode=driving&apikey={api_key}")
+           f"?waypoints={lat1},{lon1}|{lat2},{lon2}&mode=driving&apikey={api_key}")
     req = urllib.request.Request(url, headers={"User-Agent": "route-builder/1.0"})
     try:
         with urllib.request.urlopen(req, timeout=30) as r:
             data = json.loads(r.read())
+            print(f"[yandex] ok, legs={len(data.get('route',{}).get('legs',[]))}")
             return data
-    except Exception:
+    except Exception as e:
+        print(f"[yandex] error: {e}")
         return None
 
 
@@ -914,18 +918,18 @@ def handle_build_route(from_city, to_city):
     duration_hours = 0
     source = "osrm"
 
-    osrm = osrm_route(lat1, lon1, lat2, lon2)
-    if osrm:
-        waypoints, km_total, duration_hours = osrm
-    else:
-        route_data = None
-        try:
-            route_data = yandex_route(lat1, lon1, lat2, lon2)
-        except Exception:
-            pass
-        if route_data:
-            source = "yandex"
-            waypoints, km_total, duration_hours = extract_polyline(route_data)
+    route_data = yandex_route(lat1, lon1, lat2, lon2)
+    if route_data:
+        source = "yandex"
+        waypoints, km_total, duration_hours = extract_polyline(route_data)
+        print(f"[route] yandex: {len(waypoints)} pts, {km_total:.0f} km, {duration_hours:.1f} h")
+
+    if not waypoints:
+        osrm = osrm_route(lat1, lon1, lat2, lon2)
+        if osrm:
+            source = "osrm"
+            waypoints, km_total, duration_hours = osrm
+            print(f"[route] osrm fallback: {len(waypoints)} pts, {km_total:.0f} km")
 
     if not waypoints:
         source = "haversine"
@@ -992,13 +996,14 @@ def handle_update_route(body):
     km_total = 0
     duration_hours = 0
 
-    osrm = osrm_route(lat1, lon1, lat2, lon2)
-    if osrm:
-        waypoints, km_total, duration_hours = osrm
-    else:
-        route_data = yandex_route(lat1, lon1, lat2, lon2)
-        if route_data:
-            waypoints, km_total, duration_hours = extract_polyline(route_data)
+    route_data = yandex_route(lat1, lon1, lat2, lon2)
+    if route_data:
+        waypoints, km_total, duration_hours = extract_polyline(route_data)
+    
+    if not waypoints:
+        osrm = osrm_route(lat1, lon1, lat2, lon2)
+        if osrm:
+            waypoints, km_total, duration_hours = osrm
 
     if not waypoints:
         conn.close()

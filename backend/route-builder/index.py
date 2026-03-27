@@ -618,6 +618,12 @@ def find_nearest_road_node(lat, lon):
 
 
 def build_zone_polyline(lat1, lon1, lat2, lon2):
+    result = osrm_multi([(lat1, lon1), (lat2, lon2)])
+    if result:
+        pts, km, hrs = result
+        print(f"[zone-route] osrm direct: {km:.0f} km, {len(pts)} pts")
+        return pts, km, hrs
+
     start_node, start_d = find_nearest_road_node(lat1, lon1)
     end_node, end_d = find_nearest_road_node(lat2, lon2)
 
@@ -631,23 +637,34 @@ def build_zone_polyline(lat1, lon1, lat2, lon2):
             pts.append((lat1 + (lat2 - lat1) * t, lon1 + (lon2 - lon1) * t))
         return pts, total_km, total_km / 60.0
 
-    total_km = start_d + road_km + end_d
-    pts = [(lat1, lon1)]
+    all_pts = [(lat1, lon1)]
+    total_km = 0.0
+    total_hrs = 0.0
+    waypoints = [(lat1, lon1)]
+    for node in path:
+        waypoints.append(ROAD_NODES[node])
+    waypoints.append((lat2, lon2))
 
-    for i in range(len(path) - 1):
-        n1 = ROAD_NODES[path[i]]
-        n2 = ROAD_NODES[path[i + 1]]
-        seg_km = get_road_distance(path[i], path[i + 1]) or haversine(*n1, *n2)
-        num_pts = max(5, int(seg_km / 3))
-        for s in range(1, num_pts + 1):
-            t = s / num_pts
-            pts.append((n1[0] + (n2[0] - n1[0]) * t, n1[1] + (n2[1] - n1[1]) * t))
+    for i in range(len(waypoints) - 1):
+        seg_result = osrm_multi([waypoints[i], waypoints[i + 1]])
+        if seg_result:
+            seg_pts, seg_km, seg_hrs = seg_result
+            all_pts.extend(seg_pts[1:])
+            total_km += seg_km
+            total_hrs += seg_hrs
+        else:
+            n1 = waypoints[i]
+            n2 = waypoints[i + 1]
+            seg_km = haversine(*n1, *n2)
+            num_pts = max(5, int(seg_km / 3))
+            for s in range(1, num_pts + 1):
+                t = s / num_pts
+                all_pts.append((n1[0] + (n2[0] - n1[0]) * t, n1[1] + (n2[1] - n1[1]) * t))
+            total_km += seg_km
+            total_hrs += seg_km / 60.0
 
-    if haversine(pts[-1][0], pts[-1][1], lat2, lon2) > 0.5:
-        pts.append((lat2, lon2))
-    hours = total_km / 60.0
-    print(f"[zone-route] {' -> '.join(path)}, {total_km:.0f} km, {len(pts)} pts")
-    return pts, total_km, hours
+    print(f"[zone-route] {' -> '.join(path)}, {total_km:.0f} km, {len(all_pts)} pts")
+    return all_pts, total_km, total_hrs
 
 
 def is_in_crimea(lat, lon):

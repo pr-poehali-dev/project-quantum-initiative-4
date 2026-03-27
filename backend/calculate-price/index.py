@@ -900,12 +900,28 @@ def handler(event: dict, context) -> dict:
     KERCH_BRIDGE = (36.536, 45.308)
     ARMIANSK = (33.691, 46.103)
     CHONGAR  = (34.394, 46.003)
-    VESELO_VOZNESENSKA = (38.246, 47.547)
+    ENTRY_POINTS = {
+        "veselo": (38.246, 47.547),
+        "matveev_kurgan": (38.851, 47.608),
+        "novoshakhtinsk": (39.930, 47.756),
+        "uspenka": (38.370, 47.887),
+        "kuibyshevo": (38.442, 47.617),
+    }
 
     def is_kherson_addr(a): return any(k in a.lower() for k in ["херсон","херсонская","геническ","каховка","скадовск"])
     def is_zap_addr(a):     return any(k in a.lower() for k in ["мелитополь","запорожская","бердянск","токмак","энергодар","пологи","приморск","васильевка"])
     def is_dnr_lnr_addr(a): return any(k in a.lower() for k in ["донецк","днр","мариуполь","горловка","макеевка","краматорск","луганск","лнр","лисичанск","северодонецк","алчевск","дебальцево","волноваха","угледар","докучаевск","харцызск","енакиево","ясиноватая","торез","снежное","шахтёрск","шахтерск","иловайск","новоазовск","стаханов","антрацит","первомайск","ровеньки","свердловск","перевальск","брянка","кировск","молодогвардейск","красный луч","авдеевка"])
     def is_normal_addr(a): return not is_crimea_addr(a) and not is_special_addr(a)
+
+    def pick_nearest_entry(ref_coord):
+        best_pt = ENTRY_POINTS["veselo"]
+        best_d = float('inf')
+        for name, (elon, elat) in ENTRY_POINTS.items():
+            d = haversine(ref_coord[0], ref_coord[1], elat, elon)
+            if d < best_d:
+                best_d = d
+                best_pt = (elon, elat)
+        return best_pt
 
     route_coords = [(lon, lat) for lat, lon in all_coords]
 
@@ -924,13 +940,17 @@ def handler(event: dict, context) -> dict:
         else:
             route_coords.insert(len(route_coords)-1, KERCH_BRIDGE)
     elif is_normal_addr(from_city) and (is_zap_addr(to_city) or is_dnr_lnr_addr(to_city)):
-        route_coords.insert(len(route_coords)-1, VESELO_VOZNESENSKA)
+        entry = pick_nearest_entry(all_coords[0])
+        route_coords.insert(len(route_coords)-1, entry)
     elif (is_zap_addr(from_city) or is_dnr_lnr_addr(from_city)) and is_normal_addr(to_city):
-        route_coords.insert(1, VESELO_VOZNESENSKA)
+        entry = pick_nearest_entry(all_coords[-1])
+        route_coords.insert(1, entry)
     elif is_normal_addr(from_city) and is_kherson_addr(to_city):
-        route_coords.insert(len(route_coords)-1, VESELO_VOZNESENSKA)
+        entry = pick_nearest_entry(all_coords[0])
+        route_coords.insert(len(route_coords)-1, entry)
     elif is_kherson_addr(from_city) and is_normal_addr(to_city):
-        route_coords.insert(1, VESELO_VOZNESENSKA)
+        entry = pick_nearest_entry(all_coords[-1])
+        route_coords.insert(1, entry)
 
     # ── 3. Считаем расстояния ─────────────────────────────────────────────────
     source = "yandex"

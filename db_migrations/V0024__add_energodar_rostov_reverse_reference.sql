@@ -1,0 +1,2 @@
+INSERT INTO t_p16381115_project_quantum_init.routes_reference (from_city, to_city, km_normal, km_special, notes)
+VALUES ('Энергодар', 'Ростов-на-Дону', 186, 284, 'Запорожская→Россия');

@@ -501,34 +501,38 @@ def extract_city_candidates(name: str) -> list:
 
 
 def lookup_reference(from_city: str, to_city: str):
-    """Ищет эталонный маршрут в БД (без учёта регистра, с нормализацией). Проверяет оба направления."""
+    """Ищет эталонный маршрут в БД с ценами по тарифам."""
     try:
         conn = get_db()
         cur = conn.cursor()
         from_candidates = extract_city_candidates(from_city)
         to_candidates   = extract_city_candidates(to_city)
+        sql = ("SELECT id, km_normal, km_special, "
+               "price_urgent, price_standard, price_comfort, price_minivan, price_business "
+               "FROM routes_reference "
+               "WHERE LOWER(from_city) = LOWER(%s) AND LOWER(to_city) = LOWER(%s) LIMIT 1")
+        def parse_row(row):
+            return {
+                "id": row[0], "km_normal": row[1], "km_special": row[2],
+                "prices": {
+                    "urgent": row[3], "standard": row[4], "comfort": row[5],
+                    "minivan": row[6], "business": row[7],
+                } if row[3] is not None else None
+            }
         for fc in from_candidates:
             for tc in to_candidates:
-                cur.execute(
-                    "SELECT id, km_normal, km_special FROM routes_reference "
-                    "WHERE LOWER(from_city) = LOWER(%s) AND LOWER(to_city) = LOWER(%s) LIMIT 1",
-                    (fc, tc)
-                )
+                cur.execute(sql, (fc, tc))
                 row = cur.fetchone()
                 if row:
                     conn.close()
-                    return {"id": row[0], "km_normal": row[1], "km_special": row[2]}
+                    return parse_row(row)
         for fc in from_candidates:
             for tc in to_candidates:
-                cur.execute(
-                    "SELECT id, km_normal, km_special FROM routes_reference "
-                    "WHERE LOWER(from_city) = LOWER(%s) AND LOWER(to_city) = LOWER(%s) LIMIT 1",
-                    (tc, fc)
-                )
+                cur.execute(sql, (tc, fc))
                 row = cur.fetchone()
                 if row:
                     conn.close()
-                    return {"id": row[0], "km_normal": row[1], "km_special": row[2]}
+                    return parse_row(row)
         conn.close()
     except Exception:
         pass
@@ -606,8 +610,17 @@ def build_auto_alternatives(km_normal: int, km_special: int, car_class: str, ext
     return alts
 
 
+def calc_all_prices(km_normal, km_special, extras_cost=0):
+    result = {}
+    for key in TARIFFS:
+        t = TARIFFS[key]
+        ts = TARIFFS_SPECIAL[key]
+        result[key] = round(t["per_km"]*km_normal + ts["per_km"]*km_special + t["base"] + extras_cost)
+    return result
+
+
 def save_to_reference(from_city: str, to_city: str, km_normal: int, km_special: int):
-    """Автоматически сохраняет новый маршрут в справочник для будущих запросов."""
+    """Автоматически сохраняет новый маршрут в справочник с ценами."""
     try:
         from_spec = is_special_addr(from_city)
         to_spec = is_special_addr(to_city)
@@ -618,13 +631,16 @@ def save_to_reference(from_city: str, to_city: str, km_normal: int, km_special: 
         km_total = km_normal + km_special
         if km_total < 5:
             return
+        prices = calc_all_prices(km_normal, km_special)
         conn = get_db()
         cur = conn.cursor()
         cur.execute(
-            """INSERT INTO routes_reference (from_city, to_city, km_normal, km_special, notes)
-               VALUES (%s, %s, %s, %s, %s)
+            """INSERT INTO routes_reference (from_city, to_city, km_normal, km_special, notes,
+               price_urgent, price_standard, price_comfort, price_minivan, price_business)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                ON CONFLICT (from_city, to_city) DO NOTHING""",
-            (from_norm, to_norm, km_normal, km_special, "auto-yandex")
+            (from_norm, to_norm, km_normal, km_special, "auto-yandex",
+             prices["urgent"], prices["standard"], prices["comfort"], prices["minivan"], prices["business"])
         )
         conn.commit()
         conn.close()
@@ -633,7 +649,7 @@ def save_to_reference(from_city: str, to_city: str, km_normal: int, km_special: 
 
 
 def update_reference(from_city: str, to_city: str, km_normal: int, km_special: int):
-    """Создаёт или обновляет эталонный маршрут по данным OSRM. Не создаёт дубли."""
+    """Создаёт или обновляет эталонный маршрут с ценами."""
     try:
         from_spec = is_special_addr(from_city)
         to_spec = is_special_addr(to_city)
@@ -641,6 +657,7 @@ def update_reference(from_city: str, to_city: str, km_normal: int, km_special: i
             return
         from_norm = normalize_city(from_city)
         to_norm = normalize_city(to_city)
+        prices = calc_all_prices(km_normal, km_special)
         conn = get_db()
         cur = conn.cursor()
         cur.execute(
@@ -653,14 +670,19 @@ def update_reference(from_city: str, to_city: str, km_normal: int, km_special: i
         if existing:
             cur.execute(
                 "UPDATE routes_reference SET km_normal = %s, km_special = %s, "
+                "price_urgent = %s, price_standard = %s, price_comfort = %s, price_minivan = %s, price_business = %s, "
                 "notes = 'yandex-live', updated_at = NOW() WHERE id = %s",
-                (km_normal, km_special, existing[0])
+                (km_normal, km_special,
+                 prices["urgent"], prices["standard"], prices["comfort"], prices["minivan"], prices["business"],
+                 existing[0])
             )
         else:
             cur.execute(
-                "INSERT INTO routes_reference (from_city, to_city, km_normal, km_special, notes) "
-                "VALUES (%s, %s, %s, %s, 'yandex-live')",
-                (from_norm, to_norm, km_normal, km_special)
+                "INSERT INTO routes_reference (from_city, to_city, km_normal, km_special, notes, "
+                "price_urgent, price_standard, price_comfort, price_minivan, price_business) "
+                "VALUES (%s, %s, %s, %s, 'yandex-live', %s, %s, %s, %s, %s)",
+                (from_norm, to_norm, km_normal, km_special,
+                 prices["urgent"], prices["standard"], prices["comfort"], prices["minivan"], prices["business"])
             )
         conn.commit()
         conn.close()
@@ -1012,8 +1034,13 @@ def handler(event: dict, context) -> dict:
 
     # ── 5. Считаем цену ───────────────────────────────────────────────────────
     extras_cost = sum(cost for key, cost in EXTRAS.items() if extras_selected.get(key))
-    price = calc_price(km_normal, km_special, car_class, extras_cost)
-    all_prices = {key: calc_price(km_normal, km_special, key, extras_cost) for key in TARIFFS}
+    ref_prices = reference.get("prices") if reference else None
+    if ref_prices and source in ("reference", "reference_override"):
+        all_prices = {key: ref_prices[key] + extras_cost for key in TARIFFS}
+        price = all_prices[car_class]
+    else:
+        price = calc_price(km_normal, km_special, car_class, extras_cost)
+        all_prices = {key: calc_price(km_normal, km_special, key, extras_cost) for key in TARIFFS}
 
     # ── 5а. Альтернативные маршруты (только для прямых поездок без остановок) ──
     alternatives = []

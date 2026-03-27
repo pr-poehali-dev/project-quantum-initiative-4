@@ -34,7 +34,7 @@ export default function Header() {
         <div className="container mx-auto px-6 h-14 flex items-center justify-between gap-4">
           {/* Logo */}
           <a href="/" onClick={(e) => { e.preventDefault(); window.location.href = "/"; }} className="flex items-center gap-2 shrink-0 cursor-pointer">
-            <img src="https://cdn.poehali.dev/projects/4e7661bb-56aa-4a32-b0f4-260fcdbc0e28/bucket/0b027b99-1efa-4442-b093-70fdcbfc3d49.png" alt="Наше такси" className="w-10 h-10 object-contain rounded-full bg-white" />
+            <img src="https://cdn.poehali.dev/projects/4e7661bb-56aa-4a32-b0f4-260fcdbc0e28/bucket/90692979-4a2c-4563-a738-77d8b0a6bbb0.jpg" alt="Наше такси" className="w-10 h-10 object-contain rounded-full bg-white" />
             <span className="font-bold text-lg leading-tight text-white">
               Наше <span className="text-brand-yellow">такси</span>
             </span>
@@ -112,7 +112,7 @@ export default function Header() {
           {/* Шапка панели */}
           <div className="flex items-center justify-between px-4 pt-3 pb-2">
             <a href="/" onClick={(e) => { e.preventDefault(); window.location.href = "/"; }} className="flex items-center gap-2 cursor-pointer">
-              <img src="https://cdn.poehali.dev/projects/4e7661bb-56aa-4a32-b0f4-260fcdbc0e28/bucket/0b027b99-1efa-4442-b093-70fdcbfc3d49.png" alt="Наше такси" className="w-10 h-10 object-contain rounded-full bg-white" />
+              <img src="https://cdn.poehali.dev/projects/4e7661bb-56aa-4a32-b0f4-260fcdbc0e28/bucket/90692979-4a2c-4563-a738-77d8b0a6bbb0.jpg" alt="Наше такси" className="w-10 h-10 object-contain rounded-full bg-white" />
               <span className="font-bold text-lg text-white">
                 Наше <span className="text-brand-yellow">такси</span>
               </span>

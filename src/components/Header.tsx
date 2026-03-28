@@ -7,12 +7,12 @@ const NAV_LINKS = [
   {
     label: "Клиенту", href: "/client",
     children: [
-      { label: "Направления", href: "/client/directions" },
-      { label: "Новости", href: "/client/news" },
-      { label: "Тарифы", href: "/client/tariffs" },
-      { label: "Отзывы", href: "/client/reviews" },
-      { label: "Блог", href: "/client/blog" },
-      { label: "Приложение для заказа такси", href: "/client/app" },
+      { label: "Направления", href: "https://ug-transfer.online/directories/", external: true },
+      { label: "Новости", href: "https://ug-transfer.online/news/", external: true },
+      { label: "Тарифы", href: "https://ug-transfer.online/tariffs/", external: true },
+      { label: "Отзывы", href: "https://yandex.ru/maps/org/yug_transfer/17195285841/reviews/?ll=99.505405%2C31.524850&z=2", external: true },
+      { label: "Блог", href: "https://ug-transfer.online/blog/", external: true },
+      { label: "Приложение для заказа такси", href: "https://ug-transfer.online/clients-app/", external: true },
     ],
   },
   {
@@ -74,14 +74,21 @@ export default function Header() {
                   </Link>
                   <div className="absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
                     <div className="bg-[#222] border border-white/10 rounded-2xl shadow-2xl py-2 min-w-[260px]">
-                      {link.children.map((child, i) => (
-                        <Link key={child.href} to={child.href}
-                          className={`block px-5 py-3 text-sm font-medium transition-colors hover:bg-white/5 ${
-                            location.pathname === child.href ? "text-[#c8d44a]" : "text-white"
-                          } ${i < link.children!.length - 1 ? "border-b border-white/5" : ""}`}>
-                          {child.label}
-                        </Link>
-                      ))}
+                      {link.children.map((child, i) =>
+                        ("external" in child && child.external) ? (
+                          <a key={child.href} href={child.href} target="_blank" rel="noopener noreferrer"
+                            className={`block px-5 py-3 text-sm font-medium transition-colors hover:bg-white/5 text-white ${i < link.children!.length - 1 ? "border-b border-white/5" : ""}`}>
+                            {child.label}
+                          </a>
+                        ) : (
+                          <Link key={child.href} to={child.href}
+                            className={`block px-5 py-3 text-sm font-medium transition-colors hover:bg-white/5 ${
+                              location.pathname === child.href ? "text-[#c8d44a]" : "text-white"
+                            } ${i < link.children!.length - 1 ? "border-b border-white/5" : ""}`}>
+                            {child.label}
+                          </Link>
+                        )
+                      )}
                     </div>
                   </div>
                 </div>

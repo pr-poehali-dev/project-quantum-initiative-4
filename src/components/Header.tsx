@@ -18,10 +18,8 @@ const NAV_LINKS = [
   {
     label: "Водителю", href: "/driver",
     children: [
-      { label: "Вакансии", href: "/driver/jobs" },
-      { label: "Условия работы", href: "/driver/terms" },
-      { label: "Подключение", href: "/driver/connect" },
-      { label: "Автопарк", href: "/driver/fleet" },
+      { label: "Подключение", href: "https://ug-transfer.online/mobile-drivers/", external: true },
+      { label: "Автопарк", href: "https://ug-transfer.online/rent-car/", external: true },
     ],
   },
   { label: "Контакты", href: "/contacts" },

@@ -4,7 +4,17 @@ import Icon from "@/components/ui/icon";
 
 const NAV_LINKS = [
   { label: "Главная", href: "/" },
-  { label: "Клиенту", href: "/client" },
+  {
+    label: "Клиенту", href: "/client",
+    children: [
+      { label: "Направления", href: "/client/directions" },
+      { label: "Новости", href: "/client/news" },
+      { label: "Тарифы", href: "/client/tariffs" },
+      { label: "Отзывы", href: "/client/reviews" },
+      { label: "Блог", href: "/client/blog" },
+      { label: "Приложение для заказа такси", href: "/client/app" },
+    ],
+  },
   { label: "Водителю", href: "/driver" },
   { label: "Контакты", href: "/contacts" },
 ];
@@ -44,14 +54,38 @@ export default function Header() {
 
           {/* Nav links */}
           <nav className="flex items-center gap-1">
-            {NAV_LINKS.map((link) => (
-              <Link key={link.href} to={link.href}
-                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-                  location.pathname === link.href ? "text-[#c8d44a]" : "text-white/70 hover:text-white"
-                }`}>
-                {link.label}
-              </Link>
-            ))}
+            {NAV_LINKS.map((link) =>
+              link.children ? (
+                <div key={link.href} className="relative group">
+                  <Link to={link.href}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors flex items-center gap-1 ${
+                      location.pathname.startsWith(link.href) ? "text-[#c8d44a]" : "text-white/70 hover:text-white"
+                    }`}>
+                    {link.label}
+                    <Icon name="ChevronDown" size={14} className="transition-transform group-hover:rotate-180" />
+                  </Link>
+                  <div className="absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                    <div className="bg-[#222] border border-white/10 rounded-2xl shadow-2xl py-2 min-w-[260px]">
+                      {link.children.map((child, i) => (
+                        <Link key={child.href} to={child.href}
+                          className={`block px-5 py-3 text-sm font-medium transition-colors hover:bg-white/5 ${
+                            location.pathname === child.href ? "text-[#c8d44a]" : "text-white"
+                          } ${i < link.children!.length - 1 ? "border-b border-white/5" : ""}`}>
+                          {child.label}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <Link key={link.href} to={link.href}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                    location.pathname === link.href ? "text-[#c8d44a]" : "text-white/70 hover:text-white"
+                  }`}>
+                  {link.label}
+                </Link>
+              )
+            )}
           </nav>
 
           {/* Right: phone + messengers + burger */}

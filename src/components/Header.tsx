@@ -215,43 +215,56 @@ export default function Header() {
             )}
           </nav>
 
-          <div className="px-4 pb-10 flex flex-col gap-4 border-t border-white/10 pt-5 overflow-y-auto">
-            <div className="flex flex-col gap-2">
-              <a href={PHONE_HREF} className="flex items-center gap-2 text-white font-bold text-base">
-                <Icon name="Phone" size={16} className="text-[#F5A623]" />
-                {PHONE}
-              </a>
-              <a href="mailto:help@ug-transfer.online" className="flex items-center gap-2 text-white/60 text-sm">
-                <Icon name="Mail" size={16} className="text-[#F5A623]" />
-                help@ug-transfer.online
-              </a>
-              <div className="flex items-center gap-2 text-white/60 text-sm">
-                <Icon name="Clock" size={16} className="text-[#F5A623]" />
-                Работаем 24/7
+          <footer className="border-t border-white/10 px-6 py-5">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4">
+              <div className="flex flex-col gap-2">
+                <p className="text-white/40 text-[10px] uppercase tracking-widest mb-1">Контакты</p>
+                <a href={PHONE_HREF} className="flex items-center gap-2 text-white font-semibold text-sm">
+                  <Icon name="Phone" size={14} className="text-[#F5A623]" />
+                  {PHONE}
+                </a>
+                <a href="mailto:help@ug-transfer.online" className="flex items-center gap-2 text-white/60 text-xs">
+                  <Icon name="Mail" size={14} className="text-[#F5A623]" />
+                  help@ug-transfer.online
+                </a>
+                <div className="flex items-center gap-2 text-white/60 text-xs">
+                  <Icon name="Clock" size={14} className="text-[#F5A623]" />
+                  Работаем 24/7
+                </div>
               </div>
-            </div>
-            <div className="flex gap-3">
-              <a href={MAX_HREF} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2 bg-white/10 rounded-full px-4 py-2 text-white text-sm">
-                <Icon name="MessageSquare" size={16} className="text-purple-400" />
-                Max
-              </a>
-              <a href={TELEGRAM_HREF} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2 bg-white/10 rounded-full px-4 py-2 text-white text-sm">
-                <Icon name="Send" size={16} className="text-blue-400" />
-                Telegram
-              </a>
-            </div>
-            <div>
-              <p className="text-white/40 text-xs uppercase tracking-wide mb-2">Популярные маршруты</p>
-              <div className="flex flex-col gap-1">
+
+              <div className="flex flex-col gap-2">
+                <p className="text-white/40 text-[10px] uppercase tracking-widest mb-1">Маршруты</p>
                 {["Москва → Ростов-на-Дону", "Ясиноватая → Анапа", "Москва → Цимлянск"].map((r) => (
-                  <span key={r} className="text-white/60 text-sm">{r}</span>
+                  <span key={r} className="text-white/60 text-xs">{r}</span>
                 ))}
               </div>
+
+              <div className="flex flex-col gap-2">
+                <p className="text-white/40 text-[10px] uppercase tracking-widest mb-1">Мессенджеры</p>
+                <a href={MAX_HREF} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-white/70 hover:text-white text-xs transition-colors">
+                  <Icon name="MessageSquare" size={14} className="text-purple-400" />
+                  Max
+                </a>
+                <a href={TELEGRAM_HREF} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-white/70 hover:text-white text-xs transition-colors">
+                  <Icon name="Send" size={14} className="text-blue-400" />
+                  Telegram
+                </a>
+              </div>
+
+              <div className="flex flex-col justify-between">
+                <div className="flex flex-col gap-2">
+                  <p className="text-white/40 text-[10px] uppercase tracking-widest mb-1">Навигация</p>
+                  {NAV_LINKS.filter(l => !l.children).map((l) => (
+                    <Link key={l.href} to={l.href} className="text-white/60 hover:text-white text-xs transition-colors">{l.label}</Link>
+                  ))}
+                </div>
+                <p className="text-white/20 text-[10px] mt-3">© {new Date().getFullYear()} Наше такси. Все права защищены.</p>
+              </div>
             </div>
-            <p className="text-white/20 text-xs">© {new Date().getFullYear()} УГТрансфер. Все права защищены.</p>
-          </div>
+          </footer>
         </div>
       )}
     </>

@@ -20,29 +20,43 @@ export default function Contacts() {
             Вы можете заказать трансфер или задать вопросы по номеру телефона:
           </p>
 
-          <a href={PHONE_HREF} className="inline-flex items-center gap-3 text-[#c8d44a] text-2xl sm:text-3xl font-bold hover:text-[#d4e050] transition-colors mb-8">
-            <Icon name="Phone" size={28} />
-            {PHONE}
-          </a>
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-8 mb-12">
+            <div>
+              <a href={PHONE_HREF} className="inline-flex items-center gap-3 text-[#c8d44a] text-2xl sm:text-3xl font-bold hover:text-[#d4e050] transition-colors mb-6">
+                <Icon name="Phone" size={28} />
+                {PHONE}
+              </a>
 
-          <p className="text-gray-300 text-lg mb-4">А также через наши социальные сети:</p>
+              <p className="text-gray-300 text-lg mb-4">А также через наши социальные сети:</p>
 
-          <div className="flex gap-3 mb-12">
-            <a href={TELEGRAM_HREF} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-2 bg-white/10 hover:bg-white/15 rounded-full px-5 py-3 text-white text-sm font-medium transition-colors">
-              <Icon name="Send" size={18} className="text-blue-400" />
-              Telegram
-            </a>
-            <a href={MAX_HREF} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-2 bg-white/10 hover:bg-white/15 rounded-full px-5 py-3 text-white text-sm font-medium transition-colors">
-              <Icon name="MessageSquare" size={18} className="text-purple-400" />
-              Max
-            </a>
-          </div>
+              <div className="flex gap-3">
+                <a href={TELEGRAM_HREF} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-2 bg-white/10 hover:bg-white/15 rounded-full px-5 py-3 text-white text-sm font-medium transition-colors">
+                  <Icon name="Send" size={18} className="text-blue-400" />
+                  Telegram
+                </a>
+                <a href={MAX_HREF} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-2 bg-white/10 hover:bg-white/15 rounded-full px-5 py-3 text-white text-sm font-medium transition-colors">
+                  <Icon name="MessageSquare" size={18} className="text-purple-400" />
+                  Max
+                </a>
+              </div>
+            </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 mb-12">
-            <a href="#" className="text-[#c8d44a] hover:underline text-sm">Агентский договор</a>
-            <a href="#" className="text-[#c8d44a] hover:underline text-sm">Политика конфиденциальности</a>
+            <div className="flex flex-col gap-3 sm:min-w-[300px]">
+              <a href="#" className="flex items-center gap-4 bg-[#1a1a1a] hover:bg-[#222] border border-white/10 rounded-2xl px-5 py-4 transition-colors group">
+                <div className="w-10 h-10 rounded-lg bg-[#c8d44a]/15 flex items-center justify-center shrink-0">
+                  <Icon name="FileText" size={20} className="text-[#c8d44a]" />
+                </div>
+                <span className="text-white font-semibold text-base group-hover:text-[#c8d44a] transition-colors">Агентский договор</span>
+              </a>
+              <a href="#" className="flex items-center gap-4 bg-[#1a1a1a] hover:bg-[#222] border border-white/10 rounded-2xl px-5 py-4 transition-colors group">
+                <div className="w-10 h-10 rounded-lg bg-[#c8d44a]/15 flex items-center justify-center shrink-0">
+                  <Icon name="FileText" size={20} className="text-[#c8d44a]" />
+                </div>
+                <span className="text-white font-semibold text-base group-hover:text-[#c8d44a] transition-colors">Политика конфиденциальности</span>
+              </a>
+            </div>
           </div>
 
           <div className="bg-[#1a1a1a] rounded-2xl p-6 sm:p-8">

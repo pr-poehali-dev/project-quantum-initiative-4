@@ -160,6 +160,7 @@ export default function Hero() {
     extras, setExtras,
     hasSpecialZone,
     alternatives,
+    compact: isYandex,
     onSelectAlternative: (alt: typeof alternatives[0]) => {
       setAllPrices(alt.all_prices);
       setPrice(alt.price);
@@ -194,7 +195,7 @@ export default function Hero() {
       {/* MOBILE: форма прилипает к низу */}
       <div className="sm:hidden relative z-10 flex flex-col" style={{ height: "100dvh", overflow: "hidden" }}>
         <div className="flex-1 overflow-hidden" />
-        <div ref={formRef} id="order" className="bg-black/70 backdrop-blur-md border-t border-[#F5A623]/30 rounded-t-3xl px-4 pt-5 pb-[52px] w-full overflow-y-auto" style={{ maxHeight: isYandex ? "70dvh" : "85dvh" }}>
+        <div ref={formRef} id="order" className={`bg-black/70 backdrop-blur-md border-t border-[#F5A623]/30 rounded-t-3xl px-4 ${isYandex ? "pt-3 pb-[40px]" : "pt-5 pb-[52px]"} w-full overflow-y-auto`} style={{ maxHeight: "85dvh" }}>
           <FormContent {...formProps} />
         </div>
       </div>

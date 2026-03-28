@@ -41,6 +41,7 @@ const TELEGRAM_HREF = "https://t.me/ug_transfer_online";
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const location = useLocation();
 
   useEffect(() => {
@@ -128,25 +129,55 @@ export default function Header() {
 
         {/* Desktop burger dropdown */}
         {mobileOpen && (
-          <div className="bg-white border-t border-gray-100 shadow-lg">
+          <div className="bg-[#1a1a1a] border-t border-white/10 shadow-lg">
             <nav className="container mx-auto px-4 py-4 flex flex-col gap-1">
-              {NAV_LINKS.map((link) => (
-                <Link key={link.href} to={link.href}
-                  className={`py-3 px-2 text-base font-medium rounded-lg transition-colors ${
-                    location.pathname === link.href ? "text-brand-blue bg-blue-50" : "text-gray-700 hover:bg-gray-50"
-                  }`}>
-                  {link.label}
-                </Link>
-              ))}
-              <div className="flex items-center gap-4 pt-3 border-t border-gray-100 mt-2">
-                <a href={MAX_HREF} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-purple-600 font-medium">
+              {NAV_LINKS.map((link) =>
+                link.children ? (
+                  <div key={link.href}>
+                    <button
+                      onClick={() => setOpenSections(s => ({ ...s, [link.href]: !s[link.href] }))}
+                      className={`w-full flex items-center justify-between py-3 px-2 text-base font-medium rounded-lg transition-colors ${
+                        openSections[link.href] ? "text-[#c8d44a]" : "text-white/70 hover:text-white"
+                      }`}>
+                      {link.label}
+                      <Icon name="ChevronDown" size={16} className={`transition-transform ${openSections[link.href] ? "rotate-180" : ""}`} />
+                    </button>
+                    {openSections[link.href] && (
+                      <div className="flex flex-col ml-3 mb-1">
+                        {link.children.map((child) =>
+                          ("external" in child && child.external) ? (
+                            <a key={child.href} href={child.href} target="_blank" rel="noopener noreferrer"
+                              className="py-2 px-3 text-sm text-white/60 hover:text-white rounded-lg transition-colors">
+                              {child.label}
+                            </a>
+                          ) : (
+                            <Link key={child.href} to={child.href}
+                              className="py-2 px-3 text-sm text-white/60 hover:text-white rounded-lg transition-colors">
+                              {child.label}
+                            </Link>
+                          )
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <Link key={link.href} to={link.href}
+                    className={`py-3 px-2 text-base font-medium rounded-lg transition-colors ${
+                      location.pathname === link.href ? "text-[#c8d44a]" : "text-white/70 hover:text-white"
+                    }`}>
+                    {link.label}
+                  </Link>
+                )
+              )}
+              <div className="flex items-center gap-4 pt-3 border-t border-white/10 mt-2">
+                <a href={MAX_HREF} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-purple-400 font-medium">
                   <Icon name="MessageSquare" size={18} /> Max
                 </a>
-                <a href={TELEGRAM_HREF} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-blue-500 font-medium">
+                <a href={TELEGRAM_HREF} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-blue-400 font-medium">
                   <Icon name="Send" size={18} /> Telegram
                 </a>
               </div>
-              <Link to="/#order" className="mt-3 bg-brand-yellow text-brand-dark font-bold py-3 rounded-lg text-center hover:bg-yellow-400 transition-colors">
+              <Link to="/" className="mt-3 bg-[#c8d44a] text-black font-bold py-3 rounded-lg text-center hover:bg-[#d4e050] transition-colors">
                 Заказать трансфер
               </Link>
             </nav>
@@ -195,20 +226,53 @@ export default function Header() {
           </div>
 
           {/* Навигация */}
-          <nav className="flex-1 flex flex-col px-4 pt-6 gap-1">
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                to={link.href}
-                className={`py-4 px-4 text-xl font-semibold rounded-2xl transition-colors ${
-                  location.pathname === link.href
-                    ? "text-[#c8d44a] bg-white/5"
-                    : "text-white hover:bg-white/5"
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
+          <nav className="flex-1 flex flex-col px-4 pt-6 gap-1 overflow-y-auto">
+            {NAV_LINKS.map((link) =>
+              link.children ? (
+                <div key={link.href}>
+                  <button
+                    onClick={() => setOpenSections(s => ({ ...s, [link.href]: !s[link.href] }))}
+                    className={`w-full flex items-center justify-between py-4 px-4 text-xl font-semibold rounded-2xl transition-colors ${
+                      openSections[link.href] ? "text-[#c8d44a] bg-white/5" : "text-white hover:bg-white/5"
+                    }`}
+                  >
+                    {link.label}
+                    <Icon name="ChevronDown" size={20} className={`transition-transform ${openSections[link.href] ? "rotate-180" : ""}`} />
+                  </button>
+                  {openSections[link.href] && (
+                    <div className="flex flex-col gap-0.5 ml-4 mb-2">
+                      {link.children.map((child) =>
+                        ("external" in child && child.external) ? (
+                          <a key={child.href} href={child.href} target="_blank" rel="noopener noreferrer"
+                            className="py-3 px-4 text-base text-white/70 hover:text-white hover:bg-white/5 rounded-xl transition-colors">
+                            {child.label}
+                          </a>
+                        ) : (
+                          <Link key={child.href} to={child.href}
+                            className={`py-3 px-4 text-base rounded-xl transition-colors ${
+                              location.pathname === child.href ? "text-[#c8d44a] bg-white/5" : "text-white/70 hover:text-white hover:bg-white/5"
+                            }`}>
+                            {child.label}
+                          </Link>
+                        )
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Link
+                  key={link.href}
+                  to={link.href}
+                  className={`py-4 px-4 text-xl font-semibold rounded-2xl transition-colors ${
+                    location.pathname === link.href
+                      ? "text-[#c8d44a] bg-white/5"
+                      : "text-white hover:bg-white/5"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              )
+            )}
           </nav>
 
           {/* Подвал внутри бургер-панели */}

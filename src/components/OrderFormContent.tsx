@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import Icon from "@/components/ui/icon";
 import { ExtrasState, ExtrasSheet, PaymentSheet } from "@/components/OrderFormSheets";
 
@@ -238,6 +238,32 @@ function CityInput({
 export function FormContent(p: FormProps) {
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [extrasOpen, setExtrasOpen] = useState(false);
+  const tariffRef = useRef<HTMLDivElement>(null);
+  const dragState = useRef({ isDown: false, startX: 0, scrollLeft: 0 });
+
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    const el = tariffRef.current;
+    if (!el) return;
+    dragState.current = { isDown: true, startX: e.pageX - el.offsetLeft, scrollLeft: el.scrollLeft };
+    el.style.cursor = "grabbing";
+  }, []);
+  const onMouseLeave = useCallback(() => {
+    dragState.current.isDown = false;
+    if (tariffRef.current) tariffRef.current.style.cursor = "grab";
+  }, []);
+  const onMouseUp = useCallback(() => {
+    dragState.current.isDown = false;
+    if (tariffRef.current) tariffRef.current.style.cursor = "grab";
+  }, []);
+  const onMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!dragState.current.isDown) return;
+    e.preventDefault();
+    const el = tariffRef.current;
+    if (!el) return;
+    const x = e.pageX - el.offsetLeft;
+    el.scrollLeft = dragState.current.scrollLeft - (x - dragState.current.startX);
+  }, []);
+
   const [extras, setExtras] = useState<ExtrasState>({
     childSeat: p.extras?.childSeat ?? false,
     pet: p.extras?.pet ?? false,
@@ -359,7 +385,15 @@ export function FormContent(p: FormProps) {
         </div>
 
         {/* Класс авто */}
-        <div className="overflow-x-auto scrollbar-hide w-full" style={{ WebkitOverflowScrolling: "touch", maxWidth: "100%" }}>
+        <div
+          ref={tariffRef}
+          className="overflow-x-auto scrollbar-hide w-full cursor-grab select-none"
+          style={{ WebkitOverflowScrolling: "touch", maxWidth: "100%" }}
+          onMouseDown={onMouseDown}
+          onMouseLeave={onMouseLeave}
+          onMouseUp={onMouseUp}
+          onMouseMove={onMouseMove}
+        >
           <div className="flex gap-1.5 w-fit">
             {CAR_CLASSES.map((cls) => {
               const clsPrice = p.allPrices?.[cls.id];

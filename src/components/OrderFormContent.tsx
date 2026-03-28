@@ -266,7 +266,7 @@ export function FormContent(p: FormProps) {
           setExtras={handleExtrasChange}
         />
       )}
-      <form onSubmit={p.handleSubmit} noValidate className="flex flex-col gap-1.5 flex-1 h-full">
+      <form onSubmit={p.handleSubmit} noValidate className="flex flex-col justify-between flex-1 h-full gap-3">
         {/* Откуда */}
         <div>
           <CityInput placeholder="Откуда?" value={p.from} onChange={p.setFrom} onConfirm={p.setFromConfirmed} showGeo />
@@ -306,7 +306,7 @@ export function FormContent(p: FormProps) {
         {/* Дата + Время */}
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <div className="bg-[#2a2a2a] rounded-full px-4 py-1.5 flex flex-col">
+            <div className="bg-[#2a2a2a] rounded-full px-4 py-2 flex flex-col">
               <span className="text-gray-400 text-[10px]">Дата поездки</span>
               <input
                 type="date"
@@ -320,7 +320,7 @@ export function FormContent(p: FormProps) {
             {p.errors.date && <p className="text-red-400 text-xs mt-0.5 pl-4">{p.errors.date}</p>}
           </div>
           <div>
-            <div className="bg-[#2a2a2a] rounded-full px-4 py-1.5 flex flex-col">
+            <div className="bg-[#2a2a2a] rounded-full px-4 py-2 flex flex-col">
               <span className="text-gray-400 text-[10px]">Во сколько?</span>
               <input
                 type="time"
@@ -342,7 +342,7 @@ export function FormContent(p: FormProps) {
               value={p.name}
               onChange={(e) => p.setName(e.target.value)}
               placeholder="Ваше имя"
-              className="w-full px-4 py-2 bg-[#2a2a2a] rounded-full text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#9aab2a]/60 transition"
+              className="w-full px-4 py-2.5 bg-[#2a2a2a] rounded-full text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#9aab2a]/60 transition"
             />
             {p.errors.name && <p className="text-red-400 text-xs mt-0.5 pl-4">{p.errors.name}</p>}
           </div>
@@ -352,7 +352,7 @@ export function FormContent(p: FormProps) {
               value={p.phone}
               onChange={(e) => p.handlePhoneChange(e.target.value)}
               placeholder="Номер телефона"
-              className="w-full px-4 py-2 bg-[#2a2a2a] rounded-full text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#9aab2a]/60 transition"
+              className="w-full px-4 py-2.5 bg-[#2a2a2a] rounded-full text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#9aab2a]/60 transition"
             />
             {p.errors.phone && <p className="text-red-400 text-xs mt-0.5 pl-4">{p.errors.phone}</p>}
           </div>
@@ -368,13 +368,13 @@ export function FormContent(p: FormProps) {
                   key={cls.id}
                   type="button"
                   onClick={() => p.setCarClass(cls.id)}
-                  className={`flex flex-col items-center gap-0 px-2.5 py-1.5 rounded-xl transition-all min-w-[60px] ${
+                  className={`flex flex-col items-center gap-0 px-2.5 py-2 rounded-xl transition-all min-w-[60px] ${
                     p.carClass === cls.id
                       ? "bg-[#3a3a2a] border-2 border-[#9aab2a]"
                       : "bg-[#2a2a2a] border-2 border-transparent"
                   }`}
                 >
-                  <span className="text-base">{cls.emoji}</span>
+                  <span className="text-lg">{cls.emoji}</span>
                   <span className={`text-[10px] font-semibold ${p.carClass === cls.id ? "text-[#c8d44a]" : "text-gray-300"}`}>
                     {cls.label}
                   </span>
@@ -391,12 +391,8 @@ export function FormContent(p: FormProps) {
           </div>
         </div>
 
-
-
-        <div className="flex-1" />
-
         {/* Submit */}
-        <div className="flex items-center gap-2 mt-1">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setPaymentOpen(true)}

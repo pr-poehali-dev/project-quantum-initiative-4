@@ -16,14 +16,14 @@
 
 @keyframes marquee-rtl {
   0% {
-    transform: translateX(100vw);
+    transform: translateX(0);
   }
   100% {
-    transform: translateX(-100%);
+    transform: translateX(-50%);
   }
 }
 .animate-marquee-rtl {
-  animation: marquee-rtl 35s linear infinite;
+  animation: marquee-rtl 40s linear infinite;
 }
 
 @layer base {

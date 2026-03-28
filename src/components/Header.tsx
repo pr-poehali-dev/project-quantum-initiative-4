@@ -15,7 +15,15 @@ const NAV_LINKS = [
       { label: "Приложение для заказа такси", href: "/client/app" },
     ],
   },
-  { label: "Водителю", href: "/driver" },
+  {
+    label: "Водителю", href: "/driver",
+    children: [
+      { label: "Вакансии", href: "/driver/jobs" },
+      { label: "Условия работы", href: "/driver/terms" },
+      { label: "Подключение", href: "/driver/connect" },
+      { label: "Автопарк", href: "/driver/fleet" },
+    ],
+  },
   { label: "Контакты", href: "/contacts" },
 ];
 

@@ -23,6 +23,13 @@ const NAV_LINKS = [
       { label: "Эвакуатор", href: "https://evacrimea.ru/", external: true },
     ],
   },
+  {
+    label: "Партнёры", href: "/partners",
+    children: [
+      { label: "Экскурсии", href: "https://exursyalta.ru/", external: true },
+      { label: "Заказать такси", href: "https://ug-transfer.online/", external: true },
+    ],
+  },
   { label: "Контакты", href: "/contacts" },
 ];
 

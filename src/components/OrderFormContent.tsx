@@ -251,7 +251,7 @@ export function FormContent(p: FormProps) {
   };
 
   return (
-    <div className="relative">
+    <div className="relative flex flex-col flex-1 h-full">
       {paymentOpen && (
         <PaymentSheet
           onClose={() => setPaymentOpen(false)}
@@ -266,7 +266,7 @@ export function FormContent(p: FormProps) {
           setExtras={handleExtrasChange}
         />
       )}
-      <form onSubmit={p.handleSubmit} noValidate className="flex flex-col gap-1.5">
+      <form onSubmit={p.handleSubmit} noValidate className="flex flex-col gap-1.5 flex-1 h-full">
         {/* Откуда */}
         <div>
           <CityInput placeholder="Откуда?" value={p.from} onChange={p.setFrom} onConfirm={p.setFromConfirmed} showGeo />
@@ -392,6 +392,8 @@ export function FormContent(p: FormProps) {
         </div>
 
 
+
+        <div className="flex-1" />
 
         {/* Submit */}
         <div className="flex items-center gap-2 mt-1">

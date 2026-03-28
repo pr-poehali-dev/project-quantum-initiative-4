@@ -20,6 +20,7 @@ const NAV_LINKS = [
     children: [
       { label: "Подключение", href: "https://ug-transfer.online/mobile-drivers/", external: true },
       { label: "Автопарк", href: "https://ug-transfer.online/rent-car/", external: true },
+      { label: "Эвакуатор", href: "https://evacrimea.ru/", external: true },
     ],
   },
   { label: "Контакты", href: "/contacts" },

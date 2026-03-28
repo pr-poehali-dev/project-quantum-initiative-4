@@ -194,8 +194,8 @@ export default function Hero() {
       </div>
 
       {/* DESKTOP: форма слева, от хедера до низа */}
-      <div className="hidden sm:block absolute z-10 top-[160px] bottom-0 left-4">
-        <div id="order" className="bg-black/70 backdrop-blur-md border border-[#F5A623]/30 rounded-tr-3xl shadow-2xl p-5 w-[380px] h-full overflow-y-auto flex flex-col">
+      <div className="hidden sm:block absolute z-10 top-[160px] bottom-[36px] left-4">
+        <div id="order" className="bg-black/70 backdrop-blur-md border border-[#F5A623]/30 rounded-3xl shadow-2xl p-5 w-[380px] h-full overflow-y-auto flex flex-col">
           <FormContent {...formProps} />
         </div>
       </div>

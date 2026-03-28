@@ -195,13 +195,13 @@ export default function Hero() {
 
       {/* DESKTOP: форма слева, от хедера до низа */}
       <div className="hidden sm:block absolute z-10 top-[160px] bottom-0 left-0">
-        <div id="order" className="bg-[#1a1a1a]/95 backdrop-blur-sm rounded-tr-3xl shadow-2xl p-5 w-[340px] h-full overflow-y-auto flex flex-col">
+        <div id="order" className="bg-[#1a1a1a]/95 backdrop-blur-sm rounded-tr-3xl shadow-2xl p-5 w-[380px] h-full overflow-y-auto flex flex-col">
           <FormContent {...formProps} />
         </div>
       </div>
 
       {/* DESKTOP: бегущая строка внизу, начинается от формы */}
-      <div className="hidden sm:block absolute z-10 bottom-0 left-[340px] right-0 overflow-hidden bg-[#1a1a1a]/95 backdrop-blur-sm">
+      <div className="hidden sm:block absolute z-10 bottom-0 left-[380px] right-0 overflow-hidden bg-[#1a1a1a]/95 backdrop-blur-sm">
         <div className="animate-marquee-rtl py-2 text-sm text-gray-300 whitespace-nowrap">
           <span>🔥 Такси «Юг-Трансфер»: скидка 10% на первый заказ! Подача от 30 минут. Звоните +7 (995) 614-14-14   ★   ✈️ Встретим в аэропорту с табличкой! Фиксированные цены на трансферы. «Юг-Трансфер» — надёжно.   ★   🔥 Такси «Юг-Трансфер»: скидка 10% на первый заказ! Подача от 30 минут. Звоните +7 (995) 614-14-14   ★   ✈️ Встретим в аэропорту с табличкой! Фиксированные цены на трансферы. «Юг-Трансфер» — надёжно.</span>
         </div>

@@ -4,7 +4,9 @@ import Icon from "@/components/ui/icon";
 
 const NAV_LINKS = [
   { label: "Главная", href: "/" },
-  { label: "Admin", href: "/admin" },
+  { label: "Клиенту", href: "/client" },
+  { label: "Водителю", href: "/driver" },
+  { label: "Контакты", href: "/contacts" },
 ];
 
 const PHONE = "+7 (995) 614-14-14";
@@ -39,6 +41,18 @@ export default function Header() {
               Наше <span className="text-brand-yellow">такси</span>
             </span>
           </a>
+
+          {/* Nav links */}
+          <nav className="flex items-center gap-1">
+            {NAV_LINKS.map((link) => (
+              <Link key={link.href} to={link.href}
+                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                  location.pathname === link.href ? "text-[#c8d44a]" : "text-white/70 hover:text-white"
+                }`}>
+                {link.label}
+              </Link>
+            ))}
+          </nav>
 
           {/* Right: phone + messengers + burger */}
           <div className="flex items-center gap-4">

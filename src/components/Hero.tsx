@@ -201,7 +201,7 @@ export default function Hero() {
       </div>
 
       {/* DESKTOP: бегущая строка внизу, начинается от формы */}
-      <div className="hidden sm:block absolute z-10 bottom-0 left-[356px] right-0 overflow-hidden bg-[#111]/90 backdrop-blur-sm border-t border-white/10">
+      <div className="hidden sm:block absolute z-10 bottom-0 left-[352px] right-0 overflow-hidden bg-[#1a1a1a]/95 backdrop-blur-sm">
         <div className="animate-marquee-rtl py-2 text-sm text-gray-300 whitespace-nowrap">
           <span>🔥 Такси «Юг-Трансфер»: скидка 10% на первый заказ! Подача от 30 минут. Звоните +7 (995) 614-14-14   ★   ✈️ Встретим в аэропорту с табличкой! Фиксированные цены на трансферы. «Юг-Трансфер» — надёжно.   ★   🔥 Такси «Юг-Трансфер»: скидка 10% на первый заказ! Подача от 30 минут. Звоните +7 (995) 614-14-14   ★   ✈️ Встретим в аэропорту с табличкой! Фиксированные цены на трансферы. «Юг-Трансфер» — надёжно.</span>
         </div>

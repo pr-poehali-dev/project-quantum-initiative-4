@@ -54,7 +54,7 @@ export default function Header() {
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-50 hidden md:block pt-3 px-4">
-        <div className="max-w-[1400px] mx-auto bg-black/70 backdrop-blur-md border border-white/10 rounded-full px-6 h-16 flex items-center justify-between gap-6">
+        <div className="max-w-[1400px] mx-auto bg-black/70 backdrop-blur-md border border-[#F5A623]/60 rounded-full px-6 h-16 flex items-center justify-between gap-6">
           <a href="/" onClick={(e) => { e.preventDefault(); window.location.href = "/"; }} className="flex items-center gap-3 shrink-0 cursor-pointer">
             <img
               src="https://cdn.poehali.dev/projects/4e7661bb-56aa-4a32-b0f4-260fcdbc0e28/bucket/90692979-4a2c-4563-a738-77d8b0a6bbb0.jpg"

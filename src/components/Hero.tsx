@@ -188,14 +188,14 @@ export default function Hero() {
       {/* MOBILE: форма прилипает к низу */}
       <div className="sm:hidden relative z-10 flex flex-col" style={{ height: "100dvh", overflow: "hidden" }}>
         <div className="flex-1 overflow-hidden" />
-        <div ref={formRef} id="order" className="bg-[#1a1a1a] rounded-t-3xl px-4 pt-5 pb-[52px] w-full overflow-y-auto" style={{ maxHeight: "85dvh" }}>
+        <div ref={formRef} id="order" className="bg-black/70 backdrop-blur-md border-t border-[#F5A623]/30 rounded-t-3xl px-4 pt-5 pb-[52px] w-full overflow-y-auto" style={{ maxHeight: "85dvh" }}>
           <FormContent {...formProps} />
         </div>
       </div>
 
       {/* DESKTOP: форма слева, от хедера до низа */}
       <div className="hidden sm:block absolute z-10 top-[160px] bottom-0 left-0">
-        <div id="order" className="bg-[#1a1a1a]/95 backdrop-blur-sm rounded-tr-3xl shadow-2xl p-5 w-[380px] h-full overflow-y-auto flex flex-col">
+        <div id="order" className="bg-black/70 backdrop-blur-md border border-[#F5A623]/30 rounded-tr-3xl shadow-2xl p-5 w-[380px] h-full overflow-y-auto flex flex-col">
           <FormContent {...formProps} />
         </div>
       </div>

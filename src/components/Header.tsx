@@ -37,7 +37,7 @@ const PHONE = "+7 (995) 614-14-14";
 const PHONE_HREF = "tel:+79956141414";
 const MAX_HREF = "https://max.ru/u/f9LHodD0cOLfcwdQZmP_TA1hXG1fSHf_rVVPptGTy_7FmQh-zvIFpGfU_lg";
 const TELEGRAM_HREF = "https://t.me/ug_transfer_online";
-const LK_HREF = "https://ug-transfer.online/lk/";
+
 
 export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -58,11 +58,11 @@ export default function Header() {
           <a href="/" onClick={(e) => { e.preventDefault(); window.location.href = "/"; }} className="flex items-center gap-3 shrink-0 cursor-pointer">
             <img
               src="https://cdn.poehali.dev/projects/4e7661bb-56aa-4a32-b0f4-260fcdbc0e28/bucket/90692979-4a2c-4563-a738-77d8b0a6bbb0.jpg"
-              alt="Юг-Трансфер"
+              alt="Наше такси"
               className="w-10 h-10 object-contain rounded-full"
             />
             <span className="font-bold text-base leading-tight text-white whitespace-nowrap">
-              ЮГ-<span className="text-[#F5A623]">ТРАНСФЕР</span>
+              Наше <span className="text-[#F5A623]">такси</span>
             </span>
           </a>
 
@@ -121,14 +121,13 @@ export default function Header() {
             <a href={PHONE_HREF} className="text-sm font-semibold text-white hover:text-[#F5A623] transition-colors hidden lg:block whitespace-nowrap">
               {PHONE}
             </a>
-            <a
-              href={LK_HREF}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="bg-[#F5A623] hover:bg-[#e69a1a] text-black font-bold text-sm px-5 py-2.5 rounded-full transition-colors whitespace-nowrap"
+            <button
+              onClick={() => setMobileOpen(!mobileOpen)}
+              aria-label="Меню"
+              className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
             >
-              Личный кабинет
-            </a>
+              <Icon name={mobileOpen ? "X" : "Menu"} size={20} />
+            </button>
           </div>
         </div>
       </header>
@@ -151,12 +150,12 @@ export default function Header() {
       </div>
 
       {mobileOpen && (
-        <div className="md:hidden fixed inset-0 z-40 bg-[#111111] flex flex-col">
+        <div className="fixed inset-0 z-[60] bg-[#111111] flex flex-col">
           <div className="flex items-center justify-between px-4 pt-3 pb-2">
             <a href="/" onClick={(e) => { e.preventDefault(); window.location.href = "/"; }} className="flex items-center gap-2 cursor-pointer">
-              <img src="https://cdn.poehali.dev/projects/4e7661bb-56aa-4a32-b0f4-260fcdbc0e28/bucket/90692979-4a2c-4563-a738-77d8b0a6bbb0.jpg" alt="Юг-Трансфер" className="w-10 h-10 object-contain rounded-full" />
+              <img src="https://cdn.poehali.dev/projects/4e7661bb-56aa-4a32-b0f4-260fcdbc0e28/bucket/90692979-4a2c-4563-a738-77d8b0a6bbb0.jpg" alt="Наше такси" className="w-10 h-10 object-contain rounded-full" />
               <span className="font-bold text-lg text-white">
-                ЮГ-<span className="text-[#F5A623]">ТРАНСФЕР</span>
+                Наше <span className="text-[#F5A623]">такси</span>
               </span>
             </a>
             <button
@@ -217,14 +216,6 @@ export default function Header() {
           </nav>
 
           <div className="px-4 pb-10 flex flex-col gap-4 border-t border-white/10 pt-5 overflow-y-auto">
-            <a
-              href={LK_HREF}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="bg-[#F5A623] hover:bg-[#e69a1a] text-black font-bold py-3.5 rounded-full text-center text-base transition-colors"
-            >
-              Личный кабинет
-            </a>
             <div className="flex flex-col gap-2">
               <a href={PHONE_HREF} className="flex items-center gap-2 text-white font-bold text-base">
                 <Icon name="Phone" size={16} className="text-[#F5A623]" />

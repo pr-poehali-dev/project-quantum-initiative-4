@@ -162,7 +162,7 @@ export default function Hero() {
   };
 
   return (
-    <div className="relative" style={{ height: "100dvh", overflow: "hidden" }}>
+    <div className="relative w-full h-full" style={{ overflow: "hidden" }}>
       <HeroBackground from={fromConfirmed ? from : ""} to={toConfirmed ? to : ""} stops={confirmedStops} formHeight={formHeight} />
 
       {/* Подсказка геолокации */}

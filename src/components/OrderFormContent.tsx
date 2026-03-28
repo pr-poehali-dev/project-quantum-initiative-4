@@ -266,7 +266,7 @@ export function FormContent(p: FormProps) {
           setExtras={handleExtrasChange}
         />
       )}
-      <form onSubmit={p.handleSubmit} noValidate className="flex flex-col justify-between flex-1 h-full gap-3">
+      <form onSubmit={p.handleSubmit} noValidate className="flex flex-col justify-between flex-1 h-full gap-3 overflow-hidden">
         {/* Откуда */}
         <div>
           <CityInput placeholder="Откуда?" value={p.from} onChange={p.setFrom} onConfirm={p.setFromConfirmed} showGeo />
@@ -359,8 +359,8 @@ export function FormContent(p: FormProps) {
         </div>
 
         {/* Класс авто */}
-        <div className="overflow-x-auto scrollbar-hide">
-          <div className="flex gap-1.5 min-w-max">
+        <div className="overflow-x-auto scrollbar-hide -mx-1 px-1">
+          <div className="flex gap-1.5 w-max">
             {CAR_CLASSES.map((cls) => {
               const clsPrice = p.allPrices?.[cls.id];
               return (

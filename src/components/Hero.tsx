@@ -162,7 +162,7 @@ export default function Hero() {
   };
 
   return (
-    <div className="relative w-full h-full" style={{ overflow: "hidden" }}>
+    <div className="relative" style={{ height: "100dvh", overflow: "hidden" }}>
       <HeroBackground from={fromConfirmed ? from : ""} to={toConfirmed ? to : ""} stops={confirmedStops} formHeight={formHeight} />
 
       {/* Подсказка геолокации */}
@@ -200,8 +200,15 @@ export default function Hero() {
         </div>
       </div>
 
+      {/* DESKTOP: бегущая строка внизу, начинается от формы */}
+      <div className="hidden sm:block absolute z-10 bottom-0 left-[356px] right-0 overflow-hidden bg-[#111]/90 backdrop-blur-sm border-t border-white/10">
+        <div className="animate-marquee-rtl py-2 text-sm text-gray-300 whitespace-nowrap">
+          <span>🔥 Такси «Юг-Трансфер»: скидка 10% на первый заказ! Подача от 30 минут. Звоните +7 (995) 614-14-14   ★   ✈️ Встретим в аэропорту с табличкой! Фиксированные цены на трансферы. «Юг-Трансфер» — надёжно.   ★   🔥 Такси «Юг-Трансфер»: скидка 10% на первый заказ! Подача от 30 минут. Звоните +7 (995) 614-14-14   ★   ✈️ Встретим в аэропорту с табличкой! Фиксированные цены на трансферы. «Юг-Трансфер» — надёжно.</span>
+        </div>
+      </div>
+
       {/* DESKTOP: контакты в правом нижнем углу */}
-      <div className="hidden sm:block absolute z-10 bottom-6 right-6">
+      <div className="hidden sm:block absolute z-10 bottom-10 right-6">
         <div className="bg-[#1a1a1a]/80 backdrop-blur-md rounded-xl px-3 py-2.5 shadow-2xl">
           <a href="tel:+79956141414" className="text-white font-bold text-sm hover:text-brand-yellow transition-colors block">
             +7 (995) 614-14-14

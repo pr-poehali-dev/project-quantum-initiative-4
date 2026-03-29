@@ -20,7 +20,6 @@ const NAV_LINKS = [
     children: [
       { label: "Подключение", href: "https://ug-transfer.online/mobile-drivers/", external: true },
       { label: "Автопарк", href: "https://ug-transfer.online/rent-car/", external: true },
-      { label: "Эвакуатор", href: "https://evacrimea.ru/", external: true },
     ],
   },
   {
@@ -28,6 +27,7 @@ const NAV_LINKS = [
     children: [
       { label: "Экскурсии", href: "https://exursyalta.ru/", external: true },
       { label: "Заказать такси", href: "https://ug-transfer.online/", external: true },
+      { label: "Эвакуатор", href: "https://evacrimea.ru/", external: true },
     ],
   },
   { label: "Контакты", href: "/contacts" },
